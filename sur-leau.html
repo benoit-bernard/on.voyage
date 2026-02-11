@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html class="dark" lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sur l'eau — Paddle & Canoë — on.voyage</title>
+    <meta name="description" content="Nos aventures en paddle, canoë et kayak sur les rivières et lacs de France et d'ailleurs." />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link href="css/styles.css" rel="stylesheet" />
+    <link href="css/blog.css" rel="stylesheet" />
+    <script>tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "primary": "#19e6a2",
+                    "background-light": "#f6f8f7",
+                    "background-dark": "#11211c",
+                },
+                fontFamily: {
+                    "display": ["Plus Jakarta Sans"]
+                },
+                borderRadius: {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+                },
+            },
+        },
+    }</script>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-200 antialiased">
+
+    <!-- Header -->
+    <header class="fixed top-0 left-0 right-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
+        <div class="site-header__inner max-w-3xl mx-auto px-6 h-16 flex items-center justify-between">
+            <a href="index.html" class="text-xl font-bold tracking-tight text-slate-900 dark:text-white hover:opacity-80 transition-opacity">
+                on.<span class="text-primary">voyage</span>
+            </a>
+            <nav class="flex items-center gap-6">
+                <a href="sur-leau.html" class="text-sm font-semibold text-primary">Sur l'eau</a>
+                <a href="sur-terre.html" class="text-sm font-semibold text-slate-400 hover:text-primary transition-colors">Sur terre</a>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Hero -->
+    <div class="article-hero mt-16">
+        <img
+            src="https://i.ytimg.com/vi/wZyGEQcArpc/maxresdefault.jpg"
+            alt="Paddle et aventures sur l'eau"
+        />
+        <div class="article-hero__overlay"></div>
+        <div class="article-hero__content">
+            <span class="inline-block px-3 py-1 bg-primary/20 backdrop-blur-md text-primary text-[10px] font-bold tracking-widest uppercase rounded-full mb-3">
+                Aventures aquatiques
+            </span>
+            <h1 class="text-2xl md:text-4xl font-bold text-white leading-tight">
+                Sur l'eau
+            </h1>
+            <p class="text-white/60 text-sm mt-2">Paddle, canoë et kayak — nos descentes de rivières</p>
+        </div>
+    </div>
+
+    <!-- Content -->
+    <article class="article-body text-slate-700 dark:text-slate-300">
+
+        <p class="text-lg leading-relaxed">
+            L'eau nous appelle. Que ce soit en paddle, en canoë ou en kayak, nous aimons partir à l'aventure
+            sur les rivières, les lacs et parfois même la mer. Chaque cours d'eau raconte une histoire différente.
+        </p>
+
+        <h2>Nos aventures</h2>
+
+        <!-- Adventure cards grid -->
+        <div class="grid gap-8 my-8">
+            
+            <!-- Adventure 1 -->
+            <a href="eau/descente-ardeche.html" class="blog-card flex flex-col md:flex-row gap-4 group hover:bg-primary/5 transition-colors rounded-lg p-4 -mx-4">
+                <div class="w-full md:w-48 h-48 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
+                    <img
+                        alt="Descente de l'Ardèche en paddle"
+                        class="w-full h-full object-cover"
+                        src="https://i.ytimg.com/vi/wZyGEQcArpc/maxresdefault.jpg"
+                        loading="lazy"
+                    />
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-2">Paddle · Août 2024</p>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors mb-2">
+                        Descente de l'Ardèche en paddle
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                        32 km de descente entre les gorges majestueuses de l'Ardèche. Du Pont d'Arc aux rapides
+                        techniques, une aventure aquatique inoubliable en famille.
+                    </p>
+                    <div class="flex items-center gap-3 mt-3 text-xs text-slate-400">
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">schedule</span>
+                            2 jours
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">straighten</span>
+                            32 km
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">water</span>
+                            Classe II-III
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Adventure 2 -->
+            <a href="eau/gorges-verdon.html" class="blog-card flex flex-col md:flex-row gap-4 group hover:bg-primary/5 transition-colors rounded-lg p-4 -mx-4">
+                <div class="w-full md:w-48 h-48 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
+                    <img
+                        alt="Gorges du Verdon en paddle"
+                        class="w-full h-full object-cover"
+                        src="https://i.ytimg.com/vi/wZyGEQcArpc/hqdefault.jpg"
+                        loading="lazy"
+                    />
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-2">Paddle · Juillet 2024</p>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors mb-2">
+                        Les Gorges du Verdon en paddle
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                        Lac de Sainte-Croix et gorges du Verdon. L'eau turquoise, les falaises vertigineuses,
+                        le calme d'une matinée d'été avant l'arrivée des touristes.
+                    </p>
+                    <div class="flex items-center gap-3 mt-3 text-xs text-slate-400">
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">schedule</span>
+                            1 jour
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">straighten</span>
+                            18 km
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">water</span>
+                            Lac calme
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Adventure 3 -->
+            <a href="eau/dordogne-famille.html" class="blog-card flex flex-col md:flex-row gap-4 group hover:bg-primary/5 transition-colors rounded-lg p-4 -mx-4">
+                <div class="w-full md:w-48 h-48 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
+                    <img
+                        alt="Dordogne en canoë familial"
+                        class="w-full h-full object-cover"
+                        src="https://i.ytimg.com/vi/wZyGEQcArpc/sddefault.jpg"
+                        loading="lazy"
+                    />
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-2">Canoë · Juin 2024</p>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors mb-2">
+                        La Dordogne en canoë familial
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                        De Beynac à La Roque-Gageac, longer les châteaux médiévaux au fil de l'eau.
+                        Une descente parfaite pour initier les enfants au canoë.
+                    </p>
+                    <div class="flex items-center gap-3 mt-3 text-xs text-slate-400">
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">schedule</span>
+                            1 jour
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">straighten</span>
+                            14 km
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">water</span>
+                            Classe I
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+            <!-- Adventure 4 -->
+            <a href="eau/allier-bivouac.html" class="blog-card flex flex-col md:flex-row gap-4 group hover:bg-primary/5 transition-colors rounded-lg p-4 -mx-4">
+                <div class="w-full md:w-48 h-48 md:h-32 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
+                    <img
+                        alt="L'Allier en bivouac"
+                        class="w-full h-full object-cover"
+                        src="https://i.ytimg.com/vi/wZyGEQcArpc/maxresdefault.jpg"
+                        loading="lazy"
+                    />
+                </div>
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-2">Canoë-camping · Mai 2024</p>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors mb-2">
+                        L'Allier sauvage en bivouac
+                    </h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                        3 jours et 2 nuits sur la dernière rivière sauvage d'Europe. Pagayer le jour,
+                        bivouaquer sur les bancs de sable, s'endormir bercé par le courant.
+                    </p>
+                    <div class="flex items-center gap-3 mt-3 text-xs text-slate-400">
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">schedule</span>
+                            3 jours
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">straighten</span>
+                            68 km
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <span class="material-icons-outlined text-sm">water</span>
+                            Classe I-II
+                        </span>
+                    </div>
+                </div>
+            </a>
+
+        </div>
+
+        <blockquote>
+            « L'eau nous enseigne la patience. Elle contourne les obstacles, elle ne les force jamais. »
+        </blockquote>
+
+        <h2>Voir aussi</h2>
+        <p>
+            <a href="sur-terre.html" class="text-primary hover:underline">Nos aventures sur terre</a> (randonnée, bivouac en montagne)
+        </p>
+
+    </article>
+
+    <!-- Footer -->
+    <footer class="border-t border-primary/10 py-8 text-center">
+        <a href="index.html" class="text-sm font-bold tracking-tight text-slate-900 dark:text-white">
+            on.<span class="text-primary">voyage</span>
+        </a>
+        <p class="text-xs text-slate-400 mt-2">© 2024 on.voyage — Tous droits réservés</p>
+    </footer>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

@@ -18,9 +18,6 @@
         <div class="site-header__inner max-w-md md:max-w-4xl xl:max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">on.<span class="text-primary">voyage</span></h1>
             <div class="flex items-center gap-4">
-                <button class="p-2 rounded-full hover:bg-primary/10 transition-colors" aria-label="Rechercher">
-                    <span class="material-icons-outlined text-xl">search</span>
-                </button>
                 <button class="p-2 rounded-full hover:bg-primary/10 transition-colors md:hidden" aria-label="Menu">
                     <span class="material-icons-outlined text-xl">menu</span>
                 </button>
@@ -36,26 +33,22 @@
     <!-- Bottom nav (mobile) / Secondary nav (desktop) -->
     <nav class="bottom-nav fixed bottom-0 md:relative md:top-16 left-0 right-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-xl border-t md:border-t-0 md:border-b border-primary/10 pb-6 md:pb-0 pt-3 md:pt-0">
         <div class="bottom-nav__inner max-w-md md:max-w-4xl xl:max-w-6xl mx-auto flex justify-around items-center">
-            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-primary md:py-3">
+            <a href="index.html" class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-primary md:py-3">
                 <span class="material-icons-outlined">explore</span>
                 <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Feed</span>
-            </button>
-            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
-                <span class="material-icons-outlined">map</span>
-                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Guides</span>
-            </button>
-            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
-                <span class="material-icons-outlined">add_circle_outline</span>
-                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Post</span>
-            </button>
-            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
-                <span class="material-icons-outlined">collections</span>
-                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Galerie</span>
-            </button>
-            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
+            </a>
+            <a href="sur-leau.html" class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
+                <span class="material-icons-outlined">waves</span>
+                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Sur l'eau</span>
+            </a>
+            <a href="sur-terre.html" class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
+                <span class="material-icons-outlined">terrain</span>
+                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Sur terre</span>
+            </a>
+            <a href="https://nomad-coder.com" target="_blank" rel="noopener noreferrer" class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
                 <span class="material-icons-outlined">person_outline</span>
                 <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Profil</span>
-            </button>
+            </a>
         </div>
     </nav>
 
@@ -167,21 +160,8 @@
 
         </div>
 
-        <!-- Newsletter -->
-        <section class="mt-20 py-12 px-6 bg-primary/10 rounded-xl border border-primary/20 fade-in-up">
-            <div class="text-center space-y-4">
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white leading-tight">Embarquez pour le voyage</h2>
-                <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xs mx-auto">Recevez nos r&#233;cits po&#233;tiques et guides de micro-aventure chaque semaine dans votre bo&#238;te mail.</p>
-                <form class="newsletter-form mt-8 flex flex-col gap-3">
-                    <input class="newsletter-input w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-primary/20 rounded-lg text-sm transition-all placeholder:text-slate-400" placeholder="Votre adresse email" type="email" required />
-                    <button class="newsletter-btn w-full bg-primary hover:bg-primary/90 text-background-dark font-bold py-3 rounded-lg shadow-lg shadow-primary/20" type="submit">Rejoindre le voyage</button>
-                </form>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-6">D&#233;sabonnement &#224; tout moment. Pas de spam, que de l&#8217;&#233;merveillement.</p>
-            </div>
-        </section>
+            </main>
 
-    </main>
-
-    <script src="js/main.js"></script>
-</body>
-</html>
+            <script src="js/main.js"></script>
+        </body>
+        </html>
