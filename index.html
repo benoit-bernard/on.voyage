@@ -1,217 +1,187 @@
-<!DOCTYPE html>
-<html class="dark" lang="en">
+﻿<!DOCTYPE html>
+<html class="dark" lang="fr">
 <head>
     <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>on.voyage Adventure Feed</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>on.voyage</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
-    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet" />
-    <script id="tailwind-config">tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "primary": "#19e6a2",
-                        "background-light": "#f6f8f7",
-                        "background-dark": "#11211c",
-                    },
-                    fontFamily: {
-                        "display": ["Plus Jakarta Sans"]
-                    },
-                    borderRadius: {
-                        "DEFAULT": "0.25rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "full": "9999px"
-                    },
-                },
-            },
-        }</script>
-    <style>
-        body {
-            min-height: max(884px, 100dvh);
-        }
-
-        .no-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
-
-        .no-scrollbar {
-            -ms-overflow-style: none;
-            scrollbar-width: none;
-        }
-    </style>
-    <style>
-        body {
-            min-height: max(884px, 100dvh);
-        }
-    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <link href="css/styles.css" rel="stylesheet" />
+    <script>tailwind.config={darkMode:"class",theme:{extend:{colors:{"primary":"#19e6a2","background-light":"#f6f8f7","background-dark":"#11211c"},fontFamily:{"display":["Plus Jakarta Sans"]},borderRadius:{"DEFAULT":"0.25rem","lg":"0.5rem","xl":"0.75rem","full":"9999px"}}}}</script>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display text-slate-800 dark:text-slate-200 antialiased overflow-x-hidden">
+
+    <!-- Header -->
     <header class="fixed top-0 left-0 right-0 z-50 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md border-b border-primary/10">
-        <div class="max-w-md mx-auto px-6 h-16 flex items-center justify-between">
+        <div class="site-header__inner max-w-md md:max-w-4xl xl:max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
             <h1 class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">on.<span class="text-primary">voyage</span></h1>
             <div class="flex items-center gap-4">
-                <button class="p-2 rounded-full hover:bg-primary/10 transition-colors">
+                <button class="p-2 rounded-full hover:bg-primary/10 transition-colors" aria-label="Rechercher">
                     <span class="material-icons-outlined text-xl">search</span>
                 </button>
-                <button class="p-2 rounded-full hover:bg-primary/10 transition-colors">
+                <button class="p-2 rounded-full hover:bg-primary/10 transition-colors md:hidden" aria-label="Menu">
                     <span class="material-icons-outlined text-xl">menu</span>
                 </button>
+                <nav class="hidden md:flex items-center gap-6 ml-4">
+                    <a href="#videos" class="text-sm font-semibold text-primary">Vid&#233;os</a>
+                    <a href="#photos" class="text-sm font-semibold text-slate-400 hover:text-primary transition-colors">Photos</a>
+                    <a href="#journal" class="text-sm font-semibold text-slate-400 hover:text-primary transition-colors">Journal</a>
+                </nav>
             </div>
         </div>
     </header>
-    <main class="max-w-md mx-auto pt-20 pb-24 px-4">
-        <section class="px-2 mb-6">
-            <h2 class="text-3xl font-bold text-slate-900 dark:text-white">Adventure Feed</h2>
-            <p class="text-slate-500 dark:text-primary/60 text-sm mt-1">Cinematic moments from the wild</p>
-        </section>
-        <div class="px-2 mb-8">
-            <div class="flex p-1 bg-slate-200/50 dark:bg-white/5 rounded-xl">
-                <button class="flex-1 py-2.5 text-sm font-semibold rounded-lg bg-white dark:bg-primary text-slate-900 dark:text-background-dark shadow-sm transition-all">
-                    Videos
-                </button>
-                <button class="flex-1 py-2.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all">
-                    Photos
-                </button>
-                <button class="flex-1 py-2.5 text-sm font-semibold text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white transition-all">
-                    Blog
-                </button>
-            </div>
-        </div>
-        <div class="space-y-16">
-            <div class="space-y-16">
-                <article class="group px-2">
-                    <div class="relative aspect-[4/5] rounded-xl overflow-hidden shadow-2xl bg-slate-200 dark:bg-slate-800">
-                        <img alt="Misty mountains at dawn" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnI4-y3lmKE-BlvD6ASL9BCrpBSqHDtT-KPPUWw7ZLpQ1UucaS6skTPiKs3BgeA4NLfQ6qyycUtFbn1uxjBokYn52EyLwJadUhE8lhG8OcXgdWuZ_O_ciJqVUMXqgPMtUS9rusE6DXzI9JslmAsuOZH26axdXvWvEx5c9WCFwukxn6G271ImzO2ITc6X3mj3P3hU9GEQ4tnko_U368hjXyf_oBBqj5QyBRjYEMsBH0NCM8334EzAhrsxsUHBK44TfTTY3qvzKXQs5w" />
-                        <div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
-                        <div class="absolute inset-0 flex items-center justify-center">
-                            <div class="w-16 h-16 bg-primary/90 text-background-dark rounded-full flex items-center justify-center shadow-lg transform group-hover:scale-110 transition-transform duration-300">
-                                <span class="material-icons-outlined text-4xl">play_arrow</span>
-                            </div>
-                        </div>
-                        <div class="absolute bottom-0 left-0 right-0 p-6">
-                            <span class="inline-block px-3 py-1 bg-primary/20 backdrop-blur-md text-primary text-[10px] font-bold tracking-widest uppercase rounded-full mb-3">Micro-Adventure</span>
-                            <h3 class="text-xl font-medium text-white mb-2 italic">A weekend in the Alps with my daughter</h3>
-                            <p class="text-white/70 text-sm leading-relaxed font-light">Watching the sun break over the Eiger peak while sipping hot cocoa. Moments that stay forever.</p>
-                        </div>
-                    </div>
-                    <div class="flex items-center justify-between mt-4">
-                        <div class="flex items-center gap-6">
-                            <button class="flex items-center gap-2 group/btn">
-                                <span class="material-icons-outlined text-slate-400 group-hover/btn:text-primary transition-colors">favorite_border</span>
-                                <span class="text-xs font-medium text-slate-500">1.2k</span>
-                            </button>
-                            <button class="flex items-center gap-2 group/btn">
-                                <span class="material-icons-outlined text-slate-400 group-hover/btn:text-primary transition-colors">chat_bubble_outline</span>
-                                <span class="text-xs font-medium text-slate-500">48</span>
-                            </button>
-                        </div>
-                        <div class="flex items-center gap-4">
-                            <button class="p-1 text-slate-400 hover:text-primary transition-colors">
-                                <span class="material-icons-outlined">share</span>
-                            </button>
-                            <button class="p-1 text-slate-400 hover:text-primary transition-colors">
-                                <span class="material-icons-outlined">bookmark_border</span>
-                            </button>
-                        </div>
-                    </div>
-                </article>
-                <div class="pt-8 px-2">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="text-lg font-bold">Latest Captures</h3>
-                        <span class="text-xs font-bold text-primary tracking-widest uppercase">View Instagram</span>
-                    </div>
-                    <div class="grid grid-cols-3 gap-1">
-                        <div class="aspect-square bg-slate-200 dark:bg-slate-800 rounded-sm overflow-hidden">
-                            <img alt="Nature photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8bSKYzyvUZhYufd53Pyh8iU77klqOly7mn1LgGi_32MT-65cXubEY-R-25my8hr_sRwt63pm7Uiz1omM-4NdGBb4mT0mAd-_-J9rBa1HvPYHLmIHNUyOiTTu1kyHXwfkUL587KjXmdiZflDGhINbpuzQPlSz9laqZ2KuXrHjna9ONdBlhpJAINLpdTbE7IupsLI7AFJ4QucqI1P780fl9JzywHtQkkx43-o-kzjjDFJW8Rfp2IQmIUFLT5rHpFIxLRpfbJnpxJtvH" />
-                        </div>
-                        <div class="aspect-square bg-slate-200 dark:bg-slate-800 rounded-sm overflow-hidden">
-                            <img alt="Nature photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa-DQhGgJNAYTKjKUxYbyAoqSABDwhR5jToDMclvRLHHW42QN4w2SsGpT71TvGlm2PyMN69KvYDRVgFYl9WfH0hRgOvYZS7veVh_AGxjpatzyQSOA9Gd_pACDat5ASyZv1Y6hSVovh4yRYa95wFUUGEdQTvlF9OGVYsUWRzjPRIL9iwgnPEiKObqVP0iqNVCOFCmxRRDT9ztDuLfeEeEJpUwMilVXw5oepCOiHjcuzL4VtFwCF8RZRCI2ZMN1o5DxUiDxlR8c0b3F7" />
-                        </div>
-                        <div class="aspect-square bg-slate-200 dark:bg-slate-800 rounded-sm overflow-hidden relative">
-                            <img alt="Nature photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnI4-y3lmKE-BlvD6ASL9BCrpBSqHDtT-KPPUWw7ZLpQ1UucaS6skTPiKs3BgeA4NLfQ6qyycUtFbn1uxjBokYn52EyLwJadUhE8lhG8OcXgdWuZ_O_ciJqVUMXqgPMtUS9rusE6DXzI9JslmAsuOZH26axdXvWvEx5c9WCFwukxn6G271ImzO2ITc6X3mj3P3hU9GEQ4tnko_U368hjXyf_oBBqj5QyBRjYEMsBH0NCM8334EzAhrsxsUHBK44TfTTY3qvzKXQs5w" />
-                            <div class="absolute top-1 right-1"><span class="material-symbols-outlined text-white text-sm">filter_none</span></div>
-                        </div>
-                        <div class="aspect-square bg-slate-200 dark:bg-slate-800 rounded-sm overflow-hidden">
-                            <img alt="Nature photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa-DQhGgJNAYTKjKUxYbyAoqSABDwhR5jToDMclvRLHHW42QN4w2SsGpT71TvGlm2PyMN69KvYDRVgFYl9WfH0hRgOvYZS7veVh_AGxjpatzyQSOA9Gd_pACDat5ASyZv1Y6hSVovh4yRYa95wFUUGEdQTvlF9OGVYsUWRzjPRIL9iwgnPEiKObqVP0iqNVCOFCmxRRDT9ztDuLfeEeEJpUwMilVXw5oepCOiHjcuzL4VtFwCF8RZRCI2ZMN1o5DxUiDxlR8c0b3F7" />
-                        </div>
-                        <div class="aspect-square bg-slate-200 dark:bg-slate-800 rounded-sm overflow-hidden">
-                            <img alt="Nature photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnI4-y3lmKE-BlvD6ASL9BCrpBSqHDtT-KPPUWw7ZLpQ1UucaS6skTPiKs3BgeA4NLfQ6qyycUtFbn1uxjBokYn52EyLwJadUhE8lhG8OcXgdWuZ_O_ciJqVUMXqgPMtUS9rusE6DXzI9JslmAsuOZH26axdXvWvEx5c9WCFwukxn6G271ImzO2ITc6X3mj3P3hU9GEQ4tnko_U368hjXyf_oBBqj5QyBRjYEMsBH0NCM8334EzAhrsxsUHBK44TfTTY3qvzKXQs5w" />
-                        </div>
-                        <div class="aspect-square bg-slate-200 dark:bg-slate-800 rounded-sm overflow-hidden">
-                            <img alt="Nature photo" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8bSKYzyvUZhYufd53Pyh8iU77klqOly7mn1LgGi_32MT-65cXubEY-R-25my8hr_sRwt63pm7Uiz1omM-4NdGBb4mT0mAd-_-J9rBa1HvPYHLmIHNUyOiTTu1kyHXwfkUL587KjXmdiZflDGhINbpuzQPlSz9laqZ2KuXrHjna9ONdBlhpJAINLpdTbE7IupsLI7AFJ4QucqI1P780fl9JzywHtQkkx43-o-kzjjDFJW8Rfp2IQmIUFLT5rHpFIxLRpfbJnpxJtvH" />
-                        </div>
-                    </div>
-                </div>
-                <div class="pt-8 px-2 space-y-6">
-                    <div class="flex items-center justify-between mb-2">
-                        <h3 class="text-lg font-bold">From the Journal</h3>
-                        <span class="text-xs font-bold text-primary tracking-widest uppercase">Read All</span>
-                    </div>
-                    <article class="flex gap-4 items-center group">
-                        <div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
-                            <img alt="Article thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD8bSKYzyvUZhYufd53Pyh8iU77klqOly7mn1LgGi_32MT-65cXubEY-R-25my8hr_sRwt63pm7Uiz1omM-4NdGBb4mT0mAd-_-J9rBa1HvPYHLmIHNUyOiTTu1kyHXwfkUL587KjXmdiZflDGhINbpuzQPlSz9laqZ2KuXrHjna9ONdBlhpJAINLpdTbE7IupsLI7AFJ4QucqI1P780fl9JzywHtQkkx43-o-kzjjDFJW8Rfp2IQmIUFLT5rHpFIxLRpfbJnpxJtvH" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-1">Adventure Guide • Oct 24, 2023</p>
-                            <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors truncate">Essential Gear for Micro-Adventures</h4>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">What we pack for a spontaneous weekend in the wild with kids...</p>
-                        </div>
-                    </article>
-                    <article class="flex gap-4 items-center group">
-                        <div class="w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
-                            <img alt="Article thumbnail" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDa-DQhGgJNAYTKjKUxYbyAoqSABDwhR5jToDMclvRLHHW42QN4w2SsGpT71TvGlm2PyMN69KvYDRVgFYl9WfH0hRgOvYZS7veVh_AGxjpatzyQSOA9Gd_pACDat5ASyZv1Y6hSVovh4yRYa95wFUUGEdQTvlF9OGVYsUWRzjPRIL9iwgnPEiKObqVP0iqNVCOFCmxRRDT9ztDuLfeEeEJpUwMilVXw5oepCOiHjcuzL4VtFwCF8RZRCI2ZMN1o5DxUiDxlR8c0b3F7" />
-                        </div>
-                        <div class="flex-1 min-w-0">
-                            <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-1">Personal Essay • Oct 18, 2023</p>
-                            <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors truncate">Finding Silence in the Arctic</h4>
-                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">The physical and mental journey of chasing the Northern Lights solo...</p>
-                        </div>
-                    </article>
-                </div>
-            </div>
-        </div>
-        <section class="mt-20 py-12 px-6 bg-primary/10 rounded-xl border border-primary/20">
-            <div class="text-center space-y-4">
-                <h2 class="text-2xl font-bold text-slate-900 dark:text-white leading-tight">Subscribe to the Journey</h2>
-                <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xs mx-auto">Get poetic stories and micro-adventure guides delivered to your inbox weekly.</p>
-                <form class="mt-8 flex flex-col gap-3">
-                    <input class="w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-primary/20 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all placeholder:text-slate-400" placeholder="Your email address" type="email" />
-                    <button class="w-full bg-primary hover:bg-primary/90 text-background-dark font-bold py-3 rounded-lg transition-all shadow-lg shadow-primary/20 active:scale-[0.98]" type="submit">
-                        Join the Voyage
-                    </button>
-                </form>
-                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-6">Unsubscribe anytime. No spam, only wonder.</p>
-            </div>
-        </section>
-    </main>
-    <nav class="fixed bottom-0 left-0 right-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-xl border-t border-primary/10 pb-6 pt-3">
-        <div class="max-w-md mx-auto flex justify-around items-center">
-            <button class="flex flex-col items-center gap-1 text-primary">
+
+    <!-- Bottom nav (mobile) / Secondary nav (desktop) -->
+    <nav class="bottom-nav fixed bottom-0 md:relative md:top-16 left-0 right-0 z-50 bg-background-light/90 dark:bg-background-dark/90 backdrop-blur-xl border-t md:border-t-0 md:border-b border-primary/10 pb-6 md:pb-0 pt-3 md:pt-0">
+        <div class="bottom-nav__inner max-w-md md:max-w-4xl xl:max-w-6xl mx-auto flex justify-around items-center">
+            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-primary md:py-3">
                 <span class="material-icons-outlined">explore</span>
-                <span class="text-[10px] font-medium uppercase tracking-tighter">Feed</span>
+                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Feed</span>
             </button>
-            <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors">
+            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
                 <span class="material-icons-outlined">map</span>
-                <span class="text-[10px] font-medium uppercase tracking-tighter">Guides</span>
+                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Guides</span>
             </button>
-            <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors">
+            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
                 <span class="material-icons-outlined">add_circle_outline</span>
-                <span class="text-[10px] font-medium uppercase tracking-tighter">Post</span>
+                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Post</span>
             </button>
-            <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors">
+            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
                 <span class="material-icons-outlined">collections</span>
-                <span class="text-[10px] font-medium uppercase tracking-tighter">Gallery</span>
+                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Galerie</span>
             </button>
-            <button class="flex flex-col items-center gap-1 text-slate-400 hover:text-primary transition-colors">
+            <button class="flex flex-col md:flex-row items-center gap-1 md:gap-2 text-slate-400 hover:text-primary transition-colors md:py-3">
                 <span class="material-icons-outlined">person_outline</span>
-                <span class="text-[10px] font-medium uppercase tracking-tighter">Profile</span>
+                <span class="text-[10px] md:text-xs font-medium uppercase tracking-tighter md:tracking-wider">Profil</span>
             </button>
         </div>
     </nav>
 
+    <!-- Main content -->
+    <main class="site-main max-w-md md:max-w-4xl xl:max-w-6xl mx-auto pt-20 md:pt-8 pb-24 md:pb-12 px-4 md:px-8">
+
+        <!-- Title -->
+        <section class="px-2 mb-6 fade-in-up">
+            <h2 class="text-3xl md:text-4xl font-bold text-slate-900 dark:text-white">Adventure Feed</h2>
+            <p class="text-slate-500 dark:text-primary/60 text-sm mt-1">Moments cin&#233;matiques en pleine nature</p>
+        </section>
+
+        <!-- Tabs (mobile only) -->
+        <div class="px-2 mb-8 md:hidden" data-tabs>
+            <div class="flex p-1 bg-slate-200/50 dark:bg-white/5 rounded-xl">
+                <button class="tab-btn bg-white dark:bg-primary text-slate-900 dark:text-background-dark shadow-sm" data-tab="videos">Vid&#233;os</button>
+                <button class="tab-btn text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white" data-tab="photos">Photos</button>
+                <button class="tab-btn text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-white" data-tab="blog">Blog</button>
+            </div>
+        </div>
+
+        <!-- Feed grid -->
+        <div class="feed-grid">
+
+            <!-- Video hero -->
+            <div class="video-hero-wrapper fade-in-up" data-tab-content="videos" id="videos">
+                <article class="video-hero group relative aspect-[4/5] md:aspect-video rounded-xl overflow-hidden shadow-2xl bg-slate-200 dark:bg-slate-800 mx-2" data-video-id="wZyGEQcArpc" data-video-title="Des roses et des larmes">
+                    <img alt="Des roses et des larmes" class="absolute inset-0 w-full h-full object-cover" src="https://i.ytimg.com/vi/wZyGEQcArpc/maxresdefault.jpg" />
+                    <div class="absolute inset-0 bg-gradient-to-t from-background-dark/80 via-transparent to-transparent"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="video-hero__play w-16 h-16 md:w-20 md:h-20 bg-primary/90 text-background-dark rounded-full flex items-center justify-center shadow-lg shadow-primary/30">
+                            <span class="material-icons-outlined text-4xl md:text-5xl">play_arrow</span>
+                        </div>
+                    </div>
+                    <div class="absolute bottom-0 left-0 right-0 p-6 md:p-8">
+                        <span class="inline-block px-3 py-1 bg-primary/20 backdrop-blur-md text-primary text-[10px] font-bold tracking-widest uppercase rounded-full mb-3">Derni&#232;re vid&#233;o</span>
+                        <h3 class="text-xl md:text-2xl font-medium text-white mb-2 italic">Des roses et des larmes</h3>
+                        <p class="text-white/70 text-sm leading-relaxed font-light md:max-w-lg">R&#233;cit d&#8217;un &#233;chec et d&#8217;un retour aux sources. Une aventure en famille o&#249; la beaut&#233; na&#238;t de l&#8217;impr&#233;vu.</p>
+                    </div>
+                    <div class="video-hero__iframe-wrapper"></div>
+                </article>
+                <div class="flex items-center justify-between mt-4 mx-2">
+                    <div class="flex items-center gap-6">
+                        <button class="flex items-center gap-2 group/btn">
+                            <span class="material-icons-outlined text-slate-400 group-hover/btn:text-primary transition-colors">favorite_border</span>
+                            <span class="text-xs font-medium text-slate-500">1.2k</span>
+                        </button>
+                        <button class="flex items-center gap-2 group/btn">
+                            <span class="material-icons-outlined text-slate-400 group-hover/btn:text-primary transition-colors">chat_bubble_outline</span>
+                            <span class="text-xs font-medium text-slate-500">48</span>
+                        </button>
+                    </div>
+                    <div class="flex items-center gap-4">
+                        <button class="p-1 text-slate-400 hover:text-primary transition-colors" aria-label="Partager">
+                            <span class="material-icons-outlined">share</span>
+                        </button>
+                        <button class="p-1 text-slate-400 hover:text-primary transition-colors" aria-label="Sauvegarder">
+                            <span class="material-icons-outlined">bookmark_border</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Instagram photos -->
+            <div class="pt-8 md:pt-0 px-2 fade-in-up" data-tab-content="photos" id="photos">
+                <div class="flex items-center justify-between mb-4">
+                    <h3 class="text-lg font-bold">Derni&#232;res captures</h3>
+                    <a href="https://www.instagram.com/benoit_bernard/" target="_blank" rel="noopener noreferrer" class="text-xs font-bold text-primary tracking-widest uppercase hover:underline">Voir Instagram</a>
+                </div>
+                <div id="instagram-grid" class="instagram-grid">
+                    <div class="instagram-grid__skeleton bg-slate-200 dark:bg-slate-800"></div>
+                    <div class="instagram-grid__skeleton bg-slate-200 dark:bg-slate-800"></div>
+                    <div class="instagram-grid__skeleton bg-slate-200 dark:bg-slate-800"></div>
+                    <div class="instagram-grid__skeleton bg-slate-200 dark:bg-slate-800"></div>
+                    <div class="instagram-grid__skeleton bg-slate-200 dark:bg-slate-800"></div>
+                    <div class="instagram-grid__skeleton bg-slate-200 dark:bg-slate-800"></div>
+                </div>
+            </div>
+
+            <!-- Blog / Journal -->
+            <div class="pt-8 md:pt-0 px-2 space-y-6 fade-in-up" data-tab-content="blog" id="journal">
+                <div class="flex items-center justify-between mb-2">
+                    <h3 class="text-lg font-bold">Du journal</h3>
+                    <span class="text-xs font-bold text-primary tracking-widest uppercase">Tout lire</span>
+                </div>
+                <div class="blog-articles space-y-6 md:space-y-0">
+                    <a href="blog/equipement-micro-aventure.html" class="blog-card flex gap-4 items-center group">
+                        <div class="blog-card__thumb w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
+                            <img alt="&#201;quipement de micro-aventure" class="w-full h-full object-cover" src="https://i.ytimg.com/vi/wZyGEQcArpc/maxresdefault.jpg" loading="lazy" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-1">Guide aventure &#183; Oct 24, 2023</p>
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors truncate">L&#8217;&#233;quipement essentiel pour la micro-aventure</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">Ce que nous emportons pour un week-end spontan&#233; en pleine nature avec des enfants&#8230;</p>
+                        </div>
+                    </a>
+                    <a href="blog/silence-arctique.html" class="blog-card flex gap-4 items-center group">
+                        <div class="blog-card__thumb w-24 h-24 flex-shrink-0 rounded-lg overflow-hidden bg-slate-200 dark:bg-slate-800">
+                            <img alt="Paysage arctique" class="w-full h-full object-cover" src="https://i.ytimg.com/vi/wZyGEQcArpc/hqdefault.jpg" loading="lazy" />
+                        </div>
+                        <div class="flex-1 min-w-0">
+                            <p class="text-[10px] font-bold text-primary tracking-widest uppercase mb-1">R&#233;cit personnel &#183; Oct 18, 2023</p>
+                            <h4 class="text-sm font-bold text-slate-900 dark:text-white leading-tight group-hover:text-primary transition-colors truncate">Trouver le silence dans l&#8217;Arctique</h4>
+                            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 line-clamp-2">Le voyage physique et mental &#224; la poursuite des aurores bor&#233;ales, en solo&#8230;</p>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Newsletter -->
+        <section class="mt-20 py-12 px-6 bg-primary/10 rounded-xl border border-primary/20 fade-in-up">
+            <div class="text-center space-y-4">
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-white leading-tight">Embarquez pour le voyage</h2>
+                <p class="text-sm text-slate-600 dark:text-slate-400 max-w-xs mx-auto">Recevez nos r&#233;cits po&#233;tiques et guides de micro-aventure chaque semaine dans votre bo&#238;te mail.</p>
+                <form class="newsletter-form mt-8 flex flex-col gap-3">
+                    <input class="newsletter-input w-full px-4 py-3 bg-white dark:bg-background-dark border border-slate-200 dark:border-primary/20 rounded-lg text-sm transition-all placeholder:text-slate-400" placeholder="Votre adresse email" type="email" required />
+                    <button class="newsletter-btn w-full bg-primary hover:bg-primary/90 text-background-dark font-bold py-3 rounded-lg shadow-lg shadow-primary/20" type="submit">Rejoindre le voyage</button>
+                </form>
+                <p class="text-[10px] text-slate-400 uppercase tracking-widest mt-6">D&#233;sabonnement &#224; tout moment. Pas de spam, que de l&#8217;&#233;merveillement.</p>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="js/main.js"></script>
 </body>
 </html>
