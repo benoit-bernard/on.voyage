@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/Mobile/OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
+  </ItemGroup>
+</Project>

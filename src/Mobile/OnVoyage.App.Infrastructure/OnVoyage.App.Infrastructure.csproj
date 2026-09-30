@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <ProjectReference Include="../OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OnVoyage.Recommendation.Engine.Tests" />
+  </ItemGroup>
+</Project>

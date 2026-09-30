@@ -1,0 +1,2 @@
+audio { width: 100%; margin: .5rem 0; }
+.pending { margin: .5rem 0; padding: .6rem .8rem; border-radius: .6rem; background: var(--ov-chip); font-size: .85rem; }

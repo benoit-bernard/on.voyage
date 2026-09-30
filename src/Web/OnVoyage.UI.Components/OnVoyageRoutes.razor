@@ -1,0 +1,11 @@
+<Router AppAssembly="typeof(OnVoyageRoutes).Assembly">
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(AppLayout)" />
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(AppLayout)">
+            <p class="empty">Cette page n'existe pas.</p>
+        </LayoutView>
+    </NotFound>
+</Router>

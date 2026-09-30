@@ -1,0 +1,12 @@
+@if (!string.IsNullOrEmpty(Source))
+{
+    <audio controls preload="none" src="@Source" aria-label="Écouter l'histoire"></audio>
+}
+else
+{
+    <p class="pending">L'audio de cette histoire est en préparation. Lisez le texte en attendant.</p>
+}
+
+@code {
+    [Parameter] public string? Source { get; set; }
+}

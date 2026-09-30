@@ -1,0 +1,88 @@
+@page "/lieu/{Slug}"
+@inject ICatalogClient Catalog
+@inject IProfileStore Profiles
+
+<PageTitle>@(_poi?.Name ?? "Lieu") · ON.VOYAGE</PageTitle>
+
+<a class="back" href="">← Retour</a>
+
+@if (_notFound)
+{
+    <p class="empty">Ce lieu est introuvable.</p>
+}
+else if (_poi is null)
+{
+    <p class="empty" aria-live="polite">Chargement…</p>
+}
+else
+{
+    <h1>@_poi.Name</h1>
+    @if (_poi.HiddenGem)
+    {
+        <span class="gem">Pépite · moins fréquenté</span>
+    }
+
+    <div class="actions">
+        <button class="btn @(_saved ? "btn-on" : "")" aria-pressed="@(_saved ? "true" : "false")" @onclick="ToggleSavedAsync">
+            @(_saved ? "★ Dans vos envies" : "☆ Ajouter à mes envies")
+        </button>
+        <button class="btn btn-soft" @onclick="() => LikeAsync(ProfileUpdater.LikeSignal)">👍</button>
+        <button class="btn btn-soft" @onclick="() => LikeAsync(ProfileUpdater.DislikeSignal)">👎</button>
+    </div>
+
+    @foreach (var story in _poi.Stories)
+    {
+        <article>
+            <h2>@story.Title</h2>
+            <AudioPlayer Source="@story.AudioUrl" />
+            <p>@story.Text</p>
+            @if (!story.AiGenerated)
+            {
+                <p class="note">Texte éditorial, en attente de relecture.</p>
+            }
+        </article>
+    }
+
+    <footer class="sources">Sources : @string.Join(" · ", _poi.Attributions)</footer>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private PoiDetailDto? _poi;
+    private IReadOnlyDictionary<string, double> _weights = new Dictionary<string, double>();
+    private bool _notFound;
+    private bool _saved;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _poi = null;
+        _notFound = false;
+        var detail = await Catalog.GetPoiAsync(Slug, CancellationToken.None);
+        if (detail is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        var summaries = await Catalog.GetPoisAsync("marseille", null, null, CancellationToken.None);
+        _weights = summaries.FirstOrDefault(poi => poi.Id == detail.Id)?.Weights ?? _weights;
+        _saved = profile.Saved.Contains(detail.Id);
+        _poi = detail;
+    }
+
+    private async Task ToggleSavedAsync()
+    {
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        var updated = ProfileUpdater.ToggleSaved(profile, _poi!.Id, _weights);
+        await Profiles.SaveAsync(updated, CancellationToken.None);
+        _saved = updated.Saved.Contains(_poi.Id);
+    }
+
+    private async Task LikeAsync(double signal)
+    {
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        await Profiles.SaveAsync(ProfileUpdater.ApplySignal(profile, _weights, signal), CancellationToken.None);
+    }
+}

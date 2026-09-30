@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>ON.VOYAGE</title>
+  <base href="/" />
+  <meta name="theme-color" content="#0b6b7a" />
+  <meta name="description" content="Le guide de voyage audio qui apprend à vous connaître — et vous emmène là où les autres ne vont pas." />
+  <link rel="manifest" href="manifest.webmanifest" />
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="_content/OnVoyage.UI.Components/css/onvoyage.css" />
+  <link href="OnVoyage.Web.Pwa.styles.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/app.css" />
+  <link href="service-worker.js" rel="preload" />
+  <script type="importmap"></script>
+  <!-- Overlay shown until Blazor starts -->
+</head>
+<body>
+  <div id="app"><p class="loading" role="status">Chargement d'ON.VOYAGE…</p></div>
+  <div id="blazor-error-ui">Une erreur est survenue. <a href="" class="reload">Recharger</a><span class="dismiss">🗙</span></div>
+  <script src="_framework/blazor.webassembly.js"></script>
+  <script>navigator.serviceWorker.register('service-worker.js', { updateViaCache: 'none' });</script>
+</body>
+</html>

@@ -1,0 +1,6 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="bunit" />
+    <ProjectReference Include="../../src/Web/OnVoyage.UI.Components/OnVoyage.UI.Components.csproj" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../OnVoyage.Catalog.Application/OnVoyage.Catalog.Application.csproj" />
+    <ProjectReference Include="../OnVoyage.Catalog.Domain/OnVoyage.Catalog.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Catalog.UnitTests" />
+  </ItemGroup>
+</Project>

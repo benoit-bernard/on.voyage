@@ -1,0 +1,31 @@
+<a class="card" href="lieu/@Card.Poi.Slug">
+    <div class="card-head">
+        <h3>@Card.Poi.Name</h3>
+        <span class="badge @(Card.CompatibilityPercent is null ? "badge-soft" : "badge-score")">@Card.Badge</span>
+    </div>
+    <p class="meta">
+        @CategoryLabel(Card.Poi.Category)
+        @if (Card.Poi.DistanceMeters is { } meters)
+        {
+            <text> · @FormatDistance(meters)</text>
+        }
+        @if (Card.Poi.AudioSeconds is { } seconds)
+        {
+            <text> · @(Math.Max(1, (int)Math.Round(seconds / 60d))) min</text>
+        }
+    </p>
+    @if (!string.IsNullOrEmpty(Card.Why))
+    {
+        <p class="why">@Card.Why</p>
+    }
+</a>
+
+@code {
+    [Parameter, EditorRequired] public PlaceCard Card { get; set; } = default!;
+
+    private static string CategoryLabel(string code) => HomeFeedService.Label(code) is var label && label.StartsWith("l'", StringComparison.Ordinal)
+        ? char.ToUpper(label[2]) + label[3..]
+        : char.ToUpper(label[0]) + label[1..];
+
+    private static string FormatDistance(int meters) => meters < 1000 ? $"{meters} m" : $"{meters / 1000d:0.#} km";
+}

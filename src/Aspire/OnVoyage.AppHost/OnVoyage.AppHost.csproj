@@ -1,0 +1,12 @@
+<Project Sdk="Aspire.AppHost.Sdk/13.6.0">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <NoWarn>$(NoWarn);ASPIRE010</NoWarn>
+    <UserSecretsId>onvoyage-apphost</UserSecretsId>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
+    <ProjectReference Include="../../Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj" />
+    <ProjectReference Include="../../Web/OnVoyage.Web.Pwa/OnVoyage.Web.Pwa.csproj" />
+  </ItemGroup>
+</Project>

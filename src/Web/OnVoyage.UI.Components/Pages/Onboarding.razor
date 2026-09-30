@@ -1,0 +1,48 @@
+@page "/onboarding"
+@inject IProfileStore Profiles
+@inject NavigationManager Navigation
+
+<PageTitle>Vos goûts · ON.VOYAGE</PageTitle>
+
+<h1>Qu'est-ce qui vous fait vibrer en voyage ?</h1>
+<p class="hint">Touchez une fois pour « j'aime », deux fois pour « moins pour moi ». Vos choix restent sur votre appareil.</p>
+
+<div class="grid" role="group" aria-label="Centres d'intérêt">
+    @foreach (var (code, label) in HomeFeedService.OnboardingCategories)
+    {
+        var state = _states.GetValueOrDefault(code);
+        <button type="button" class="chip @(state == 1 ? "chip-like" : state == -1 ? "chip-dislike" : "")"
+                aria-pressed="@(state != 0 ? "true" : "false")" @onclick="() => Cycle(code)">
+            @(state == 1 ? "👍 " : state == -1 ? "👎 " : "")@Capitalize(label)
+        </button>
+    }
+</div>
+
+<div class="actions">
+    <button class="btn" @onclick="SaveAsync">Terminer</button>
+    <button class="btn btn-soft" @onclick="SkipAsync">Passer</button>
+</div>
+
+@code {
+    private readonly Dictionary<string, int> _states = [];
+
+    private void Cycle(string code) => _states[code] = _states.GetValueOrDefault(code) switch { 0 => 1, 1 => -1, _ => 0 };
+
+    private static string Capitalize(string label) => label.StartsWith("l'", StringComparison.Ordinal) ? char.ToUpper(label[2]) + label[3..] : char.ToUpper(label[0]) + label[1..];
+
+    private async Task SaveAsync()
+    {
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        var liked = _states.Where(pair => pair.Value == 1).Select(pair => pair.Key).ToArray();
+        var disliked = _states.Where(pair => pair.Value == -1).Select(pair => pair.Key).ToArray();
+        await Profiles.SaveAsync(ProfileUpdater.ApplyOnboarding(profile, liked, disliked), CancellationToken.None);
+        Navigation.NavigateTo("");
+    }
+
+    private async Task SkipAsync()
+    {
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        await Profiles.SaveAsync(profile with { OnboardingDone = true }, CancellationToken.None);
+        Navigation.NavigateTo("");
+    }
+}

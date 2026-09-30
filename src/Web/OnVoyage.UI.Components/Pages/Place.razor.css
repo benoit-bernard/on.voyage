@@ -1,0 +1,11 @@
+.back { display: inline-block; margin-bottom: .75rem; color: var(--ov-muted); text-decoration: none; }
+h1 { font-size: 1.5rem; margin: 0 0 .4rem; }
+h2 { font-size: 1.1rem; margin: 1.25rem 0 .25rem; }
+.gem { display: inline-block; padding: .15rem .6rem; border-radius: 999px; background: var(--ov-chip); font-size: .8rem; font-weight: 700; }
+.actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: 1rem 0; }
+.btn { padding: .6rem .9rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
+.btn-soft { background: var(--ov-chip); color: var(--ov-ink); }
+.btn-on { outline: 2px solid var(--ov-ink); }
+article p { line-height: 1.6; }
+.note, .sources, .empty { color: var(--ov-muted); font-size: .8rem; }
+.sources { margin-top: 1.5rem; }

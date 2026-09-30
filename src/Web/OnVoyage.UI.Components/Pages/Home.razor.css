@@ -1,0 +1,5 @@
+h1 { font-size: 1.5rem; margin: .25rem 0 1rem; }
+h2 { font-size: 1.1rem; margin: 1.5rem 0 .75rem; }
+.empty { color: var(--ov-muted); padding: 1rem 0; }
+.btn { display: inline-block; padding: .65rem 1rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; text-decoration: none; cursor: pointer; }
+.btn-soft { background: var(--ov-chip); color: var(--ov-ink); }

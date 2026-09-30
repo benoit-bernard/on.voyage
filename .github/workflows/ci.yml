@@ -1,0 +1,36 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          global-json-file: global.json
+      - name: Restore
+        run: dotnet restore OnVoyage.slnx
+      - name: Build (warnings are errors)
+        run: dotnet build OnVoyage.slnx --no-restore -c Release
+      - name: Format
+        run: dotnet format OnVoyage.slnx --verify-no-changes --no-restore
+      - name: Test (unit, integration, architecture, bUnit)
+        run: dotnet test --solution OnVoyage.slnx --no-build -c Release
+      - name: Vulnerable packages
+        run: |
+          dotnet list OnVoyage.slnx package --vulnerable --include-transitive 2>&1 | tee vuln.txt
+          ! grep -q "has the following vulnerable packages" vuln.txt
+      - name: Publish PWA
+        run: dotnet publish src/Web/OnVoyage.Web.Pwa -c Release -o out/pwa
+      - uses: actions/upload-artifact@v4
+        with:
+          name: pwa
+          path: out/pwa/wwwroot

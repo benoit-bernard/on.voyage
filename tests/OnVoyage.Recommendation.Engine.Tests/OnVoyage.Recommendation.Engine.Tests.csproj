@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/Shared/OnVoyage.Recommendation.Engine/OnVoyage.Recommendation.Engine.csproj" />
+  </ItemGroup>
+</Project>

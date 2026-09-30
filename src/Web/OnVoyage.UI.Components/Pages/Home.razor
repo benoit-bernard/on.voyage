@@ -1,0 +1,80 @@
+@page "/"
+@inject HomeFeedService Feed
+@inject IProfileStore Profiles
+@inject ILocationProvider Location
+@inject NavigationManager Navigation
+
+<PageTitle>ON.VOYAGE</PageTitle>
+
+@if (_error is not null)
+{
+    <p class="empty" role="alert">@_error</p>
+    <button class="btn" @onclick="LoadAsync">Réessayer</button>
+}
+else if (_feed is null)
+{
+    <p class="empty" aria-live="polite">Chargement…</p>
+}
+else
+{
+    <h1>Bonjour, @_feed.DestinationName</h1>
+
+    @if (!_onboardingDone)
+    {
+        <a class="btn btn-soft" href="onboarding">Dites-nous ce que vous aimez</a>
+    }
+
+    <section aria-labelledby="foryou">
+        <h2 id="foryou">@_feed.ForYouTitle</h2>
+        @foreach (var card in _feed.ForYou)
+        {
+            <PlaceCardView Card="card" />
+        }
+    </section>
+
+    @if (_feed.LessCrowded.Count > 0)
+    {
+        <section aria-labelledby="gems">
+            <h2 id="gems">Moins fréquenté, tout aussi beau</h2>
+            @foreach (var card in _feed.LessCrowded)
+            {
+                <PlaceCardView Card="card" />
+            }
+        </section>
+    }
+
+    @if (_feed.Saved.Count > 0)
+    {
+        <section aria-labelledby="saved">
+            <h2 id="saved">Vos envies</h2>
+            @foreach (var card in _feed.Saved)
+            {
+                <PlaceCardView Card="card" />
+            }
+        </section>
+    }
+}
+
+@code {
+    private HomeFeed? _feed;
+    private string? _error;
+    private bool _onboardingDone;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        try
+        {
+            var profile = await Profiles.LoadAsync(CancellationToken.None);
+            _onboardingDone = profile.OnboardingDone;
+            var position = await Location.GetCurrentAsync(CancellationToken.None);
+            _feed = await Feed.BuildAsync(position?.Latitude, position?.Longitude, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Impossible de joindre ON.VOYAGE. Vérifiez votre connexion.";
+        }
+    }
+}
