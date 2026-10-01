@@ -1,0 +1,24 @@
+[
+  {
+    "atSeconds": 102,
+    "place": "Vallon des Auffes",
+    "mode": "Bike",
+    "distanceMeters": 250,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 6,
+    "storyStartsAtSeconds": 110,
+    "endsAtSeconds": 200
+  },
+  {
+    "atSeconds": 488,
+    "place": "Plage du Proph\u00E8te",
+    "mode": "Bike",
+    "distanceMeters": 250,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 12,
+    "storyStartsAtSeconds": 496,
+    "endsAtSeconds": 586
+  }
+]

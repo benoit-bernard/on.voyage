@@ -1,0 +1,68 @@
+[
+  {
+    "atSeconds": 21,
+    "place": "Ombri\u00E8re du Vieux-Port",
+    "mode": "Walk",
+    "distanceMeters": 100,
+    "direction": "Right",
+    "anticipated": false,
+    "fixAccuracy": 8,
+    "storyStartsAtSeconds": 29,
+    "endsAtSeconds": 119
+  },
+  {
+    "atSeconds": 279,
+    "place": "H\u00F4tel de Ville",
+    "mode": "Walk",
+    "distanceMeters": 100,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 10,
+    "storyStartsAtSeconds": 287,
+    "endsAtSeconds": 377
+  },
+  {
+    "atSeconds": 511,
+    "place": "Maison Diamant\u00E9e",
+    "mode": "Walk",
+    "distanceMeters": 100,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 12,
+    "storyStartsAtSeconds": 519,
+    "endsAtSeconds": 609
+  },
+  {
+    "atSeconds": 869,
+    "place": "Vieille Charit\u00E9",
+    "mode": "Walk",
+    "distanceMeters": 100,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 11,
+    "storyStartsAtSeconds": 877,
+    "endsAtSeconds": 967
+  },
+  {
+    "atSeconds": 1336,
+    "place": "Cath\u00E9drale de la Major",
+    "mode": "Walk",
+    "distanceMeters": 100,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 13,
+    "storyStartsAtSeconds": 1344,
+    "endsAtSeconds": 1434
+  },
+  {
+    "atSeconds": 2275,
+    "place": "Mucem",
+    "mode": "Walk",
+    "distanceMeters": 100,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 7,
+    "storyStartsAtSeconds": 2283,
+    "endsAtSeconds": 2373
+  }
+]

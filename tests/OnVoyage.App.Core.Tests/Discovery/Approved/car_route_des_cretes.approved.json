@@ -1,0 +1,13 @@
+[
+  {
+    "atSeconds": 67,
+    "place": "Belv\u00E9d\u00E8re des Cr\u00EAtes (test)",
+    "mode": "Car",
+    "distanceMeters": 800,
+    "direction": "Front",
+    "anticipated": true,
+    "fixAccuracy": 13,
+    "storyStartsAtSeconds": 75,
+    "endsAtSeconds": 165
+  }
+]

@@ -1,0 +1,24 @@
+[
+  {
+    "atSeconds": 46,
+    "place": "Rep\u00E8re autoroute important (test)",
+    "mode": "Car",
+    "distanceMeters": 1850,
+    "direction": "Front",
+    "anticipated": true,
+    "fixAccuracy": 11,
+    "storyStartsAtSeconds": 54,
+    "endsAtSeconds": 144
+  },
+  {
+    "atSeconds": 235,
+    "place": "Rep\u00E8re autoroute visible (test)",
+    "mode": "Car",
+    "distanceMeters": 950,
+    "direction": "Front",
+    "anticipated": true,
+    "fixAccuracy": 8,
+    "storyStartsAtSeconds": 243,
+    "endsAtSeconds": 333
+  }
+]

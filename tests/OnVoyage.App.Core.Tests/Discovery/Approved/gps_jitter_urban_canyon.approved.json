@@ -1,0 +1,24 @@
+[
+  {
+    "atSeconds": 225,
+    "place": "H\u00F4tel de Ville",
+    "mode": "Walk",
+    "distanceMeters": 100,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 30,
+    "storyStartsAtSeconds": 233,
+    "endsAtSeconds": 323
+  },
+  {
+    "atSeconds": 415,
+    "place": "Maison Diamant\u00E9e",
+    "mode": "Walk",
+    "distanceMeters": 50,
+    "direction": "Front",
+    "anticipated": false,
+    "fixAccuracy": 32,
+    "storyStartsAtSeconds": 423,
+    "endsAtSeconds": 513
+  }
+]
