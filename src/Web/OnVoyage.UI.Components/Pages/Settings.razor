@@ -1,5 +1,6 @@
 @page "/reglages"
 @inject IPrivacyApi Api
+@inject OnVoyage.App.Core.Analytics.AnalyticsConsent AnalyticsState
 @inject IProfileStore Profiles
 @inject SessionService Session
 @inject NavigationManager Navigation
@@ -144,12 +145,21 @@
         {
             var consents = await Api.GetConsentsAsync(CancellationToken.None);
             _analytics = consents.FirstOrDefault(c => c.Kind == ConsentTexts.AnalyticsKind)?.Granted;
+            ApplyAnalytics(_analytics);
         }
         catch (HttpRequestException)
         {
             _analytics = null; // no answer means refused
         }
     }
+
+    private void ApplyAnalytics(bool? granted) =>
+        AnalyticsState.Set(granted switch
+        {
+            true => OnVoyage.App.Core.Analytics.AnalyticsConsentState.Granted,
+            false => OnVoyage.App.Core.Analytics.AnalyticsConsentState.Refused,
+            null => OnVoyage.App.Core.Analytics.AnalyticsConsentState.Refused, // no answer counts as a refusal
+        });
 
     private async Task LoadProfileAsync()
     {
@@ -196,6 +206,7 @@
         {
             await Api.SetConsentAsync(ConsentTexts.AnalyticsKind, granted, ConsentTexts.AnalyticsVersion, CancellationToken.None);
             _analytics = granted;
+            ApplyAnalytics(granted);
             _message = granted ? "Merci. Vous pouvez changer d'avis à tout moment." : "Les statistiques d'usage sont désactivées.";
         }
         catch (HttpRequestException)

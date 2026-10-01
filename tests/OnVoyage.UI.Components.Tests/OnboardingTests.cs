@@ -76,6 +76,7 @@ public sealed class OnboardingTests : BunitContext
         Services.AddSingleton(new AudioPlaybackController(_player, new NullAnalyticsSink(), new InMemoryFlagStore(), clock));
         Services.AddSingleton(new InteractionSender(_client, _profiles));
         Services.AddScoped<OnboardingService>();
+        Services.AddSingleton<OnVoyage.App.Core.Analytics.AnalyticsConsent>();
         Services.AddSingleton<OnVoyage.App.Core.Profile.IProfileStore>(_profiles);
     }
 

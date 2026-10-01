@@ -26,6 +26,7 @@ public sealed class SettingsTests : BunitContext
         _api.GetHistoryAsync(Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<HistoryItemDto>>([new HistoryItemDto(_fort, "fort", "Fort Saint-Jean", Now.AddDays(-2), true, false)]));
 
         Services.AddSingleton<TimeProvider>(new FakeTimeProvider(Now));
+        Services.AddSingleton<OnVoyage.App.Core.Analytics.AnalyticsConsent>();
         Services.AddSingleton(_api);
         Services.AddSingleton<IProfileStore>(_profiles);
         var auth = Substitute.For<IAuthClient>();

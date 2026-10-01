@@ -6,6 +6,7 @@
 @inject ICatalogClient Catalog
 @inject NavigationManager Navigation
 @inject IPrivacyApi Privacy
+@inject OnVoyage.App.Core.Analytics.AnalyticsConsent AnalyticsState
 
 <PageTitle>Vos goûts · ON.VOYAGE</PageTitle>
 
@@ -198,6 +199,7 @@ else
         try
         {
             await Privacy.SetConsentAsync(ConsentTexts.AnalyticsKind, granted, ConsentTexts.AnalyticsVersion, CancellationToken.None);
+            AnalyticsState.Set(granted ? OnVoyage.App.Core.Analytics.AnalyticsConsentState.Granted : OnVoyage.App.Core.Analytics.AnalyticsConsentState.Refused);
         }
         catch (HttpRequestException)
         {

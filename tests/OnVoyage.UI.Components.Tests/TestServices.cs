@@ -17,6 +17,7 @@ internal static class TestServices
     {
         var clock = new FakeTimeProvider(new DateTimeOffset(2026, 6, 1, 9, 0, 0, TimeSpan.Zero));
         context.Services.AddSingleton<TimeProvider>(clock);
+        context.Services.AddSingleton<OnVoyage.App.Core.Analytics.AnalyticsConsent>();
         context.Services.AddSingleton<IInteractionOutbox>(new KeepingOutbox());
         context.Services.AddSingleton(new AudioPlaybackController(new SilentPlayer(), new NullAnalyticsSink(), new InMemoryFlagStore(), clock));
         context.Services.AddSingleton<ILocalNotifier, NullLocalNotifier>();
