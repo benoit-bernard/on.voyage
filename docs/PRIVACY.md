@@ -16,3 +16,6 @@ Source : cahier des charges §16. Ce fichier est mis à jour dans la même PR qu
 Mesures techniques en place : l'instrumentation OpenTelemetry expurge `url.query` et `url.full` (`ServiceDefaults`) ; aucun SDK d'analytics, de crash, de publicité ou de paiement tiers (test d'architecture `No_third_party_analytics_crash_ads_or_payment_sdk`) ; aucune ressource tierce dans les pages du client.
 
 Non encore implémenté : événements d'usage, export et suppression (F-01, F-22, Insights, Platform).
+
+## Factory et fournisseurs de modèles
+Les textes envoyés à OpenAI (extraction, rédaction, vérification, voix) sont des données publiques (articles Wikipédia, faits dérivés). Aucune donnée de voyageur, position ou identifiant n'y est jointe. Le signalement d'une histoire ne stocke que l'identifiant du voyageur et le motif (500 caractères), pour limiter les abus.

@@ -96,6 +96,8 @@ internal sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> option
                 table.HasCheckConstraint("ck_story_premium_text", "not is_premium or text is null");
             });
             entity.HasKey(row => row.Id);
+            entity.Property(row => row.AudioParts).HasColumnType("jsonb");
+            entity.Property(row => row.Sources).HasColumnType("jsonb");
             entity.HasOne<PoiRow>().WithMany(row => row.Stories).HasForeignKey(row => row.PoiId).OnDelete(DeleteBehavior.Cascade);
             entity.HasIndex(row => new { row.PoiId, row.Lang, row.Kind, row.Version }).IsUnique();
             entity.HasIndex(row => new { row.PoiId, row.Lang }).HasFilter("status = 'published'").HasDatabaseName("ix_story_current_published");

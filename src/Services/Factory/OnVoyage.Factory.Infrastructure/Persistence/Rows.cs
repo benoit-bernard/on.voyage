@@ -116,3 +116,106 @@ internal sealed class PageviewsRow
     public string SourceLicense { get; set; } = "CC0-1.0";
     public DateTimeOffset RetrievedAt { get; set; }
 }
+
+internal sealed class SourceDocumentRow
+{
+    public Guid Id { get; set; }
+    public Guid PlaceId { get; set; }
+    public string Type { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Publisher { get; set; }
+    public string License { get; set; } = string.Empty;
+    public string Language { get; set; } = string.Empty;
+    public string? Revision { get; set; }
+    public DateTimeOffset RetrievedAt { get; set; }
+    public string Text { get; set; } = string.Empty;
+    public string Sha256 { get; set; } = string.Empty;
+    public double Quality { get; set; }
+}
+
+internal sealed class FactRow
+{
+    public Guid Id { get; set; }
+    public Guid PlaceId { get; set; }
+    public Guid DocumentId { get; set; }
+    public string Statement { get; set; } = string.Empty;
+    public string Type { get; set; } = string.Empty;
+    public string Quote { get; set; } = string.Empty;
+    public double Confidence { get; set; }
+    public string Status { get; set; } = "Validated";
+    public string? Reason { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+internal sealed class StoryRow
+{
+    public Guid Id { get; set; }
+    public Guid PlaceId { get; set; }
+    public string Lang { get; set; } = string.Empty;
+    public string Kind { get; set; } = string.Empty;
+    public int Version { get; set; }
+    public string Status { get; set; } = "Draft";
+    public string Title { get; set; } = string.Empty;
+    public string Hook { get; set; } = string.Empty;
+    public string Text { get; set; } = string.Empty;
+    public string RemoteIntro { get; set; } = string.Empty;
+    public string AnnounceFront { get; set; } = string.Empty;
+    public string AnnounceLeft { get; set; } = string.Empty;
+    public string AnnounceRight { get; set; } = string.Empty;
+    public string? CareNote { get; set; }
+    public Guid[] FactsUsed { get; set; } = [];
+    public int EstimatedDurationSeconds { get; set; }
+    public string PromptVersion { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
+    public double QualityScore { get; set; }
+    public string CheckReport { get; set; } = "{}";
+    public string VoiceId { get; set; } = string.Empty;
+    public double EditorialScore { get; set; } = 0.8;
+    public string? RejectedReason { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+    public DateTimeOffset? PublishedAt { get; set; }
+}
+
+internal sealed class StoryAudioPartRow
+{
+    public Guid StoryId { get; set; }
+    public string Part { get; set; } = string.Empty;
+    public string Path { get; set; } = string.Empty;
+    public string Sha256 { get; set; } = string.Empty;
+    public int DurationSeconds { get; set; }
+    public long Bytes { get; set; }
+}
+
+internal sealed class StoryReportRow
+{
+    public Guid Id { get; set; }
+    public Guid StoryId { get; set; }
+    public Guid TravelerId { get; set; }
+    public string Reason { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+internal sealed class PronunciationRow
+{
+    public string DestinationSlug { get; set; } = string.Empty;
+    public string Term { get; set; } = string.Empty;
+    public string Replacement { get; set; } = string.Empty;
+}
+
+internal sealed class LlmCallRow
+{
+    public Guid Id { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Model { get; set; } = string.Empty;
+    public string? PromptId { get; set; }
+    public string? PromptVersion { get; set; }
+    public Guid? ContentId { get; set; }
+    public int InputTokens { get; set; }
+    public int OutputTokens { get; set; }
+    public double CostUsd { get; set; }
+    public int DurationMs { get; set; }
+    public bool Succeeded { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}

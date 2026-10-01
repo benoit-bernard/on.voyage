@@ -10,6 +10,7 @@ using Npgsql;
 using OnVoyage.Catalog.Api;
 using OnVoyage.Factory.Api;
 using OnVoyage.Factory.Application;
+using OnVoyage.Factory.Application.Content;
 using OnVoyage.Factory.Application.Ports;
 using OnVoyage.Factory.Worker;
 using OnVoyage.TestInfrastructure;
@@ -48,8 +49,10 @@ internal sealed class FactoryHarness : IAsyncDisposable
     private readonly WebApplicationFactory<FactoryWorkerMarker> _worker;
     private readonly WebApplicationFactory<CatalogApiMarker> _catalog;
 
-    private FactoryHarness(string connection, FakeWikidata wikidata, FakePageviews pageviews, WebApplicationFactory<FactoryApiMarker> api, WebApplicationFactory<FactoryWorkerMarker> worker, WebApplicationFactory<CatalogApiMarker> catalog)
+    private FactoryHarness(string connection, FakeWikidata wikidata, FakePageviews pageviews, WebApplicationFactory<FactoryApiMarker> api, WebApplicationFactory<FactoryWorkerMarker> worker, WebApplicationFactory<CatalogApiMarker> catalog, FakeContentServices content, string mediaDirectory)
     {
+        Content = content;
+        MediaDirectory = mediaDirectory;
         Connection = connection;
         Wikidata = wikidata;
         Pageviews = pageviews;
@@ -68,6 +71,10 @@ internal sealed class FactoryHarness : IAsyncDisposable
     public FakeWikidata Wikidata { get; }
 
     public FakePageviews Pageviews { get; }
+
+    public FakeContentServices Content { get; }
+
+    public string MediaDirectory { get; }
 
     public HttpClient Admin { get; }
 
@@ -107,6 +114,8 @@ internal sealed class FactoryHarness : IAsyncDisposable
         var pageviews = new FakePageviews();
         var sample = Path.Combine(AppContext.BaseDirectory, "Data", "marseille-sample.osm");
         var dataDirectory = Path.Combine(Path.GetTempPath(), "onvoyage-factory-tests", Guid.NewGuid().ToString("N"));
+        var mediaDirectory = Path.Combine(dataDirectory, "media");
+        var content = new FakeContentServices();
 
         void Configure(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
         {
@@ -114,12 +123,15 @@ internal sealed class FactoryHarness : IAsyncDisposable
             builder.UseSetting("Auth:JwtSecret", TestTokens.Secret);
             builder.UseSetting("Factory:DataDirectory", dataDirectory);
             builder.UseSetting("Factory:Destinations:0:OsmExtractFile", sample);
+            builder.UseSetting("Factory:Llm:Provider", "disabled");
+            builder.UseSetting("Factory:MediaDirectory", mediaDirectory);
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IWikidataClient>();
                 services.AddSingleton<IWikidataClient>(wikidata);
                 services.RemoveAll<IPageviewsClient>();
                 services.AddSingleton<IPageviewsClient>(pageviews);
+                content.Register(services);
             });
         }
 
@@ -132,9 +144,11 @@ internal sealed class FactoryHarness : IAsyncDisposable
             builder.UseSetting("ConnectionStrings:onvoyage", connection);
             builder.UseSetting("Auth:JwtSecret", TestTokens.Secret);
             builder.UseSetting("Catalog:SeedDemoData", "false");
+            builder.UseSetting("Media:RootPath", mediaDirectory);
         });
 
-        return new FactoryHarness(connection, wikidata, pageviews, api, worker, catalog);
+        Directory.CreateDirectory(mediaDirectory);
+        return new FactoryHarness(connection, wikidata, pageviews, api, worker, catalog, content, mediaDirectory);
     }
 
     public async Task<T> QueryAsync<T>(string sql, Func<NpgsqlDataReader, T> read)

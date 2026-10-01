@@ -13,6 +13,13 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
     public DbSet<DedupLinkRow> DedupLinks => Set<DedupLinkRow>();
     public DbSet<WikidataEntityRow> WikidataEntities => Set<WikidataEntityRow>();
     public DbSet<PageviewsRow> Pageviews => Set<PageviewsRow>();
+    public DbSet<SourceDocumentRow> SourceDocuments => Set<SourceDocumentRow>();
+    public DbSet<FactRow> Facts => Set<FactRow>();
+    public DbSet<StoryRow> Stories => Set<StoryRow>();
+    public DbSet<StoryAudioPartRow> StoryAudioParts => Set<StoryAudioPartRow>();
+    public DbSet<StoryReportRow> StoryReports => Set<StoryReportRow>();
+    public DbSet<PronunciationRow> Pronunciations => Set<PronunciationRow>();
+    public DbSet<LlmCallRow> LlmCalls => Set<LlmCallRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -70,6 +77,56 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
         {
             entity.ToTable("wikipedia_pageviews", RawSchema);
             entity.HasKey(row => new { row.Qid, row.Language });
+        });
+
+        modelBuilder.Entity<SourceDocumentRow>(entity =>
+        {
+            entity.ToTable("source_document");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => new { row.PlaceId, row.Url });
+        });
+
+        modelBuilder.Entity<FactRow>(entity =>
+        {
+            entity.ToTable("fact", table => table.HasCheckConstraint("ck_fact_confidence", "confidence between 0 and 1"));
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => row.PlaceId);
+            entity.HasIndex(row => row.DocumentId);
+        });
+
+        modelBuilder.Entity<StoryRow>(entity =>
+        {
+            entity.ToTable("story");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => new { row.PlaceId, row.Lang, row.Kind, row.Version }).IsUnique();
+            entity.Property(row => row.CheckReport).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<StoryAudioPartRow>(entity =>
+        {
+            entity.ToTable("story_audio_part");
+            entity.HasKey(row => new { row.StoryId, row.Part });
+        });
+
+        modelBuilder.Entity<StoryReportRow>(entity =>
+        {
+            entity.ToTable("story_report");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => new { row.StoryId, row.TravelerId }).IsUnique();
+            entity.HasIndex(row => new { row.TravelerId, row.CreatedAt });
+        });
+
+        modelBuilder.Entity<PronunciationRow>(entity =>
+        {
+            entity.ToTable("pronunciation");
+            entity.HasKey(row => new { row.DestinationSlug, row.Term });
+        });
+
+        modelBuilder.Entity<LlmCallRow>(entity =>
+        {
+            entity.ToTable("llm_call");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => row.CreatedAt);
         });
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

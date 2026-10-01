@@ -14,8 +14,9 @@ public static class MessagingExtensions
 {
     public const string TransportSchema = "wolverine_queues";
 
+    /// <param name="configureFailures">Service-specific error rules, registered ahead of the catch-all dead-letter rule.</param>
     /// <param name="listen">False for hosts that only publish (an API that hands work to a worker through the queue).</param>
-    public static WolverineOptions AddOnVoyageMessaging(this WolverineOptions options, string connectionString, string serviceName, bool listen = true)
+    public static WolverineOptions AddOnVoyageMessaging(this WolverineOptions options, string connectionString, string serviceName, bool listen = true, Action<WolverineOptions>? configureFailures = null)
     {
         // Envelope storage lives in the service's own schema; the queues are shared so services can publish to each other.
         options.UsePostgresqlPersistenceAndTransport(connectionString, serviceName, TransportSchema).AutoProvision();
@@ -36,6 +37,7 @@ public static class MessagingExtensions
         // Transient infrastructure faults are retried with a growing cooldown; anything else is parked, never lost.
         options.OnException<TimeoutException>().RetryWithCooldown(TimeSpan.FromMilliseconds(100), TimeSpan.FromMilliseconds(500), TimeSpan.FromSeconds(2));
         options.OnException<Npgsql.NpgsqlException>().RetryWithCooldown(TimeSpan.FromMilliseconds(250), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5));
+        configureFailures?.Invoke(options); // service rules go before the catch-all: the first matching rule wins
         options.OnAnyException().MoveToErrorQueue();
 
         return options;

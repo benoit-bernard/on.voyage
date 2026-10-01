@@ -15,3 +15,21 @@ public static class PoiUnpublishedHandler
     public static Task Handle(PoiUnpublishedV1 unpublished, IPoiProjectionWriter writer, CancellationToken cancellationToken) =>
         writer.ApplyUnpublishedAsync(unpublished, cancellationToken);
 }
+
+public static class StoryPublishedHandler
+{
+    public static Task Handle(StoryPublishedV1 published, IPoiProjectionWriter writer, CancellationToken cancellationToken) =>
+        writer.ApplyStoryPublishedAsync(published, cancellationToken);
+}
+
+public static class StoryUnpublishedHandler
+{
+    public static Task Handle(StoryUnpublishedV1 unpublished, IPoiProjectionWriter writer, CancellationToken cancellationToken) =>
+        writer.ApplyStoryUnpublishedAsync(unpublished.StoryId, "unpublished", cancellationToken);
+}
+
+public static class StoryArchivedHandler
+{
+    public static Task Handle(StoryArchivedV1 archived, IPoiProjectionWriter writer, CancellationToken cancellationToken) =>
+        writer.ApplyStoryUnpublishedAsync(archived.StoryId, "archived", cancellationToken);
+}

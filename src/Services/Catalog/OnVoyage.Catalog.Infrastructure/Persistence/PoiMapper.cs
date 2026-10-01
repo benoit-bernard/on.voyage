@@ -14,7 +14,7 @@ internal static class PoiMapper
 
     public static GeoPoint ToGeoPoint(Point point) => new(point.Y, point.X);
 
-    public static Poi ToDomain(PoiRow row, string lang)
+    public static Poi ToDomain(PoiRow row, string lang, string mediaBaseUrl = "/media")
     {
         var name = (row.Texts.FirstOrDefault(text => text.Lang == lang) ?? row.Texts.First()).Name;
         var weights = row.Interests.ToDictionary(interest => interest.TaxonomyCode, interest => (double)interest.Weight);
@@ -25,7 +25,7 @@ internal static class PoiMapper
         var stories = row.Stories
             .Where(story => story.Status == "published" && story.Lang == lang && !story.IsPremium)
             .OrderBy(story => story.Kind, StringComparer.Ordinal).ThenByDescending(story => story.Version)
-            .Select(story => new Story(story.Id, story.Lang, story.Title, story.Text ?? string.Empty, story.DurationSeconds, story.AudioPath, story.IsAiGenerated))
+            .Select(story => new Story(story.Id, story.Lang, story.Title, story.Text ?? string.Empty, story.DurationSeconds, AudioUrl(story, mediaBaseUrl), story.IsAiGenerated, SourceLabels(story)))
             .ToArray();
 
         return new Poi(
@@ -41,6 +41,12 @@ internal static class PoiMapper
             weights,
             stories);
     }
+
+    private static string? AudioUrl(StoryRow story, string mediaBaseUrl) =>
+        string.IsNullOrEmpty(story.AudioPath) ? null : story.AudioPath.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? story.AudioPath : $"{mediaBaseUrl.TrimEnd('/')}/{story.AudioPath.TrimStart('/')}";
+
+    private static string[] SourceLabels(StoryRow story) =>
+        [.. System.Text.Json.JsonSerializer.Deserialize<List<StorySourceJson>>(story.Sources)?.Select(source => $"{source.Title} — {source.License}") ?? []];
 
     public static Destination ToDomain(DestinationRow row) => new(row.Slug, row.NameFr, ToGeoPoint(row.Center));
 }

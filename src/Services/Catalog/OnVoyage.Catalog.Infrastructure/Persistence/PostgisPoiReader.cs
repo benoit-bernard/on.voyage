@@ -4,8 +4,10 @@ using OnVoyage.Catalog.Domain;
 
 namespace OnVoyage.Catalog.Infrastructure.Persistence;
 
-internal sealed class PostgisPoiReader(CatalogDbContext db) : IPoiReader
+internal sealed class PostgisPoiReader(CatalogDbContext db, Microsoft.Extensions.Configuration.IConfiguration configuration) : IPoiReader
 {
+    private string MediaBaseUrl => configuration["Media:PublicBaseUrl"] ?? "/media";
+
     private const string Lang = "fr";
 
     public async Task<IReadOnlyList<PlaceDistance>> ListPublishedAsync(
@@ -34,7 +36,7 @@ internal sealed class PostgisPoiReader(CatalogDbContext db) : IPoiReader
 
         var rows = await LoadAsync(db.Pois.AsNoTracking().Where(poi => ordered.Select(item => item.Id).Contains(poi.Id)), cancellationToken);
         var byId = rows.ToDictionary(row => row.Id);
-        return [.. ordered.Select(item => new PlaceDistance(PoiMapper.ToDomain(byId[item.Id], Lang), item.Distance))];
+        return [.. ordered.Select(item => new PlaceDistance(PoiMapper.ToDomain(byId[item.Id], Lang, MediaBaseUrl), item.Distance))];
     }
 
     public Task<int> CountPublishedAsync(string destinationSlug, CancellationToken cancellationToken) =>
@@ -43,7 +45,7 @@ internal sealed class PostgisPoiReader(CatalogDbContext db) : IPoiReader
     public async Task<Poi?> FindBySlugAsync(string slug, CancellationToken cancellationToken)
     {
         var rows = await LoadAsync(db.Pois.AsNoTracking().Where(poi => poi.Slug == slug && poi.PublishedAt != null).OrderBy(poi => poi.Destination.SortOrder).Take(1), cancellationToken);
-        return rows.Count == 0 ? null : PoiMapper.ToDomain(rows[0], Lang);
+        return rows.Count == 0 ? null : PoiMapper.ToDomain(rows[0], Lang, MediaBaseUrl);
     }
 
     public async Task<Destination?> FindDestinationAsync(string slug, CancellationToken cancellationToken)

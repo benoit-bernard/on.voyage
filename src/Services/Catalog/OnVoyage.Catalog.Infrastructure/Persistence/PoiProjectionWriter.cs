@@ -94,6 +94,56 @@ internal sealed class PoiProjectionWriter(CatalogDbContext db, TimeProvider cloc
         return true;
     }
 
+    public async Task<bool> ApplyStoryPublishedAsync(StoryPublishedV1 published, CancellationToken cancellationToken)
+    {
+        if (!await db.Pois.AnyAsync(poi => poi.Id == published.PoiId, cancellationToken))
+        {
+            throw new PoiNotProjectedException(published.PoiId);
+        }
+
+        var row = await db.Stories.FirstOrDefaultAsync(story => story.Id == published.StoryId, cancellationToken);
+        if (row is null)
+        {
+            row = new StoryRow { Id = published.StoryId, PoiId = published.PoiId };
+            db.Stories.Add(row);
+        }
+        else if (row.Status == "published" && row.Version >= published.Version)
+        {
+            return false; // duplicate delivery
+        }
+
+        var main = published.AudioParts.FirstOrDefault(part => part.Part == "main");
+        row.Lang = published.Lang;
+        row.Kind = published.Kind;
+        row.Version = published.Version;
+        row.Title = published.Title;
+        row.Text = published.IsPremium ? null : published.Text;
+        row.DurationSeconds = published.DurationSeconds;
+        row.AudioPath = main?.Path;
+        row.IsPremium = published.IsPremium;
+        row.IsAiGenerated = published.IsAiGenerated;
+        row.Status = "published";
+        row.PublishedAt = published.OccurredAt;
+        row.AudioParts = System.Text.Json.JsonSerializer.Serialize(published.AudioParts.Select(part => new StoryAudioPartJson(part.Part, part.Path, part.Sha256, part.DurationSeconds)));
+        row.Sources = System.Text.Json.JsonSerializer.Serialize(published.Sources.Select(source => new StorySourceJson(source.Title, source.Publisher, source.Url, source.License)));
+
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> ApplyStoryUnpublishedAsync(Guid storyId, string status, CancellationToken cancellationToken)
+    {
+        var row = await db.Stories.FirstOrDefaultAsync(story => story.Id == storyId, cancellationToken);
+        if (row is null || row.Status == status)
+        {
+            return false;
+        }
+
+        row.Status = status;
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
     private void UpsertText(PoiRow row, string lang, string name)
     {
         var text = row.Texts.FirstOrDefault(item => item.Lang == lang);

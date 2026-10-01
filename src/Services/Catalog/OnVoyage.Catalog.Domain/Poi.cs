@@ -16,7 +16,7 @@ public sealed record GeoPoint(double Latitude, double Longitude)
     private static double ToRadians(double degrees) => degrees * Math.PI / 180d;
 }
 
-public sealed record Story(Guid Id, string Language, string Title, string Text, int DurationSeconds, string? AudioUrl, bool AiGenerated);
+public sealed record Story(Guid Id, string Language, string Title, string Text, int DurationSeconds, string? AudioUrl, bool AiGenerated, IReadOnlyList<string>? Sources = null);
 
 public sealed record Poi(
     Guid Id,

@@ -32,3 +32,31 @@ public sealed record PoiPublishedV1(
 
 /// <summary>The place must disappear from the catalog.</summary>
 public sealed record PoiUnpublishedV1(Guid EventId, DateTimeOffset OccurredAt, Guid PoiId, int Version, string Reason);
+
+public sealed record StoryAudioPartV1(string Part, string Path, string Sha256, int DurationSeconds);
+
+public sealed record StorySourceV1(string Title, string? Publisher, string Url, string License);
+
+/// <summary>A story is available (§13). Texts are empty for Premium stories, which Factory does not produce yet.</summary>
+public sealed record StoryPublishedV1(
+    Guid EventId,
+    DateTimeOffset OccurredAt,
+    Guid StoryId,
+    Guid PoiId,
+    string Lang,
+    string Kind,
+    int Version,
+    string Title,
+    string Hook,
+    string Text,
+    string RemoteIntro,
+    int DurationSeconds,
+    string VoiceId,
+    bool IsAiGenerated,
+    bool IsPremium,
+    IReadOnlyList<StoryAudioPartV1> AudioParts,
+    IReadOnlyList<StorySourceV1> Sources);
+
+public sealed record StoryUnpublishedV1(Guid EventId, DateTimeOffset OccurredAt, Guid StoryId, Guid PoiId, int Version, string Reason);
+
+public sealed record StoryArchivedV1(Guid EventId, DateTimeOffset OccurredAt, Guid StoryId, Guid PoiId, int Version);

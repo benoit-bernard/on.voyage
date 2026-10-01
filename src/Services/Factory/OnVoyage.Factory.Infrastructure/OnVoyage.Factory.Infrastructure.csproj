@@ -7,12 +7,17 @@
     <PackageReference Include="Microsoft.Extensions.Http" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" />
     <PackageReference Include="WolverineFx.Postgresql" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="OpenAI" />
+    <PackageReference Include="TagLibSharp" />
     <ProjectReference Include="../OnVoyage.Factory.Application/OnVoyage.Factory.Application.csproj" />
     <ProjectReference Include="../OnVoyage.Factory.Domain/OnVoyage.Factory.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="../../../../data-pipeline/taxonomy/mappings.json" LogicalName="mappings.json" />
     <EmbeddedResource Include="../../../../data-pipeline/osm/onvoyage.lua" LogicalName="onvoyage.lua" />
+    <EmbeddedResource Include="../../../../prompts/*.md" LogicalName="prompts/%(Filename)%(Extension)" />
     <InternalsVisibleTo Include="Factory.UnitTests" />
     <InternalsVisibleTo Include="Factory.IntegrationTests" />
   </ItemGroup>

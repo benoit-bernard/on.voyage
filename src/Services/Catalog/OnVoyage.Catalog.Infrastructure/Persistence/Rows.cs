@@ -93,6 +93,8 @@ internal sealed class StoryRow
     public bool IsAiGenerated { get; set; }
     public string Status { get; set; } = "published";
     public DateTimeOffset? PublishedAt { get; set; }
+    public string AudioParts { get; set; } = "[]";
+    public string Sources { get; set; } = "[]";
 }
 
 internal sealed class ConfigSnapshotRow
@@ -102,3 +104,7 @@ internal sealed class ConfigSnapshotRow
     public int Version { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+internal sealed record StorySourceJson(string Title, string? Publisher, string Url, string License);
+
+internal sealed record StoryAudioPartJson(string Part, string Path, string Sha256, int DurationSeconds);

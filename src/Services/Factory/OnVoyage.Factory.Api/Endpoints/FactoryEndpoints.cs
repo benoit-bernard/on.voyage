@@ -1,9 +1,13 @@
 using OnVoyage.Factory.Application;
+using OnVoyage.Factory.Application.Content;
+using OnVoyage.Factory.Application.Features.Content;
 using OnVoyage.Factory.Application.Features.EnrichPlaces;
+using OnVoyage.Factory.Domain.Content;
 using OnVoyage.Factory.Application.Features.ImportPlaces;
 using OnVoyage.Factory.Application.Features.Places;
 using OnVoyage.Factory.Application.Features.ScorePlaces;
 using OnVoyage.ServiceDefaults.Security;
+using System.Security.Claims;
 using Wolverine;
 
 namespace OnVoyage.Factory.Api.Endpoints;
@@ -13,6 +17,18 @@ internal sealed record UnpublishRequest(string Reason);
 internal sealed record EditorialRequest(int? ImportanceOverride, bool? EditoriallySaturated);
 
 internal sealed record DestinationRequest(string Destination);
+
+internal sealed record DecideFactRequest(bool Accept, string? Reason);
+
+internal sealed record WriteStoryRequest(string Lang, StoryKind Kind);
+
+internal sealed record EditStoryRequest(string Title, string Text);
+
+internal sealed record ApproveStoryRequest(double? EditorialScore);
+
+internal sealed record ReasonRequest(string Reason);
+
+internal sealed record ReportRequest(string Reason);
 
 internal static class FactoryEndpoints
 {
@@ -65,7 +81,62 @@ internal static class FactoryEndpoints
         admin.MapPost("/dedup/{id:guid}/revert", (Guid id, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<bool>>(new RevertMergeCommand(id), ct), _ => new { reverted = true }));
 
+        MapContent(admin);
+
+        // Travelers report a problem with a story (F-20). The only traveler-facing Factory route; the gateway exposes it separately.
+        app.MapPost("/api/factory/v1/stories/{id:guid}/reports", (Guid id, ReportRequest request, ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) =>
+            user.TravelerId() is { } travelerId
+                ? Translate(bus.InvokeAsync<Result<bool>>(new ReportStoryCommand(id, travelerId, request.Reason), ct), _ => new { received = true })
+                : Task.FromResult(Results.Unauthorized())).RequireAuthorization(Policies.Traveler);
+
         return app;
+    }
+
+    private static void MapContent(RouteGroupBuilder admin)
+    {
+        admin.MapPost("/places/{id:guid}/sources", async (Guid id, IMessageBus bus) =>
+        {
+            await bus.SendAsync(new FetchSourcesCommand(id));
+            return Results.Accepted();
+        });
+        admin.MapPost("/places/{id:guid}/facts/extraction", async (Guid id, IMessageBus bus) =>
+        {
+            await bus.SendAsync(new ExtractFactsCommand(id));
+            return Results.Accepted();
+        });
+        admin.MapGet("/places/{id:guid}/facts", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<PlaceFacts>>(new ListFactsQuery(id), ct), facts => facts));
+        admin.MapPost("/facts/{id:guid}/decision", (Guid id, DecideFactRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new DecideFactCommand(id, request.Accept, request.Reason), ct), _ => new { decided = true }));
+
+        admin.MapPost("/places/{id:guid}/stories", async (Guid id, WriteStoryRequest request, IMessageBus bus) =>
+        {
+            await bus.SendAsync(new WriteStoryCommand(id, request.Lang, request.Kind));
+            return Results.Accepted();
+        });
+        admin.MapGet("/places/{id:guid}/stories", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<StoryRecord>>>(new ListStoriesQuery(id), ct), stories => stories));
+        admin.MapGet("/stories/{id:guid}", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryView>>(new GetStoryQuery(id), ct), view => view));
+        admin.MapPut("/stories/{id:guid}/text", (Guid id, EditStoryRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new EditStoryTextCommand(id, request.Title, request.Text), ct), story => story));
+        admin.MapPost("/stories/{id:guid}/approve", (Guid id, ApproveStoryRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new ApproveStoryCommand(id, request.EditorialScore), ct), story => story));
+        admin.MapPost("/stories/{id:guid}/reject", (Guid id, ReasonRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new RejectStoryCommand(id, request.Reason), ct), story => story));
+        admin.MapPost("/stories/{id:guid}/audio", async (Guid id, IMessageBus bus) =>
+        {
+            await bus.SendAsync(new GenerateAudioCommand(id));
+            return Results.Accepted();
+        });
+        admin.MapPost("/stories/{id:guid}/publish", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new PublishStoryCommand(id), ct), story => story));
+        admin.MapPost("/stories/{id:guid}/suspend", (Guid id, ReasonRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new SuspendStoryCommand(id, request.Reason), ct), story => story));
+        admin.MapPost("/stories/{id:guid}/resume", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new ResumeStoryCommand(id), ct), story => story));
+        admin.MapPost("/stories/{id:guid}/correction", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new OpenCorrectionCommand(id), ct), story => story));
     }
 
     private static async Task<IResult> Translate<T>(Task<Result<T>> pending, Func<T, object> project)

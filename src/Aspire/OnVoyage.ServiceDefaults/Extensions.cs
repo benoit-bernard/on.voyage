@@ -64,6 +64,7 @@ public static class Extensions
 
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics => metrics
+                .AddMeter("OnVoyage.*")
                 .AddAspNetCoreInstrumentation()
                 .AddHttpClientInstrumentation()
                 .AddRuntimeInstrumentation())

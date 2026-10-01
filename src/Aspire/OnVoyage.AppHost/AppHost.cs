@@ -52,6 +52,26 @@ var factoryApi = builder.AddProject<Projects.OnVoyage_Factory_Api>("factory-api"
     .WithEnvironment("Auth__JwtSecret", jwtSecret)
     .WithHttpHealthCheck("/health");
 
+// Audio produced by the worker is served by Catalog under /media: both read the same directory (local volume in MVP-0, object storage later).
+var mediaDirectory = Path.Combine(Path.GetTempPath(), "onvoyage-media");
+catalog.WithEnvironment("Media__RootPath", mediaDirectory);
+factoryWorker.WithEnvironment("Factory__MediaDirectory", mediaDirectory);
+
+if (builder.ExecutionContext.IsRunMode)
+{
+    // Local runs do not call a language model unless the developer sets Factory:Llm:* and OpenAI:ApiKey in user secrets.
+    factoryWorker.WithEnvironment("Factory__Llm__Provider", "disabled");
+}
+else
+{
+    var openAiKey = builder.AddParameter("openai-api-key", secret: true);
+    factoryWorker.WithEnvironment("OpenAI__ApiKey", openAiKey);
+    foreach (var role in new[] { "Extractor", "Writer", "Verifier", "Classifier" })
+    {
+        factoryWorker.WithEnvironment($"Factory__Llm__{role}Model", builder.AddParameter($"llm-{role.ToLowerInvariant()}-model"));
+    }
+}
+
 var gateway = builder.AddProject<Projects.OnVoyage_Gateway>("gateway")
     .WithReference(catalog)
     .WithReference(platform)
