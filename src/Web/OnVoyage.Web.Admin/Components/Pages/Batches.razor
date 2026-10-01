@@ -1,0 +1,124 @@
+@page "/admin/batches"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@implements IDisposable
+@inherits AdminPageBase
+
+<h1>Génération en masse</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <h2>Nouveau lot</h2>
+    <p class="muted">Les histoires sont écrites à partir des faits puis contrôlées. Rien n'est voisé ni publié : chaque texte attend une relecture dans l'atelier.</p>
+    <div class="row">
+        <div>
+            <label for="destination">Destination</label>
+            <select id="destination" @bind="_destination">
+                @foreach (var destination in _destinations)
+                {
+                    <option value="@destination.Slug">@destination.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="minimum">Importance minimale (0–100)</label>
+            <input id="minimum" type="number" min="0" max="100" @bind="_minImportance" />
+        </div>
+        <div>
+            <label for="limit">Nombre de lieux (1–200)</label>
+            <input id="limit" type="number" min="1" max="200" @bind="_limit" />
+        </div>
+        <div>
+            <label for="lang">Langue</label>
+            <select id="lang" @bind="_lang"><option value="fr">Français</option><option value="en">English</option></select>
+        </div>
+        <div>
+            <label for="kind">Type</label>
+            <select id="kind" @bind="_kind">
+                <option value="Standard">@Labels.Kind("Standard")</option>
+                <option value="Anecdote">@Labels.Kind("Anecdote")</option>
+            </select>
+        </div>
+    </div>
+    <div class="row">
+        <label class="check"><input type="checkbox" @bind="_candidates" /> Lieux candidats</label>
+        <label class="check"><input type="checkbox" @bind="_published" /> Lieux publiés</label>
+        <button type="button" class="primary" disabled="@(Busy || _destination is null || (!_candidates && !_published))" @onclick="Start">Lancer le lot</button>
+    </div>
+    <p class="muted">Les lieux déjà dotés d'une histoire dans cette langue sont ignorés ; les plus importants passent en premier.</p>
+</section>
+
+<section class="card">
+    <h2>Lots</h2>
+    @if (_batches.Count == 0)
+    {
+        <p class="muted">Aucun lot pour l'instant.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Lancé</th><th>Destination</th><th>Avancement</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var batch in _batches)
+                {
+                    <tr>
+                        <td>@batch.Batch.CreatedAt.ToString("dd/MM HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        <td>@batch.Batch.Criteria.Destination · @batch.Batch.Criteria.Lang · @Labels.Kind(batch.Batch.Criteria.Kind)</td>
+                        <td><BatchSummary Progress="batch" /></td>
+                        <td><a href="/admin/batches/@batch.Batch.Id">Détail</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<DestinationItem> _destinations = [];
+    private IReadOnlyList<BatchProgressItem> _batches = [];
+    private string? _destination;
+    private int? _minImportance;
+    private int _limit = 20;
+    private string _lang = "fr";
+    private string _kind = "Standard";
+    private bool _candidates = true;
+    private bool _published = true;
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _destinations = await LoadAsync(() => Api.GetDestinationsAsync()) ?? [];
+        _destination = _destinations.FirstOrDefault()?.Slug;
+        await ReloadAsync();
+        _timer = new Timer(_ => _ = InvokeAsync(RefreshWhileRunningAsync), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    private async Task ReloadAsync() => _batches = await LoadAsync(() => Api.ListBatchesAsync(20)) ?? _batches;
+
+    private async Task RefreshWhileRunningAsync()
+    {
+        if (_batches.Any(batch => !batch.IsFinished))
+        {
+            await ReloadAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task Start()
+    {
+        List<string> statuses = [];
+        if (_candidates)
+        {
+            statuses.Add("Candidate");
+        }
+
+        if (_published)
+        {
+            statuses.Add("Published");
+        }
+
+        await RunAsync(async () => await Api.CreateBatchAsync(new NewBatch(_destination!, _minImportance, statuses, _lang, _kind, _limit)), "Lot lancé : l'avancement se met à jour tout seul.");
+        await ReloadAsync();
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

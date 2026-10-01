@@ -1,4 +1,6 @@
+using Microsoft.Extensions.Configuration;
 using OnVoyage.Factory.Application.Content;
+using OnVoyage.Factory.Application.Features.Batches;
 using OnVoyage.Factory.Application.Features.Content;
 using OnVoyage.Factory.Application.Features.EnrichPlaces;
 using OnVoyage.Factory.Application.Features.ImportPlaces;
@@ -24,12 +26,16 @@ public static class MessagingRoutes
         options.PublishMessage<ExtractFactsCommand>().ToPostgresqlQueue(JobQueue);
         options.PublishMessage<WriteStoryCommand>().ToPostgresqlQueue(JobQueue);
         options.PublishMessage<GenerateAudioCommand>().ToPostgresqlQueue(JobQueue);
+        options.PublishMessage<RunBatchJobCommand>().ToPostgresqlQueue(JobQueue);
         return options;
     }
 
     /// <summary>Provider outages are retried with growing delays, then the job lands in the dead-letter queue (§8.6).</summary>
-    public static void RetryProviderFailures(WolverineOptions options) =>
-        options.OnException<ExternalServiceException>().RetryWithCooldown(TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(60), TimeSpan.FromMinutes(5));
+    public static Action<WolverineOptions> RetryProviderFailures(IConfiguration configuration) => options =>
+    {
+        var seconds = configuration.GetSection("Factory:Retry:DelaysSeconds").Get<double[]>() is { Length: > 0 } configured ? configured : [10, 60, 300];
+        options.OnException<ExternalServiceException>().RetryWithCooldown([.. seconds.Select(delay => TimeSpan.FromSeconds(delay))]);
+    };
 
     /// <summary>Catalog consumes place publication events from its own queue (§9.3).</summary>
     public static WolverineOptions RouteFactoryEvents(this WolverineOptions options)

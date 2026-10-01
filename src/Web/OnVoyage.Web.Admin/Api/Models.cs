@@ -47,6 +47,18 @@ public sealed record StoryReportItem(Guid Id, Guid StoryId, Guid TravelerId, str
 
 public sealed record StoryDetailItem(StoryItem Story, IReadOnlyList<AudioPartItem> Parts, IReadOnlyList<StoryReportItem> Reports, IReadOnlyList<FactItem> Facts);
 
+public sealed record BatchCriteriaItem(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit);
+
+public sealed record BatchHeaderItem(Guid Id, DateTimeOffset CreatedAt, string CreatedBy, BatchCriteriaItem Criteria, int Total);
+
+public sealed record BatchProgressItem(BatchHeaderItem Batch, int Pending, int Running, int Succeeded, int ToReview, int Failed, bool IsFinished);
+
+public sealed record JobItem(Guid Id, Guid PlaceId, string PlaceName, string State, string Step, int Attempts, string? LastError, Guid? StoryId, string? Outcome, DateTimeOffset UpdatedAt);
+
+public sealed record BatchDetailItem(BatchProgressItem Progress, IReadOnlyList<JobItem> Jobs);
+
+public sealed record NewBatch(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit);
+
 public sealed record PronunciationItem(string Destination, string Term, string Replacement);
 
 public sealed record AuditItem(Guid Id, DateTimeOffset At, string Actor, string Action, string Target, int Status, string? Detail);

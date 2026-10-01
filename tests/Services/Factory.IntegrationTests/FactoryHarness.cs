@@ -124,6 +124,9 @@ internal sealed class FactoryHarness : IAsyncDisposable
             builder.UseSetting("Factory:DataDirectory", dataDirectory);
             builder.UseSetting("Factory:Destinations:0:OsmExtractFile", sample);
             builder.UseSetting("Factory:Llm:Provider", "disabled");
+            builder.UseSetting("Factory:Retry:DelaysSeconds:0", "0.2");
+            builder.UseSetting("Factory:Retry:DelaysSeconds:1", "0.2");
+            builder.UseSetting("Factory:Retry:DelaysSeconds:2", "0.2");
             builder.UseSetting("Factory:MediaDirectory", mediaDirectory);
             builder.ConfigureTestServices(services =>
             {
@@ -162,6 +165,25 @@ internal sealed class FactoryHarness : IAsyncDisposable
     }
 
     public Task<long> CountAsync(string sql) => QueryAsync(sql, reader => reader.GetInt64(0));
+
+    public async Task<List<T>> QueryListAsync<T>(string sql, Func<NpgsqlDataReader, T> read)
+    {
+        await using var connection = new NpgsqlConnection(Connection);
+        await connection.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = new NpgsqlCommand(sql, connection);
+        await using var reader = await command.ExecuteReaderAsync(TestContext.Current.CancellationToken);
+        List<T> rows = [];
+        while (await reader.ReadAsync(TestContext.Current.CancellationToken))
+        {
+            rows.Add(read(reader));
+        }
+
+        return rows;
+    }
+
+    /// <summary>Waits until the worker has nothing left to do (queue and inbox are empty).</summary>
+    public async Task WaitForQueueDrainAsync() =>
+        (await EventuallyAsync(async () => await CountAsync("select (select count(*) from wolverine_queues.wolverine_queue_factory) + (select count(*) from factory.wolverine_incoming_envelopes where status = 'Incoming')") == 0)).ShouldBeTrue("the worker did not drain its queue");
 
     public async Task ExecuteAsync(string sql)
     {

@@ -15,14 +15,20 @@ public static class MessagingExtensions
     public const string TransportSchema = "wolverine_queues";
 
     /// <param name="configureFailures">Service-specific error rules, registered ahead of the catch-all dead-letter rule.</param>
+    /// <param name="maxParallelMessages">Upper bound of messages handled at the same time by this host (default: the number of cores).</param>
     /// <param name="listen">False for hosts that only publish (an API that hands work to a worker through the queue).</param>
-    public static WolverineOptions AddOnVoyageMessaging(this WolverineOptions options, string connectionString, string serviceName, bool listen = true, Action<WolverineOptions>? configureFailures = null)
+    public static WolverineOptions AddOnVoyageMessaging(this WolverineOptions options, string connectionString, string serviceName, bool listen = true, Action<WolverineOptions>? configureFailures = null, int? maxParallelMessages = null)
     {
         // Envelope storage lives in the service's own schema; the queues are shared so services can publish to each other.
         options.UsePostgresqlPersistenceAndTransport(connectionString, serviceName, TransportSchema).AutoProvision();
         if (listen)
         {
-            options.ListenToPostgresqlQueue(serviceName);
+            var listener = options.ListenToPostgresqlQueue(serviceName);
+            if (maxParallelMessages is { } parallel)
+            {
+                listener.MaximumParallelMessages(parallel); // bounds the calls to a paid provider
+            }
+
         }
 
         options.Policies.UseDurableInboxOnAllListeners();

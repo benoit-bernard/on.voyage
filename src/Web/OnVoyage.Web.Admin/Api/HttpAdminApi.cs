@@ -138,6 +138,17 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
 
     public Task<StoryItem> OpenCorrectionAsync(Guid id, CancellationToken cancellationToken = default) => WriteAsync<StoryItem>(HttpMethod.Post, $"{Factory}/stories/{id}/correction", new { }, cancellationToken);
 
+    public async Task<Guid> CreateBatchAsync(NewBatch batch, CancellationToken cancellationToken = default) =>
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches", new { batch.Destination, batch.MinImportance, batch.PlaceStatuses, batch.Lang, batch.Kind, batch.Limit }, cancellationToken)).GetProperty("id").GetGuid();
+
+    public Task<IReadOnlyList<BatchProgressItem>> ListBatchesAsync(int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<BatchProgressItem>>($"{Factory}/batches?limit={limit}", cancellationToken);
+
+    public Task<BatchDetailItem> GetBatchAsync(Guid id, CancellationToken cancellationToken = default) => GetAsync<BatchDetailItem>($"{Factory}/batches/{id}", cancellationToken);
+
+    public async Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default) =>
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches/{id}/retry", null, cancellationToken)).GetProperty("requeued").GetInt32();
+
     public Task<IReadOnlyList<ConfigEntryDto>> ListConfigAsync(CancellationToken cancellationToken = default) => GetAsync<IReadOnlyList<ConfigEntryDto>>($"{Platform}/config", cancellationToken);
 
     public Task<IReadOnlyList<ConfigEntryDto>> GetConfigHistoryAsync(string key, CancellationToken cancellationToken = default) =>

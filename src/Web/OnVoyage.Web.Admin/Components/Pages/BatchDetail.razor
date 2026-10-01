@@ -1,0 +1,85 @@
+@page "/admin/batches/{Id:guid}"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@implements IDisposable
+@inherits AdminPageBase
+
+<p><a href="/admin/batches">← Lots</a></p>
+<Status Message="@Message" Error="@Error" />
+
+@if (_detail is null)
+{
+    <p>@(Error is null ? "Chargement…" : string.Empty)</p>
+}
+else
+{
+    var progress = _detail.Progress;
+    <h1>Lot du @progress.Batch.CreatedAt.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)</h1>
+    <p><BatchSummary Progress="progress" /></p>
+    <progress max="@progress.Batch.Total" value="@(progress.Succeeded + progress.Failed)" aria-label="Avancement"></progress>
+
+    @if (progress.Failed > 0)
+    {
+        <div class="row">
+            <button type="button" class="primary" disabled="@Busy" @onclick="Retry">Relancer les @progress.Failed échec(s)</button>
+        </div>
+    }
+
+    <section class="card">
+        <table>
+            <thead><tr><th>Lieu</th><th>État</th><th>Étape</th><th>Essais</th><th>Détail</th></tr></thead>
+            <tbody>
+                @foreach (var job in _detail.Jobs.OrderBy(job => job.State == "Failed" ? 0 : job.State == "Succeeded" && job.Outcome == "NeedsReview" ? 1 : 2).ThenBy(job => job.PlaceName, StringComparer.Ordinal))
+                {
+                    <tr class="@(job.State == "Failed" ? "refused" : null)">
+                        <td><a href="/admin/workshop/place/@job.PlaceId">@job.PlaceName</a></td>
+                        <td>@Labels.Job(job.State)@(job.Outcome == "NeedsReview" ? " · à relire" : "")</td>
+                        <td>@Labels.Step(job.Step)</td>
+                        <td>@job.Attempts</td>
+                        <td>
+                            @if (job.StoryId is { } story)
+                            {
+                                <a href="/admin/workshop/story/@story">Ouvrir l'histoire</a>
+                            }
+                            else if (job.LastError is not null)
+                            {
+                                <span class="muted">@job.LastError</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private BatchDetailItem? _detail;
+    private Timer? _timer;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ReloadAsync();
+        _timer ??= new Timer(_ => _ = InvokeAsync(RefreshWhileRunningAsync), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
+    }
+
+    private async Task ReloadAsync() => _detail = await LoadAsync(() => Api.GetBatchAsync(Id)) ?? _detail;
+
+    private async Task RefreshWhileRunningAsync()
+    {
+        if (_detail is { Progress.IsFinished: false })
+        {
+            await ReloadAsync();
+            StateHasChanged();
+        }
+    }
+
+    private async Task Retry()
+    {
+        await RunAsync(async () => await Api.RetryBatchAsync(Id), "Les jobs en échec sont relancés.");
+        await ReloadAsync();
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

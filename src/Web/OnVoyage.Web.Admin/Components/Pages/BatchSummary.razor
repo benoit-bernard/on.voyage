@@ -1,0 +1,13 @@
+<span class="summary" aria-label="Avancement du lot">
+    <strong>@Progress.Succeeded</strong> terminé(s) sur @Progress.Batch.Total
+    · <span class="@(Progress.Failed > 0 ? "bad" : null)">@Progress.Failed échec(s)</span>
+    · @Progress.ToReview à relire
+    @if (!Progress.IsFinished)
+    {
+        <text> · @(Progress.Pending + Progress.Running) en cours</text>
+    }
+</span>
+
+@code {
+    [Parameter, EditorRequired] public BatchProgressItem Progress { get; set; } = default!;
+}

@@ -16,7 +16,7 @@ builder.Host.UseWolverine(options =>
 
     // The worker listens on the "factory" queue and runs the pipeline jobs; a job's follow-up (import, then enrichment, then scoring)
     // is queued again so each step is retried on its own.
-    options.AddOnVoyageMessaging(connectionString, "factory", configureFailures: MessagingRoutes.RetryProviderFailures);
+    options.AddOnVoyageMessaging(connectionString, "factory", configureFailures: MessagingRoutes.RetryProviderFailures(builder.Configuration), maxParallelMessages: builder.Configuration.GetValue("Factory:Jobs:MaxParallel", 4));
     options.RouteFactoryJobs();
     options.RouteFactoryEvents();
 });

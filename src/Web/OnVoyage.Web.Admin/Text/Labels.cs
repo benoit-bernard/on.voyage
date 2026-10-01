@@ -30,6 +30,25 @@ public static class Labels
         _ => status,
     };
 
+    public static string Job(string state) => state switch
+    {
+        "Pending" => "En attente",
+        "Running" => "En cours",
+        "Succeeded" => "Terminé",
+        "Failed" => "Échec",
+        _ => state,
+    };
+
+    public static string Step(string step) => step switch
+    {
+        "queued" => "en file",
+        "sources" => "sources",
+        "facts" => "faits",
+        "story" => "rédaction",
+        "done" => "terminé",
+        _ => step,
+    };
+
     public static string Kind(string kind) => kind switch
     {
         "Standard" => "Histoire (≈ 2 min)",

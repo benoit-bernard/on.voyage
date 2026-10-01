@@ -71,6 +71,15 @@ public interface IAdminApi
 
     Task<StoryItem> OpenCorrectionAsync(Guid id, CancellationToken cancellationToken = default);
 
+    // Mass generation (T-404)
+    Task<Guid> CreateBatchAsync(NewBatch batch, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<BatchProgressItem>> ListBatchesAsync(int limit, CancellationToken cancellationToken = default);
+
+    Task<BatchDetailItem> GetBatchAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default);
+
     // Configuration and references (T-408)
     Task<IReadOnlyList<ConfigEntryDto>> ListConfigAsync(CancellationToken cancellationToken = default);
 

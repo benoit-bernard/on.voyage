@@ -19,6 +19,10 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
     public DbSet<StoryAudioPartRow> StoryAudioParts => Set<StoryAudioPartRow>();
     public DbSet<StoryReportRow> StoryReports => Set<StoryReportRow>();
     public DbSet<PronunciationRow> Pronunciations => Set<PronunciationRow>();
+    public DbSet<GenerationBatchRow> GenerationBatches => Set<GenerationBatchRow>();
+
+    public DbSet<GenerationJobRow> GenerationJobs => Set<GenerationJobRow>();
+
     public DbSet<AuditLogRow> AuditLog => Set<AuditLogRow>();
 
     public DbSet<LlmCallRow> LlmCalls => Set<LlmCallRow>();
@@ -122,6 +126,21 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
         {
             entity.ToTable("pronunciation");
             entity.HasKey(row => new { row.DestinationSlug, row.Term });
+        });
+
+        modelBuilder.Entity<GenerationBatchRow>(entity =>
+        {
+            entity.ToTable("generation_batch");
+            entity.HasKey(row => row.Id);
+            entity.Property(row => row.Criteria).HasColumnType("jsonb");
+            entity.HasIndex(row => row.CreatedAt);
+        });
+
+        modelBuilder.Entity<GenerationJobRow>(entity =>
+        {
+            entity.ToTable("generation_job", table => table.HasCheckConstraint("ck_generation_job_state", "state in ('Pending', 'Running', 'Succeeded', 'Failed')"));
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => new { row.BatchId, row.State });
         });
 
         modelBuilder.Entity<AuditLogRow>(entity =>

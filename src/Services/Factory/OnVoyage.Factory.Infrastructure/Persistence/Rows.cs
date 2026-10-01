@@ -230,3 +230,29 @@ internal sealed class AuditLogRow
     public int Status { get; set; }
     public string? Detail { get; set; }
 }
+
+internal sealed class GenerationBatchRow
+{
+    public Guid Id { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+    public string CreatedBy { get; set; } = string.Empty;
+    public string Criteria { get; set; } = "{}";
+    public int Total { get; set; }
+}
+
+internal sealed class GenerationJobRow
+{
+    public Guid Id { get; set; }
+    public Guid BatchId { get; set; }
+    public Guid PlaceId { get; set; }
+    public string PlaceName { get; set; } = string.Empty;
+    public string Lang { get; set; } = "fr";
+    public string Kind { get; set; } = "Standard";
+    public string State { get; set; } = "Pending";
+    public string Step { get; set; } = "queued";
+    public int Attempts { get; set; }
+    public string? LastError { get; set; }
+    public Guid? StoryId { get; set; }
+    public string? Outcome { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

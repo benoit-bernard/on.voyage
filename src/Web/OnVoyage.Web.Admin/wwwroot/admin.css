@@ -44,3 +44,4 @@ tr.selected { background: var(--ok-bg); } tr.rejected td, tr.refused td { color:
 .story-text { white-space: pre-wrap; } .part { margin: .5rem 0; } audio { display: block; width: 100%; max-width: 28rem; }
 .actions button { margin-right: .25rem; }
 #blazor-error-ui { background: var(--err); color: #fff; bottom: 0; left: 0; right: 0; padding: .6rem 1rem; position: fixed; z-index: 1000; } #blazor-error-ui[hidden] { display: none; }
+.bad { color: var(--err); font-weight: 600; } progress { width: 100%; height: .8rem; }

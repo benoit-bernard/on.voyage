@@ -2,6 +2,7 @@ using System.Security.Claims;
 using OnVoyage.Factory.Application;
 using OnVoyage.Factory.Application.Content;
 using OnVoyage.Factory.Application.Features.Admin;
+using OnVoyage.Factory.Application.Features.Batches;
 using OnVoyage.Factory.Application.Features.Content;
 using OnVoyage.Factory.Application.Features.EnrichPlaces;
 using OnVoyage.Factory.Application.Features.ImportPlaces;
@@ -31,6 +32,8 @@ internal sealed record WriteStoryRequest(string Lang, StoryKind Kind);
 internal sealed record EditStoryRequest(string Title, string Text);
 
 internal sealed record ApproveStoryRequest(double? EditorialScore);
+
+internal sealed record BatchRequest(string Destination, int? MinImportance, string[]? PlaceStatuses, string? Lang, StoryKind? Kind, int? Limit);
 
 internal sealed record VoiceRequest(string Voice);
 
@@ -118,6 +121,7 @@ internal static class FactoryEndpoints
 
         MapContent(admin);
         MapReferences(admin);
+        MapBatches(admin);
 
         // Travelers report a problem with a story (F-20). The only traveler-facing Factory route; the gateway exposes it separately.
         app.MapPost("/api/factory/v1/stories/{id:guid}/reports", (Guid id, ReportRequest request, ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) =>
@@ -126,6 +130,33 @@ internal static class FactoryEndpoints
                 : Task.FromResult(Results.Unauthorized())).RequireAuthorization(Policies.Traveler);
 
         return app;
+    }
+
+    private static void MapBatches(RouteGroupBuilder admin)
+    {
+        admin.MapPost("/batches", async (BatchRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+        {
+            var statuses = (request.PlaceStatuses is { Length: > 0 } names ? names : ["Candidate", "Published"]).Select(name => Enum.TryParse<PlaceStatus>(name, true, out var parsed) ? (PlaceStatus?)parsed : null).ToList();
+            if (statuses.Any(status => status is null))
+            {
+                return Results.Problem(title: "Unknown place status.", statusCode: StatusCodes.Status400BadRequest, type: "https://on.voyage/problems/validation");
+            }
+
+            var criteria = new BatchCriteria(request.Destination, request.MinImportance, [.. statuses.Select(status => status!.Value)], request.Lang ?? "fr", request.Kind ?? StoryKind.Standard, request.Limit ?? 20);
+            var result = await bus.InvokeAsync<Result<GenerationBatch>>(new CreateBatchCommand(criteria, http.User.TravelerId()?.ToString() ?? "unknown"), ct);
+            return result.IsSuccess
+                ? Results.Accepted($"/api/factory/v1/admin/batches/{result.Value!.Id}", new { id = result.Value.Id, total = result.Value.Total })
+                : Problem(result.Error!);
+        });
+
+        admin.MapGet("/batches", (int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<BatchProgress>>>(new ListBatchesQuery(limit ?? 20), ct), items => items));
+
+        admin.MapGet("/batches/{id:guid}", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<BatchDetail>>(new GetBatchQuery(id), ct), detail => detail));
+
+        admin.MapPost("/batches/{id:guid}/retry", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<int>>(new RetryFailedJobsCommand(id), ct), count => new { requeued = count }));
     }
 
     private static void MapReferences(RouteGroupBuilder admin)
@@ -208,7 +239,11 @@ internal static class FactoryEndpoints
             return Results.Ok(project(result.Value!));
         }
 
-        var error = result.Error!;
+        return Problem(result.Error!);
+    }
+
+    private static IResult Problem(Error error)
+    {
         var status = error.Code.EndsWith("not_found", StringComparison.Ordinal) ? StatusCodes.Status404NotFound
             : error.Code is "validation" ? StatusCodes.Status400BadRequest
             : StatusCodes.Status409Conflict;

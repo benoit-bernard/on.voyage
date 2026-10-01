@@ -22,7 +22,7 @@ builder.Host.UseWolverine(options =>
     options.Discovery.IncludeAssembly(typeof(ImportPlacesCommand).Assembly);
 
     // The API only publishes: the worker consumes the "factory" queue, so long jobs never run inside a request.
-    options.AddOnVoyageMessaging(connectionString, "factory", listen: false, configureFailures: MessagingRoutes.RetryProviderFailures);
+    options.AddOnVoyageMessaging(connectionString, "factory", listen: false, configureFailures: MessagingRoutes.RetryProviderFailures(builder.Configuration));
     options.RouteFactoryJobs();
     options.RouteFactoryEvents();
 });

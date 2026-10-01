@@ -56,9 +56,24 @@ internal sealed class FakeExtractor : IFactExtractor
 {
     public int Calls { get; private set; }
 
+    /// <summary>Places (by name) for which the provider is "down": the call raises the error a real outage would.</summary>
+    public HashSet<string> FailFor { get; } = new(StringComparer.Ordinal);
+
+    public Dictionary<string, int> CallsByPlace { get; } = new(StringComparer.Ordinal);
+
     public Task<IReadOnlyList<CandidateFact>> ExtractAsync(FactExtractionRequest request, CancellationToken cancellationToken)
     {
-        Calls++;
+        lock (CallsByPlace)
+        {
+            Calls++;
+            CallsByPlace[request.PlaceName] = CallsByPlace.GetValueOrDefault(request.PlaceName) + 1;
+        }
+
+        if (FailFor.Contains(request.PlaceName))
+        {
+            throw new OnVoyage.Factory.Application.Content.ExternalServiceException($"provider down for {request.PlaceName}");
+        }
+
         return Task.FromResult<IReadOnlyList<CandidateFact>>(
         [
             new CandidateFact("La construction du fort commence en 1660, sur ordre de Louis XIV.", "Date", FakeContentServices.Quotes[0], 0.95),
