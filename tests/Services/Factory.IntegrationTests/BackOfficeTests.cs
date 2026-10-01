@@ -46,12 +46,12 @@ public sealed class BackOfficeTests(PostgresFixture postgres) : IAsyncLifetime
         weights["history.military"].ShouldBe(0.8, 1e-6);
         weights["history"].ShouldBe(0.8, 1e-6);
         weights["architecture"].ShouldBe(0.6, 1e-6);
-        (await _f.CountAsync("select count(*) from factory.place_interest i join factory.place p on p.id = i.place_id where p.slug = 'lieu-mysterieux' and i.source = 'editor'")).ShouldBe(3);
+        (await _f.CountAsync("select count(*) from factory.place_interest i join factory.place p on p.id = i.place_id where p.slug = 'lieu-mysterieux' and i.source = 'editor'")).ShouldBe(4);
 
         (await _f.Admin.PostAsJsonAsync($"{Admin}/scorings", new { destination = "marseille" }, Ct)).EnsureSuccessStatusCode();
         await Task.Delay(500, Ct);
         (await FactoryHarness.EventuallyAsync(async () => await _f.CountAsync("select count(*) from wolverine_queues.wolverine_queue_factory") == 0)).ShouldBeTrue();
-        (await _f.CountAsync("select count(*) from factory.place_interest i join factory.place p on p.id = i.place_id where p.slug = 'lieu-mysterieux' and i.source = 'editor'")).ShouldBe(3);
+        (await _f.CountAsync("select count(*) from factory.place_interest i join factory.place p on p.id = i.place_id where p.slug = 'lieu-mysterieux' and i.source = 'editor'")).ShouldBe(4);
     }
 
     [Theory]
