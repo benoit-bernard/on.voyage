@@ -24,6 +24,12 @@ internal static class DiscoveryEndpoints
         group.MapPatch("/me/profile", (ProfileCorrectionRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<ProfileDto>>(new CorrectProfileCommand(Traveler(http), request.Corrections), ct)));
 
+        group.MapGet("/me/settings", (HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<SettingsDto>>(new GetSettingsQuery(Traveler(http)), ct)));
+
+        group.MapPatch("/me/settings", (SettingsPatch patch, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<SettingsDto>>(new UpdateSettingsCommand(Traveler(http), patch), ct)));
+
         group.MapPost("/me/interactions", (InteractionBatchRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<InteractionBatchResponse>>(new IngestInteractionsCommand(Traveler(http), request.Interactions), ct)));
 

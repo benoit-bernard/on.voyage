@@ -31,6 +31,16 @@ internal sealed class DiscoveryStore(DiscoveryDbContext db, TimeProvider clock) 
         return result;
     }
 
+    public async Task<(string Lang, string EthicalMode)> UpdateSettingsAsync(Guid travelerId, string? lang, string? ethicalMode, CancellationToken cancellationToken) =>
+        await ExclusiveAsync(travelerId, async _ =>
+        {
+            var traveler = await db.Travelers.FirstAsync(t => t.Id == travelerId, cancellationToken);
+            traveler.Lang = lang ?? traveler.Lang;
+            traveler.EthicalMode = ethicalMode ?? traveler.EthicalMode;
+            await db.SaveChangesAsync(cancellationToken);
+            return (traveler.Lang, traveler.EthicalMode);
+        }, cancellationToken);
+
     public async Task<StoredProfile?> GetProfileAsync(Guid travelerId, CancellationToken cancellationToken)
     {
         var traveler = await db.Travelers.AsNoTracking().FirstOrDefaultAsync(t => t.Id == travelerId, cancellationToken);

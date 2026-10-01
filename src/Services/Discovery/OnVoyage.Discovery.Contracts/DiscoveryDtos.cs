@@ -103,3 +103,8 @@ public sealed record SavedItemDto(Guid PoiId, string Slug, string Name, DateTime
 public sealed record SavedGroupDto(string Destination, IReadOnlyList<SavedItemDto> Items);
 
 public sealed record HistoryItemDto(Guid PoiId, string Slug, string Name, DateTimeOffset LastAt, bool Listened, bool Visited);
+
+/// <summary>Language and ethical mode (<c>off</c>, <c>balanced</c>, <c>strong</c>). Consents belong to Platform.</summary>
+public sealed record SettingsDto(string Lang, string EthicalMode);
+
+public sealed record SettingsPatch(string? Lang, string? EthicalMode);

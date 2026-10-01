@@ -88,3 +88,38 @@ public static class CorrectProfileHandler
         return await GetProfileHandler.Handle(new GetProfileQuery(command.TravelerId), store, cancellationToken);
     }
 }
+
+public sealed record GetSettingsQuery(Guid TravelerId);
+
+public sealed record UpdateSettingsCommand(Guid TravelerId, SettingsPatch Patch);
+
+public static class GetSettingsHandler
+{
+    public static async Task<Result<SettingsDto>> Handle(GetSettingsQuery query, ITravelerReader travelers, CancellationToken cancellationToken)
+    {
+        var traveler = await travelers.GetAsync(query.TravelerId, cancellationToken);
+        return Result.Success(new SettingsDto(traveler?.Lang ?? "fr", traveler?.EthicalMode ?? "balanced"));
+    }
+}
+
+public static class UpdateSettingsHandler
+{
+    private static readonly string[] Modes = ["off", "balanced", "strong"];
+    private static readonly string[] Languages = ["fr", "en"];
+
+    public static async Task<Result<SettingsDto>> Handle(UpdateSettingsCommand command, IDiscoveryStore store, CancellationToken cancellationToken)
+    {
+        if (command.Patch.EthicalMode is { } mode && !Modes.Contains(mode))
+        {
+            return Result.Failure<SettingsDto>("validation", "ethicalMode is off, balanced or strong");
+        }
+
+        if (command.Patch.Lang is { } lang && !Languages.Contains(lang))
+        {
+            return Result.Failure<SettingsDto>("validation", "lang is fr or en");
+        }
+
+        var (l, m) = await store.UpdateSettingsAsync(command.TravelerId, command.Patch.Lang, command.Patch.EthicalMode, cancellationToken);
+        return Result.Success(new SettingsDto(l, m));
+    }
+}

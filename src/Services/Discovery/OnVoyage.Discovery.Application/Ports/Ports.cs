@@ -44,6 +44,9 @@ public interface IDiscoveryStore
     Task<T> ExclusiveAsync<T>(Guid travelerId, Func<ITravelerSession, Task<T>> work, CancellationToken cancellationToken);
 
     Task<StoredProfile?> GetProfileAsync(Guid travelerId, CancellationToken cancellationToken);
+
+    /// <summary>Updates language and ethical mode, creating the traveler if needed; returns the settings after the change.</summary>
+    Task<(string Lang, string EthicalMode)> UpdateSettingsAsync(Guid travelerId, string? lang, string? ethicalMode, CancellationToken cancellationToken);
 }
 
 public sealed record StoredClip(Guid StoryId, Guid PoiId, string Lang, string Title, string AudioPath, int DurationSeconds, bool Active, ClipCandidate Candidate);

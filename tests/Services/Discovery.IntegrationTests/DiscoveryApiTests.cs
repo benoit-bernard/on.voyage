@@ -372,4 +372,19 @@ public sealed class DiscoveryApiTests(PostgresFixture postgres) : IAsyncLifetime
         await StoryPublishedHandler.Handle(Clip(Fort, "std") with { Kind = "standard" }, writer, Ct);
         (await client.GetFromJsonAsync<List<OnboardingClipDto>>("/api/discovery/v1/onboarding/clips", Ct))!.ShouldAllBe(c => c.Title != "std");
     }
+
+    [Fact]
+    public async Task Settings_default_to_french_and_balanced_and_can_be_changed()
+    {
+        using var client = NewTraveler();
+        var defaults = (await client.GetFromJsonAsync<SettingsDto>("/api/discovery/v1/me/settings", Ct))!;
+        defaults.ShouldBe(new SettingsDto("fr", "balanced"));
+
+        var changed = await client.PatchAsJsonAsync("/api/discovery/v1/me/settings", new SettingsPatch(null, "strong"), Ct);
+        (await changed.Content.ReadFromJsonAsync<SettingsDto>(Ct))!.ShouldBe(new SettingsDto("fr", "strong"));
+        (await client.GetFromJsonAsync<SettingsDto>("/api/discovery/v1/me/settings", Ct))!.EthicalMode.ShouldBe("strong");
+
+        (await client.PatchAsJsonAsync("/api/discovery/v1/me/settings", new SettingsPatch("de", null), Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await client.PatchAsJsonAsync("/api/discovery/v1/me/settings", new SettingsPatch(null, "extreme"), Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
 }
