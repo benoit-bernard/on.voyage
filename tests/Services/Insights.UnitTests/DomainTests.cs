@@ -65,7 +65,7 @@ public sealed class DomainTests
     [Fact]
     public void The_ratio_needs_both_arms_and_is_not_computed_for_a_single_cohort()
     {
-        KpiTotal[] onlyPersonalized = [ T("personalized", KpiMetrics.RecommendationViewed, 100), T("personalized", KpiMetrics.RecommendationClicked, 10) ];
+        KpiTotal[] onlyPersonalized = [T("personalized", KpiMetrics.RecommendationViewed, 100), T("personalized", KpiMetrics.RecommendationClicked, 10)];
         KpiCalculator.Compute(onlyPersonalized, null).ShouldNotContainKey("central_ctr_ratio");
 
         KpiTotal[] both = [T("control", KpiMetrics.RecommendationViewed, 100), T("control", KpiMetrics.RecommendationClicked, 10), .. onlyPersonalized];

@@ -38,7 +38,13 @@ public sealed class IngestTests
     [Fact]
     public void A_correct_event_passes() => Check(Event("recommendation_clicked", new()
     {
-        ["poi_id"] = J("b0a1"), ["surface"] = J("home"), ["rank"] = J(2), ["cohort"] = J("personalized"), ["weights_version"] = J("w1"), ["is_exploration"] = J(false), ["profile_depth"] = J(12),
+        ["poi_id"] = J("b0a1"),
+        ["surface"] = J("home"),
+        ["rank"] = J(2),
+        ["cohort"] = J("personalized"),
+        ["weights_version"] = J("w1"),
+        ["is_exploration"] = J(false),
+        ["profile_depth"] = J(12),
     })).ShouldBeEmpty();
 
     [Fact]

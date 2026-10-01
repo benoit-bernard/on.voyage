@@ -46,7 +46,13 @@ public sealed class InsightsKpiTests(PostgresFixture postgres) : IAsyncLifetime
 
             Dictionary<string, JsonElement> Rec(int rank) => new()
             {
-                ["poi_id"] = J($"poi-{rank}"), ["surface"] = J("home"), ["rank"] = J(rank), ["cohort"] = J(cohort), ["weights_version"] = J("w1"), ["is_exploration"] = J(false), ["profile_depth"] = J(n),
+                ["poi_id"] = J($"poi-{rank}"),
+                ["surface"] = J("home"),
+                ["rank"] = J(rank),
+                ["cohort"] = J(cohort),
+                ["weights_version"] = J("w1"),
+                ["is_exploration"] = J(false),
+                ["profile_depth"] = J(n),
             };
 
             events.Add(Ev("app_open", At(day0, 0), session0, new() { ["cold_start"] = J(true) }));
