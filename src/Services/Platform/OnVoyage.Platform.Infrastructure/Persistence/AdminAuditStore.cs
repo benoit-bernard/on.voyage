@@ -16,8 +16,14 @@ internal sealed class AdminAuditStore(PlatformDbContext db) : IAdminAuditStore
 
         db.AdminAudit.Add(new AdminAuditRow
         {
-            EventId = action.EventId, At = action.OccurredAt, Service = action.Service, Actor = action.Actor, Action = action.Action,
-            Target = action.Target, Status = action.Status, Summary = action.Summary,
+            EventId = action.EventId,
+            At = action.OccurredAt,
+            Service = action.Service,
+            Actor = action.Actor,
+            Action = action.Action,
+            Target = action.Target,
+            Status = action.Status,
+            Summary = action.Summary,
         });
         try
         {

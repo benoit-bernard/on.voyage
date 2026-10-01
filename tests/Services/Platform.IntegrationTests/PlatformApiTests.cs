@@ -1,6 +1,6 @@
 using System.Net;
-using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using OnVoyage.Platform.Contracts;
 using OnVoyage.TestInfrastructure;
