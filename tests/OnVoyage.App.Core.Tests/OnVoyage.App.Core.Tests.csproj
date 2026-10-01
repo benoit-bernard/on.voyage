@@ -1,5 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="../../src/Mobile/OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 </Project>

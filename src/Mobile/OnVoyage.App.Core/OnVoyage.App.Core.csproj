@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../../Shared/OnVoyage.Recommendation.Engine/OnVoyage.Recommendation.Engine.csproj" />
     <ProjectReference Include="../../Services/Catalog/OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
+    <ProjectReference Include="../../Services/Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <ProjectReference Include="../../Shared/OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
   </ItemGroup>

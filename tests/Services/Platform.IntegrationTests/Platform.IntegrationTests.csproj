@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <ProjectReference Include="../../OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />
     <ProjectReference Include="../../../src/Services/Platform/OnVoyage.Platform.Api/OnVoyage.Platform.Api.csproj" />
     <ProjectReference Include="../../../src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />

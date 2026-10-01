@@ -1,0 +1,153 @@
+@page "/compte"
+@inject SessionService Session
+
+<PageTitle>Mon compte · ON.VOYAGE</PageTitle>
+
+<a class="back" href="">← Retour</a>
+<h1>Mon compte</h1>
+
+@if (_session is null)
+{
+    <p class="muted" aria-live="polite">Chargement…</p>
+}
+else if (!_session.IsAnonymous)
+{
+    <p>Connecté avec <strong>@_session.Email</strong>.</p>
+    <p class="muted">Vos goûts et vos envies sont liés à ce compte. Votre profil de goûts reste sur cet appareil.</p>
+    <button class="btn btn-soft" @onclick="SignOutAsync" disabled="@_busy">Se déconnecter</button>
+}
+else if (_step == Step.Email)
+{
+    <p>Vous utilisez ON.VOYAGE sans compte. Créez-en un pour retrouver vos données sur un autre appareil ou après une réinstallation.</p>
+    <form @onsubmit="RequestCodeAsync" @onsubmit:preventDefault>
+        <label for="email">Adresse e-mail</label>
+        <input id="email" type="email" inputmode="email" autocomplete="email" @bind="_email" @bind:event="oninput" required />
+        <p class="muted">Nous vous envoyons un code à 6 chiffres. Aucun mot de passe, aucun nom demandé.</p>
+        <button class="btn" type="submit" disabled="@(_busy || string.IsNullOrWhiteSpace(_email))">Recevoir le code</button>
+    </form>
+}
+else
+{
+    <p>Un code a été envoyé à <strong>@_email</strong>. Il est valable 10 minutes.</p>
+    <form @onsubmit="VerifyCodeAsync" @onsubmit:preventDefault>
+        <label for="code">Code à 6 chiffres</label>
+        <input id="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]{6}" @bind="_code" @bind:event="oninput" required />
+        <button class="btn" type="submit" disabled="@(_busy || _code.Length != 6)">Valider</button>
+        <button class="btn btn-soft" type="button" @onclick="RequestCodeAsync" disabled="@_busy">Renvoyer un code</button>
+        <button class="btn btn-soft" type="button" @onclick="ChangeEmail" disabled="@_busy">Changer d'adresse</button>
+    </form>
+}
+
+@if (_message is not null)
+{
+    <p class="@(_isError ? "error" : "ok")" role="@(_isError ? "alert" : "status")">@_message</p>
+}
+
+@code {
+    private enum Step { Email, Code }
+
+    private AuthSessionDto? _session;
+    private Step _step = Step.Email;
+    private string _email = string.Empty;
+    private string _code = string.Empty;
+    private string? _message;
+    private bool _isError;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            _session = await Session.EnsureSessionAsync(CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            Fail("Impossible de joindre ON.VOYAGE. Vérifiez votre connexion.");
+        }
+    }
+
+    private async Task RequestCodeAsync()
+    {
+        _busy = true;
+        _message = null;
+        var result = await Session.RequestCodeAsync(_email.Trim(), CancellationToken.None);
+        if (result.IsSuccess)
+        {
+            _step = Step.Code;
+            _code = string.Empty;
+            Succeed("Code envoyé. Vérifiez votre boîte de réception.");
+        }
+        else
+        {
+            Fail(Describe(result.Failure!));
+        }
+
+        _busy = false;
+    }
+
+    private async Task VerifyCodeAsync()
+    {
+        _busy = true;
+        _message = null;
+        var result = await Session.VerifyCodeAsync(_email.Trim(), _code, CancellationToken.None);
+        if (result.IsSuccess)
+        {
+            _session = result.Value;
+            Succeed("Compte vérifié.");
+        }
+        else
+        {
+            if (result.Failure!.Code is "otp_expired" or "otp_locked")
+            {
+                _code = string.Empty;
+            }
+
+            Fail(Describe(result.Failure));
+        }
+
+        _busy = false;
+    }
+
+    private async Task SignOutAsync()
+    {
+        _busy = true;
+        await Session.SignOutAsync(CancellationToken.None);
+        _session = await Session.EnsureSessionAsync(CancellationToken.None);
+        _step = Step.Email;
+        _email = string.Empty;
+        _message = null;
+        _busy = false;
+    }
+
+    private void ChangeEmail()
+    {
+        _step = Step.Email;
+        _message = null;
+    }
+
+    private void Succeed(string message)
+    {
+        _message = message;
+        _isError = false;
+    }
+
+    private void Fail(string message)
+    {
+        _message = message;
+        _isError = true;
+    }
+
+    private static string Describe(AuthFailure failure) => failure.Code switch
+    {
+        "validation" => "Vérifiez l'adresse e-mail ou le code saisi.",
+        "otp_invalid" => "Ce code n'est pas valide. Vérifiez-le ou demandez-en un nouveau.",
+        "otp_expired" => "Ce code a expiré. Touchez « Renvoyer un code » pour en recevoir un nouveau.",
+        "otp_locked" => "Trop d'essais. Touchez « Renvoyer un code » pour en recevoir un nouveau.",
+        "otp_cooldown" => $"Un code vient d'être envoyé. Patientez {failure.RetryAfterSeconds ?? 60} secondes avant d'en demander un autre.",
+        "otp_rate_limited" => "Trop de codes demandés pour cette adresse. Réessayez dans une heure.",
+        "email_unavailable" => "Le code n'a pas pu être envoyé. Réessayez dans un instant.",
+        "email_already_linked" => "Cette session est déjà liée à un autre compte.",
+        AuthFailure.Network => "Impossible de joindre ON.VOYAGE. Vérifiez votre connexion.",
+        _ => "Une erreur est survenue. Réessayez.",
+    };
+}

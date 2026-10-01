@@ -1,6 +1,7 @@
 .shell { min-height: 100vh; display: flex; flex-direction: column; }
-.topbar { position: sticky; top: 0; z-index: 10; padding: calc(env(safe-area-inset-top) + .75rem) 1rem .75rem; background: var(--ov-surface); border-bottom: 1px solid var(--ov-line); }
+.topbar { display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 10; padding: calc(env(safe-area-inset-top) + .75rem) 1rem .75rem; background: var(--ov-surface); border-bottom: 1px solid var(--ov-line); }
 .brand { font-weight: 800; letter-spacing: .08em; color: var(--ov-ink); text-decoration: none; font-size: 1.05rem; }
 .brand span { color: var(--ov-accent); }
 .content { flex: 1; width: 100%; max-width: 44rem; margin: 0 auto; padding: 1rem 1rem 2rem; }
 .attribution { padding: .75rem 1rem calc(env(safe-area-inset-bottom) + .75rem); font-size: .75rem; color: var(--ov-muted); text-align: center; }
+.account { color: var(--ov-ink); text-decoration: none; font-weight: 700; padding: .25rem .6rem; border-radius: .6rem; background: var(--ov-chip); }

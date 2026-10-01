@@ -22,6 +22,10 @@ dotnet run --project src/Aspire/OnVoyage.AppHost      # Gateway :5080, Catalog, 
 
 Prérequis : `dotnet workload install maui-android` (et `maui-ios` sur Mac), JDK 21, SDK Android. `OnVoyage.App` n'est pas dans `OnVoyage.slnx` (il exige les workloads) ; la CI `mobile.yml` le compile.
 
+## Compte et connexion
+
+Au premier lancement l'app crée une session anonyme sans rien demander. L'écran **Compte** permet de créer un compte avec un code à 6 chiffres reçu par e-mail (ADR-0005). En développement, le code est affiché dans le journal du service `platform-api` (ligne `DEVELOPMENT sign-in code`) au lieu d'être envoyé ; en staging et production il part par Resend (paramètre secret `resend-api-key`).
+
 ## Mise en production de la PWA
 
 Publier avec `dotnet publish src/Web/OnVoyage.Web.Pwa -c Release`, fixer `Gateway:BaseAddress` dans `wwwroot/appsettings.json` (vide = même origine) et autoriser l'origine de la PWA dans `Cors:AllowedOrigins` du Gateway.

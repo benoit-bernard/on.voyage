@@ -3,4 +3,7 @@
     <PackageReference Include="Microsoft.Extensions.Http" />
     <ProjectReference Include="../OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OnVoyage.App.Infrastructure.Tests" />
+  </ItemGroup>
 </Project>

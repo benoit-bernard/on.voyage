@@ -23,8 +23,10 @@ public sealed class ConfigSnapshotTests(PostgresFixture postgres) : IAsyncLifeti
         {
             builder.UseSetting("ConnectionStrings:onvoyage", connection);
             builder.UseSetting("Catalog:SeedDemoData", "true");
+            builder.UseSetting("Auth:JwtSecret", TestTokens.Secret);
         });
         _client = _factory.CreateClient();
+        _client.Authenticate();
     }
 
     public async ValueTask DisposeAsync()

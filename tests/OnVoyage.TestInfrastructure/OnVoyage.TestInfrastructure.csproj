@@ -6,5 +6,7 @@
   <ItemGroup>
     <PackageReference Include="Testcontainers.PostgreSql" />
     <PackageReference Include="Npgsql" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <ProjectReference Include="../../src/Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
   </ItemGroup>
 </Project>

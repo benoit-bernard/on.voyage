@@ -137,6 +137,29 @@ public sealed class ArchitectureTests
     }
 
     [Fact]
+    public void Production_configuration_holds_no_secret()
+    {
+        // Development files may carry a throw-away key; the base appsettings of every host must not carry any secret.
+        var secretish = new System.Text.RegularExpressions.Regex(
+            "\"(JwtSecret|ApiKey|Password|Secret)\"\\s*:\\s*\"[^\"]+\"", System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        var offenders = Directory.EnumerateFiles(Path.Combine(Root, "src"), "appsettings.json", SearchOption.AllDirectories)
+            .Where(file => !file.Contains("/obj/") && !file.Contains("/bin/") && !file.Contains("/wwwroot/") && secretish.IsMatch(File.ReadAllText(file)))
+            .ToArray();
+
+        offenders.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public void Only_platform_issues_tokens_and_only_the_edge_hosts_validate_them()
+    {
+        // Token issuing needs the JsonWebTokens package; nothing else may reference it directly.
+        foreach (var project in Projects().Where(p => Path.GetFileNameWithoutExtension(p) != "OnVoyage.Platform.Infrastructure"))
+        {
+            Packages(project).ShouldNotContain("Microsoft.IdentityModel.JsonWebTokens", project);
+        }
+    }
+
+    [Fact]
     public void No_type_is_named_helper_utils_or_manager()
     {
         var pattern = new System.Text.RegularExpressions.Regex(@"\b(class|record|struct|interface)\s+\w*(Helpers?|Utils|Utility|Manager)\b");

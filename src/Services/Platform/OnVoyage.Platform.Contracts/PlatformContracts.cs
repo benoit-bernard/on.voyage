@@ -23,3 +23,23 @@ public sealed record SetFeatureFlagRequest(bool Enabled, int RolloutPercent, IRe
 public sealed record ConsentDto(string Kind, bool Granted, string TextVersion, DateTimeOffset UpdatedAt);
 
 public sealed record SetConsentRequest(bool Granted, string TextVersion);
+
+// Identity (F-01).
+
+public sealed record AuthSessionDto(
+    string AccessToken,
+    DateTimeOffset AccessTokenExpiresAt,
+    string RefreshToken,
+    DateTimeOffset RefreshTokenExpiresAt,
+    Guid TravelerId,
+    bool IsAnonymous,
+    string? Email,
+    IReadOnlyList<string> Roles);
+
+public sealed record RefreshSessionRequest(string RefreshToken);
+
+public sealed record RequestOtpRequest(string Email);
+
+public sealed record VerifyOtpRequest(string Email, string Code);
+
+public sealed record AccountDto(Guid TravelerId, bool IsAnonymous, string? Email, IReadOnlyList<string> Roles, DateTimeOffset CreatedAt);

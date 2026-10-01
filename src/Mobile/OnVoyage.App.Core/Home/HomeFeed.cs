@@ -1,3 +1,4 @@
+using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Catalog;
 using OnVoyage.App.Core.Profile;
 using OnVoyage.Catalog.Contracts;
@@ -11,7 +12,7 @@ public sealed record PlaceCard(PoiSummaryDto Poi, int? CompatibilityPercent, str
 public sealed record HomeFeed(string DestinationName, string ForYouTitle, bool IsControl, IReadOnlyList<PlaceCard> ForYou, IReadOnlyList<PlaceCard> LessCrowded, IReadOnlyList<PlaceCard> Saved);
 
 /// <summary>Builds the home screen (F-03) on the device. Ranking runs locally so the taste profile never leaves the phone.</summary>
-public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profiles)
+public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profiles, ISessionProvider sessions)
 {
     private const int ForYouCount = 5;
     private const int LessCrowdedCount = 3;
@@ -19,6 +20,15 @@ public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profil
     public async Task<HomeFeed> BuildAsync(double? latitude, double? longitude, CancellationToken cancellationToken)
     {
         var profile = await profiles.LoadAsync(cancellationToken);
+
+        // The traveler id is the account id (F-01), so the control cohort follows the account across devices.
+        var session = await sessions.EnsureSessionAsync(cancellationToken);
+        if (profile.TravelerId != session.TravelerId)
+        {
+            profile = profile with { TravelerId = session.TravelerId };
+            await profiles.SaveAsync(profile, cancellationToken);
+        }
+
         var destination = await catalog.GetDestinationAsync(profile.Destination, cancellationToken);
         var pois = await catalog.GetPoisAsync(profile.Destination, latitude, longitude, cancellationToken);
         var byId = pois.ToDictionary(poi => poi.Id.ToString("N"));

@@ -3,6 +3,7 @@ using OnVoyage.Catalog.Application.Features.GetDestination;
 using OnVoyage.Catalog.Application.Features.GetNearbyPois;
 using OnVoyage.Catalog.Application.Features.GetPoi;
 using OnVoyage.Catalog.Contracts;
+using OnVoyage.ServiceDefaults.Security;
 using Wolverine;
 
 namespace OnVoyage.Catalog.Api.Endpoints;
@@ -11,7 +12,8 @@ internal static class CatalogEndpoints
 {
     public static IEndpointRouteBuilder MapCatalogEndpoints(this IEndpointRouteBuilder app)
     {
-        var group = app.MapGroup("/api/catalog/v1");
+        // Reads are open to any traveler session (anonymous included) and to internal hosts such as Web.Public (§12.1, SEC-03).
+        var group = app.MapGroup("/api/catalog/v1").RequireAuthorization(Policies.TravelerOrInternal);
 
         group.MapGet("/destinations/{slug}", (string slug, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<DestinationDto>>(new GetDestinationQuery(slug), ct)));

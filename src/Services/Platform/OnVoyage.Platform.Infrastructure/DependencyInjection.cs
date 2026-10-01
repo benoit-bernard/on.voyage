@@ -5,6 +5,7 @@ using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OnVoyage.Platform.Application.Ports;
+using OnVoyage.Platform.Infrastructure.Identity;
 using OnVoyage.Platform.Infrastructure.Persistence;
 using Wolverine;
 using Wolverine.EntityFrameworkCore;
@@ -15,7 +16,7 @@ public static class DependencyInjection
 {
     public const string ConnectionName = "onvoyage";
 
-    public static IServiceCollection AddPlatformInfrastructure(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddPlatformInfrastructure(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         var connectionString = configuration.GetConnectionString(ConnectionName)
             ?? throw new InvalidOperationException($"Connection string '{ConnectionName}' is missing.");
@@ -24,9 +25,37 @@ public static class DependencyInjection
         services.AddScoped<IRemoteConfigStore, RemoteConfigStore>();
         services.AddScoped<IFeatureFlagStore, FeatureFlagStore>();
         services.AddScoped<IConsentStore, ConsentStore>();
+        services.AddScoped<IAccountStore, AccountStore>();
+        services.AddScoped<IOtpStore, OtpStore>();
+        services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();
+        services.AddScoped<IAuthSettingsProvider, AuthSettingsProvider>();
+        services.AddSingleton<ITokenIssuer, JwtTokenIssuer>();
+        services.AddSingleton<ICredentialService, CredentialService>();
+        AddEmailSender(services, configuration, environment);
         services.AddSingleton(TimeProvider.System);
         services.AddHealthChecks().AddCheck<PlatformDatabaseHealthCheck>("platform-db", tags: ["ready"]);
         return services;
+    }
+
+    private static void AddEmailSender(IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    {
+        switch (configuration["Email:Provider"]?.ToLowerInvariant())
+        {
+            case "resend":
+                services.AddHttpClient<IEmailSender, ResendEmailSender>(client =>
+                {
+                    client.BaseAddress = new Uri("https://api.resend.com/");
+                    client.Timeout = TimeSpan.FromSeconds(10);
+                });
+                break;
+            case "log" when environment.IsDevelopment():
+                services.AddSingleton<IEmailSender, LogEmailSender>();
+                break;
+            case "log":
+                throw new InvalidOperationException("Email:Provider=log prints sign-in codes and is only allowed in Development.");
+            default:
+                throw new InvalidOperationException("Email:Provider must be 'resend' (or 'log' in Development).");
+        }
     }
 
     /// <summary>

@@ -10,6 +10,9 @@ internal sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> opti
     public DbSet<RemoteConfigHistoryRow> RemoteConfigHistory => Set<RemoteConfigHistoryRow>();
     public DbSet<FeatureFlagRow> FeatureFlags => Set<FeatureFlagRow>();
     public DbSet<ConsentRow> Consents => Set<ConsentRow>();
+    public DbSet<AccountRow> Accounts => Set<AccountRow>();
+    public DbSet<OtpChallengeRow> OtpChallenges => Set<OtpChallengeRow>();
+    public DbSet<RefreshTokenRow> RefreshTokens => Set<RefreshTokenRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -40,6 +43,31 @@ internal sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> opti
         {
             entity.ToTable("consent", table => table.HasCheckConstraint("ck_consent_kind", "kind in ('analytics', 'ads_personalization')"));
             entity.HasKey(row => new { row.TravelerId, row.Kind });
+        });
+
+        modelBuilder.Entity<AccountRow>(entity =>
+        {
+            entity.ToTable("account");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => row.Email).IsUnique().HasFilter("email is not null");
+            entity.HasIndex(row => row.LastActiveAt);
+        });
+
+        // Only a keyed hash of the code is stored (never the code itself).
+        modelBuilder.Entity<OtpChallengeRow>(entity =>
+        {
+            entity.ToTable("otp_challenge");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => new { row.Email, row.CreatedAt });
+        });
+
+        modelBuilder.Entity<RefreshTokenRow>(entity =>
+        {
+            entity.ToTable("refresh_token");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => row.TokenHash).IsUnique();
+            entity.HasIndex(row => row.FamilyId);
+            entity.HasIndex(row => row.AccountId);
         });
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

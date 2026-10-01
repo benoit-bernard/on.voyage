@@ -4,6 +4,7 @@ using OnVoyage.Platform.Application.Features.Config;
 using OnVoyage.Platform.Contracts;
 using OnVoyage.Platform.Infrastructure;
 using OnVoyage.ServiceDefaults;
+using OnVoyage.ServiceDefaults.Security;
 using Wolverine;
 using Wolverine.Postgresql;
 
@@ -11,7 +12,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
-builder.Services.AddPlatformInfrastructure(builder.Configuration);
+builder.Services.AddOnVoyageAuthentication(builder.Configuration);
+builder.Services.AddPlatformInfrastructure(builder.Configuration, builder.Environment);
 
 var connectionString = builder.Configuration.GetConnectionString(DependencyInjection.ConnectionName)!;
 builder.Host.UseWolverine(options =>
@@ -31,6 +33,7 @@ builder.Services.AddPlatformInitializer();
 var app = builder.Build();
 
 app.UseExceptionHandler();
+app.UseOnVoyageAuthentication();
 app.MapPlatformEndpoints();
 app.MapDefaultEndpoints();
 

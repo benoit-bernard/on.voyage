@@ -4,6 +4,9 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
+    <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
     <ProjectReference Include="../OnVoyage.Platform.Application/OnVoyage.Platform.Application.csproj" />
     <ProjectReference Include="../OnVoyage.Platform.Domain/OnVoyage.Platform.Domain.csproj" />
   </ItemGroup>

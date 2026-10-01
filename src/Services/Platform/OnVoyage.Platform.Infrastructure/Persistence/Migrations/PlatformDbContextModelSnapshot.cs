@@ -23,6 +23,49 @@ namespace OnVoyage.Platform.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("OnVoyage.Platform.Infrastructure.Persistence.AccountRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset?>("EmailVerifiedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("email_verified_at");
+
+                    b.Property<DateTimeOffset>("LastActiveAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_active_at");
+
+                    b.Property<Guid?>("ReplacedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("replaced_by");
+
+                    b.PrimitiveCollection<string[]>("Roles")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("roles");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email")
+                        .IsUnique()
+                        .HasFilter("email is not null");
+
+                    b.HasIndex("LastActiveAt");
+
+                    b.ToTable("account", "platform");
+                });
+
             modelBuilder.Entity("OnVoyage.Platform.Infrastructure.Persistence.ConsentRow", b =>
                 {
                     b.Property<Guid>("TravelerId")
@@ -83,6 +126,94 @@ namespace OnVoyage.Platform.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("ck_feature_flag_rollout", "rollout_percent between 0 and 100");
                         });
+                });
+
+            modelBuilder.Entity("OnVoyage.Platform.Infrastructure.Persistence.OtpChallengeRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("CodeHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("code_hash");
+
+                    b.Property<DateTimeOffset?>("ConsumedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("consumed_at");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("email");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Email", "CreatedAt");
+
+                    b.ToTable("otp_challenge", "platform");
+                });
+
+            modelBuilder.Entity("OnVoyage.Platform.Infrastructure.Persistence.RefreshTokenRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("FamilyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("family_id");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("token_hash");
+
+                    b.Property<DateTimeOffset?>("UsedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("used_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("AccountId");
+
+                    b.HasIndex("FamilyId");
+
+                    b.HasIndex("TokenHash")
+                        .IsUnique();
+
+                    b.ToTable("refresh_token", "platform");
                 });
 
             modelBuilder.Entity("OnVoyage.Platform.Infrastructure.Persistence.RemoteConfigHistoryRow", b =>

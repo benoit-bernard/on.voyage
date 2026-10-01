@@ -40,6 +40,9 @@ public sealed class HomePageTests : BunitContext
         store.SaveAsync(profile, CancellationToken.None).GetAwaiter().GetResult();
         Services.AddSingleton<IProfileStore>(store);
         Services.AddSingleton<ILocationProvider, NoLocationProvider>();
+        var sessions = Substitute.For<OnVoyage.App.Core.Auth.ISessionProvider>();
+        sessions.EnsureSessionAsync(Arg.Any<CancellationToken>()).Returns(new OnVoyage.Platform.Contracts.AuthSessionDto("t", DateTimeOffset.MaxValue, "r", DateTimeOffset.MaxValue, profile.TravelerId, true, null, []));
+        Services.AddSingleton(sessions);
         Services.AddSingleton<HomeFeedService>();
     }
 

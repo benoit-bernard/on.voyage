@@ -20,8 +20,10 @@ public sealed class CatalogApiTests(PostgresFixture postgres) : IAsyncLifetime
         {
             builder.UseSetting("ConnectionStrings:onvoyage", connection);
             builder.UseSetting("Catalog:SeedDemoData", "true");
+            builder.UseSetting("Auth:JwtSecret", TestTokens.Secret);
         });
         _client = _factory.CreateClient();
+        _client.Authenticate();
     }
 
     public async ValueTask DisposeAsync()
@@ -101,6 +103,31 @@ public sealed class CatalogApiTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task Reads_require_a_valid_token()
+    {
+        using var anonymousCaller = _factory.CreateClient();
+        (await anonymousCaller.GetAsync("/api/catalog/v1/destinations/marseille", TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+
+        foreach (var bad in new[] { "garbage", TestTokens.Mint(secret: "another-secret-another-secret-0123456789"), TestTokens.Mint(lifetime: TimeSpan.FromMinutes(-5), now: DateTimeOffset.UtcNow.AddHours(-1)) })
+        {
+            using var caller = _factory.CreateClient();
+            caller.Authenticate(bad);
+            (await caller.GetAsync("/api/catalog/v1/destinations/marseille", TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        }
+
+        using var internalHost = _factory.CreateClient();
+        internalHost.Authenticate(TestTokens.Mint(roles: ["internal"], anonymous: false));
+        (await internalHost.GetAsync("/api/catalog/v1/destinations/marseille", TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Health_is_open_without_a_token()
+    {
+        using var open = _factory.CreateClient();
+        (await open.GetAsync("/health", TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Health_includes_the_database()
     {
         var response = await _client.GetAsync("/health", TestContext.Current.CancellationToken);
@@ -116,6 +143,7 @@ public sealed class CatalogApiTests(PostgresFixture postgres) : IAsyncLifetime
         {
             builder.UseSetting("ConnectionStrings:onvoyage", connection);
             builder.UseSetting("Catalog:SeedDemoData", "true");
+            builder.UseSetting("Auth:JwtSecret", TestTokens.Secret);
         });
         using var _ = factory.CreateClient();
 

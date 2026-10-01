@@ -14,6 +14,6 @@
 - Catalog : projection `catalog.config_snapshot`, `ConfigChangedHandler` et garde de version `426 Upgrade Required` (`X-App-Version` < `app.min_app_version`) fournie par `ServiceDefaults`.
 
 ## Écarts assumés
-- **Accès provisoire** (en attendant Supabase Auth, T-004) : l'administration exige `X-Admin-Key` (= `Auth:AdminApiKey`, désactivée si vide, comparaison à temps constant) ; les consentements lisent `X-Traveler-Id` seulement si `Auth:AllowTravelerIdHeader=true` (jamais en production). À remplacer par le JWT et les rôles.
+- **Accès provisoire** (remplacé par l'identité du T-004, ADR-0005 ; les en-têtes `X-Admin-Key` et `X-Traveler-Id` n'existent plus) : l'administration exige `X-Admin-Key` (= `Auth:AdminApiKey`, désactivée si vide, comparaison à temps constant) ; les consentements lisent `X-Traveler-Id` seulement si `Auth:AllowTravelerIdHeader=true` (jamais en production). À remplacer par le JWT et les rôles.
 - Pas encore : `TravelerDeletionRequestedV1` / export (T-507), journal d'audit (T-409), `EntitlementChangedV1`, l'abonnement des autres services aux files, la lecture de `scope=edge` par le Gateway.
 - `IMemoryCache` (30 s) pour la garde de version, à la place de `HybridCache`.

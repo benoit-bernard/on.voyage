@@ -1,0 +1,12 @@
+.back { display: inline-block; margin-bottom: .75rem; color: var(--ov-muted); text-decoration: none; }
+h1 { font-size: 1.5rem; margin: 0 0 1rem; }
+label { display: block; font-weight: 700; margin: 1rem 0 .35rem; }
+input { width: 100%; padding: .7rem .8rem; border: 2px solid var(--ov-line); border-radius: .7rem; background: var(--ov-surface); color: var(--ov-ink); font: inherit; }
+input:focus-visible { outline: 3px solid var(--ov-accent); outline-offset: 2px; }
+form { display: flex; flex-direction: column; gap: .6rem; }
+.muted { color: var(--ov-muted); font-size: .9rem; }
+.btn { padding: .7rem 1rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
+.btn:disabled { opacity: .55; cursor: default; }
+.btn-soft { background: var(--ov-chip); color: var(--ov-ink); }
+.error { color: #b3261e; font-weight: 700; }
+.ok { color: var(--ov-accent); font-weight: 700; }

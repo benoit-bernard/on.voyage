@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Logging;
 using OnVoyage.App.Core;
+using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Profile;
 using OnVoyage.App.Infrastructure;
 
@@ -25,7 +26,8 @@ public static class MauiProgram
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddAppCore();
-        builder.Services.AddAppInfrastructure(GatewayAddress);
+        builder.Services.AddAppInfrastructure(GatewayAddress, AppInfo.Current.VersionString);
+        builder.Services.AddSingleton<ISessionStore, SecureSessionStore>();
         builder.Services.AddSingleton<IProfileStore, PreferencesProfileStore>();
         builder.Services.AddSingleton<ILocationProvider, DeviceLocationProvider>();
 

@@ -1,8 +1,10 @@
 using NSubstitute;
+using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Catalog;
 using OnVoyage.App.Core.Home;
 using OnVoyage.App.Core.Profile;
 using OnVoyage.Catalog.Contracts;
+using OnVoyage.Platform.Contracts;
 
 namespace OnVoyage.App.Core.Tests;
 
@@ -65,7 +67,7 @@ public sealed class AppCoreTests
         var profile = ProfileUpdater.ApplyOnboarding(FindNonControlProfile(), ["history"], ["nature"]) with { Depth = 8 };
         await store.SaveAsync(profile, CancellationToken.None);
 
-        var feed = await new HomeFeedService(client, store).BuildAsync(null, null, CancellationToken.None);
+        var feed = await new HomeFeedService(client, store, SessionFor(profile)).BuildAsync(null, null, CancellationToken.None);
 
         feed.IsControl.ShouldBeFalse();
         feed.ForYouTitle.ShouldBe("Pour vous");
@@ -81,14 +83,38 @@ public sealed class AppCoreTests
         client.GetDestinationAsync("marseille", Arg.Any<CancellationToken>()).Returns(new DestinationDto("marseille", "Marseille", 43.3, 5.4, 2));
         client.GetPoisAsync("marseille", null, null, Arg.Any<CancellationToken>()).Returns([Poi("Fort", 0.5, false, ("history", 1d)), Poi("Calanque", 0.9, false, ("nature", 1d))]);
         var store = new InMemoryProfileStore();
-        await store.SaveAsync(FindControlProfile(), CancellationToken.None);
+        var controlProfile = FindControlProfile();
+        await store.SaveAsync(controlProfile, CancellationToken.None);
 
-        var feed = await new HomeFeedService(client, store).BuildAsync(null, null, CancellationToken.None);
+        var feed = await new HomeFeedService(client, store, SessionFor(controlProfile)).BuildAsync(null, null, CancellationToken.None);
 
         feed.IsControl.ShouldBeTrue();
         feed.ForYouTitle.ShouldBe("Incontournables");
         feed.ForYou[0].Poi.Name.ShouldBe("Calanque");
         feed.ForYou.ShouldAllBe(card => card.CompatibilityPercent == null && card.Badge == "Populaire");
+    }
+
+    private static ISessionProvider SessionFor(LocalProfile profile)
+    {
+        var sessions = Substitute.For<ISessionProvider>();
+        sessions.EnsureSessionAsync(Arg.Any<CancellationToken>()).Returns(new AuthSessionDto("t", DateTimeOffset.MaxValue, "r", DateTimeOffset.MaxValue, profile.TravelerId, true, null, []));
+        return sessions;
+    }
+
+    [Fact]
+    public async Task The_profile_adopts_the_account_id_so_the_cohort_follows_the_account()
+    {
+        var client = Substitute.For<ICatalogClient>();
+        client.GetDestinationAsync("marseille", Arg.Any<CancellationToken>()).Returns(new DestinationDto("marseille", "Marseille", 43.3, 5.4, 0));
+        client.GetPoisAsync("marseille", null, null, Arg.Any<CancellationToken>()).Returns([]);
+        var store = new InMemoryProfileStore();
+        var accountId = Guid.CreateVersion7();
+        var session = Substitute.For<ISessionProvider>();
+        session.EnsureSessionAsync(Arg.Any<CancellationToken>()).Returns(new AuthSessionDto("t", DateTimeOffset.MaxValue, "r", DateTimeOffset.MaxValue, accountId, false, "a@b.org", []));
+
+        await new HomeFeedService(client, store, session).BuildAsync(null, null, CancellationToken.None);
+
+        (await store.LoadAsync(CancellationToken.None)).TravelerId.ShouldBe(accountId);
     }
 
     private static LocalProfile FindNonControlProfile() => Find(false);

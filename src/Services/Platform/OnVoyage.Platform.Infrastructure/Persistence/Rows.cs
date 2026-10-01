@@ -35,3 +35,37 @@ internal sealed class ConsentRow
     public string TextVersion { get; set; } = string.Empty;
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+internal sealed class AccountRow
+{
+    public Guid Id { get; set; }
+    public string? Email { get; set; }
+    public DateTimeOffset? EmailVerifiedAt { get; set; }
+    public string[] Roles { get; set; } = [];
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset LastActiveAt { get; set; }
+    public Guid? ReplacedBy { get; set; }
+}
+
+internal sealed class OtpChallengeRow
+{
+    public Guid Id { get; set; }
+    public string Email { get; set; } = string.Empty;
+    public string CodeHash { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+    public int Attempts { get; set; }
+    public DateTimeOffset? ConsumedAt { get; set; }
+}
+
+internal sealed class RefreshTokenRow
+{
+    public Guid Id { get; set; }
+    public Guid AccountId { get; set; }
+    public Guid FamilyId { get; set; }
+    public string TokenHash { get; set; } = string.Empty;
+    public DateTimeOffset CreatedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+    public DateTimeOffset? UsedAt { get; set; }
+    public DateTimeOffset? RevokedAt { get; set; }
+}

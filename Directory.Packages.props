@@ -45,5 +45,8 @@
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.12" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
     <PackageVersion Include="Npgsql" Version="10.0.3" />
+    <PackageVersion Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.23.0" />
+    <PackageVersion Include="Microsoft.Extensions.TimeProvider.Testing" Version="10.10.0" />
   </ItemGroup>
 </Project>

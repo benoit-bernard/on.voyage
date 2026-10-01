@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Components.Web;
 using Microsoft.AspNetCore.Components.WebAssembly.Hosting;
 using OnVoyage.App.Core;
+using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Infrastructure;
 using OnVoyage.UI.Components;
 using OnVoyage.Web.Pwa;
@@ -14,7 +15,8 @@ var gateway = builder.Configuration["Gateway:BaseAddress"];
 var gatewayAddress = string.IsNullOrWhiteSpace(gateway) ? new Uri(builder.HostEnvironment.BaseAddress) : new Uri(gateway);
 
 builder.Services.AddAppCore();
-builder.Services.AddAppInfrastructure(gatewayAddress);
+builder.Services.AddAppInfrastructure(gatewayAddress, typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
+builder.Services.AddScoped<ISessionStore, BrowserSessionStore>();
 builder.Services.AddScoped<OnVoyage.App.Core.Profile.IProfileStore, BrowserProfileStore>();
 builder.Services.AddSingleton<ILocationProvider, NoLocationProvider>();
 

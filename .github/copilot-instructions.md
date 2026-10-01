@@ -11,8 +11,8 @@ ON.VOYAGE est un guide de voyage audio géolocalisé qui apprend les goûts du v
 - .NET 10, C# 14, Aspire (AppHost + ServiceDefaults), ASP.NET Core Minimal APIs.
 - Modular Monolyth with kind of Microservices (vertical slices) : Platform, Catalog, Discovery, Factory, Insights, Billing, Ads, Creators ; Gateway YARP = proxy technique pur (aucune logique métier, aucun schéma).
 - CQRS, handlers et messagerie : **WolverineFx** (transport et outbox PostgreSQL). Pas de MediatR.
-- PostgreSQL (Supabase auto-hébergé) avec PostGIS, pgvector, unaccent, pg_trgm ; EF Core 10 + Npgsql + NetTopologySuite + Pgvector ; une `DbContext` et un schéma par service.
-- Auth : Supabase Auth, session anonyme + OTP e-mail uniquement.
+- PostgreSQL avec PostGIS, pgvector, unaccent, pg_trgm ; EF Core 10 + Npgsql + NetTopologySuite + Pgvector ; une `DbContext` et un schéma par service.
+- Auth : identité maison dans Platform (ADR-0005, remplace Supabase Auth) : session anonyme + code OTP à 6 chiffres envoyé par e-mail via Resend, jetons JWT HS256 émis par Platform et validés par le Gateway et chaque service. Aucun mot de passe, aucune connexion sociale.
 - IA : `Microsoft.Extensions.AI` + OpenAI, sorties structurées ; **uniquement dans Factory et le worker Creators (géo-association), en tâche de fond**, jamais avec des données voyageur.
 - Mobile : .NET MAUI 10 Blazor Hybrid ; `OnVoyage.App.Core` pur et testable ; carte MapLibre GL JS + PMTiles ; GPS : `Geolocation` de MAUI au premier plan (MVP-0), Shiny.Locations en arrière-plan (MVP) ; audio CommunityToolkit MediaElement ; SQLite.
 - Web : Blazor Web App (public en SSR statique, admin et espace créateur `Web.Studio` en interactif serveur) ; RCL partagée `OnVoyage.UI.Components`.

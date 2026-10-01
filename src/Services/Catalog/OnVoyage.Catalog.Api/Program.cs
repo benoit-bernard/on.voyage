@@ -5,12 +5,14 @@ using OnVoyage.Catalog.Infrastructure;
 using OnVoyage.Messaging;
 using OnVoyage.ServiceDefaults;
 using OnVoyage.ServiceDefaults.Configuration;
+using OnVoyage.ServiceDefaults.Security;
 using Wolverine;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
+builder.Services.AddOnVoyageAuthentication(builder.Configuration);
 builder.Services.AddSingleton<IValidator<GetNearbyPoisQuery>, GetNearbyPoisValidator>();
 builder.Services.AddCatalogInfrastructure(builder.Configuration);
 var connectionString = builder.Configuration.GetConnectionString(DependencyInjection.ConnectionName)!;
@@ -25,6 +27,7 @@ var app = builder.Build();
 await app.Services.InitializeCatalogAsync();
 
 app.UseExceptionHandler();
+app.UseOnVoyageAuthentication();
 app.UseMinAppVersionGate();
 app.MapCatalogEndpoints();
 app.MapDefaultEndpoints();
