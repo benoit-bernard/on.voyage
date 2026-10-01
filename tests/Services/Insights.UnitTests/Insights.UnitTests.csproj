@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Services/Insights/OnVoyage.Insights.Application/OnVoyage.Insights.Application.csproj" />
+    <ProjectReference Include="../../../src/Services/Insights/OnVoyage.Insights.Infrastructure/OnVoyage.Insights.Infrastructure.csproj" />
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+</Project>

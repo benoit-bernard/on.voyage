@@ -13,6 +13,17 @@ public sealed record AdminActionDto(Guid EventId, DateTimeOffset At, string Serv
 
 public sealed record ConsentChangedV1(Guid EventId, DateTimeOffset OccurredAt, Guid TravelerId, string Kind, bool Granted, string TextVersion);
 
+// Deletion and export of a traveler's data (§13, F-22). Platform asks, every service with data answers.
+
+public sealed record TravelerDeletionRequestedV1(Guid TravelerId, DateTimeOffset RequestedAt);
+
+public sealed record TravelerDataDeletedV1(Guid TravelerId, string Service);
+
+public sealed record TravelerExportRequestedV1(Guid ExportId, Guid TravelerId);
+
+/// <param name="Path">Path of the service's JSON part in the private <c>exports/</c> bucket.</param>
+public sealed record TravelerExportPartReadyV1(Guid ExportId, string Service, string Path);
+
 // Public DTOs.
 
 public sealed record ClientConfigDto(string Revision, IReadOnlyDictionary<string, JsonElement> Config, IReadOnlyDictionary<string, bool> Flags);
