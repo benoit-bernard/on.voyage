@@ -39,7 +39,7 @@ public sealed class ArchitectureTests
         foreach (var project in Projects().Where(p => Layer(Path.GetFileNameWithoutExtension(p)) == "Domain" && Service(Path.GetFileNameWithoutExtension(p)) is not null))
         {
             Packages(project).ShouldBeEmpty(project);
-            References(project).ShouldAllBe(reference => reference.EndsWith(".Domain") || reference is "OnVoyage.Taxonomy" or "OnVoyage.Recommendation.Engine", project);
+            References(project).ShouldAllBe(reference => reference.EndsWith(".Domain") || reference == "OnVoyage.Taxonomy" || reference == "OnVoyage.Recommendation.Engine", project);
         }
     }
 
