@@ -8,3 +8,4 @@ TestResults/
 publish/
 *.binlog
 .env
+.claude/worktrees/
