@@ -66,7 +66,11 @@ internal sealed class PlatformHarness : IAsyncDisposable
 
     public IServiceProvider Services => _factory.Services;
 
-    public static async Task<PlatformHarness> StartAsync(PostgresFixture postgres, string? connection = null, params string[] adminEmails)
+    public static Task<PlatformHarness> StartAsync(PostgresFixture postgres, string? connection = null, params string[] adminEmails) =>
+        StartAsync(postgres, connection, new Dictionary<string, string>(), adminEmails);
+
+    /// <summary>Same, with extra settings (for example the services that must answer a deletion).</summary>
+    public static async Task<PlatformHarness> StartAsync(PostgresFixture postgres, string? connection, IReadOnlyDictionary<string, string> settings, params string[] adminEmails)
     {
         connection ??= await postgres.CreateDatabaseAsync();
         var email = new CapturingEmailSender();
@@ -75,6 +79,11 @@ internal sealed class PlatformHarness : IAsyncDisposable
         {
             builder.UseSetting("ConnectionStrings:onvoyage", connection);
             builder.UseSetting("Auth:JwtSecret", TestTokens.Secret);
+            foreach (var (key, value) in settings)
+            {
+                builder.UseSetting(key, value);
+            }
+
             for (var i = 0; i < adminEmails.Length; i++)
             {
                 builder.UseSetting($"Auth:BootstrapAdminEmails:{i}", adminEmails[i]);

@@ -11,6 +11,7 @@
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="OpenAI" />
     <PackageReference Include="TagLibSharp" />
+    <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
     <ProjectReference Include="../OnVoyage.Factory.Application/OnVoyage.Factory.Application.csproj" />
     <ProjectReference Include="../OnVoyage.Factory.Domain/OnVoyage.Factory.Domain.csproj" />
   </ItemGroup>

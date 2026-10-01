@@ -81,3 +81,42 @@ internal sealed class AdminAuditRow
     public int Status { get; set; }
     public string? Summary { get; set; }
 }
+
+internal sealed class DeletionRequestRow
+{
+    public Guid TravelerId { get; set; }
+    public DateTimeOffset RequestedAt { get; set; }
+    public string[] RequiredServices { get; set; } = [];
+}
+
+internal sealed class DeletionAckRow
+{
+    public Guid TravelerId { get; set; }
+    public string Service { get; set; } = string.Empty;
+    public DateTimeOffset At { get; set; }
+}
+
+/// <summary>Proof that a deletion happened, without saying whose: no traveler identifier is kept (F-22).</summary>
+internal sealed class DeletionLogRow
+{
+    public long Id { get; set; }
+    public DateTimeOffset CompletedAt { get; set; }
+    public int ServiceCount { get; set; }
+}
+
+internal sealed class ExportRequestRow
+{
+    public Guid Id { get; set; }
+    public Guid TravelerId { get; set; }
+    public DateTimeOffset RequestedAt { get; set; }
+    public DateTimeOffset ExpiresAt { get; set; }
+    public string[] RequiredServices { get; set; } = [];
+}
+
+internal sealed class ExportPartRow
+{
+    public Guid ExportId { get; set; }
+    public string Service { get; set; } = string.Empty;
+    public string Path { get; set; } = string.Empty;
+    public DateTimeOffset At { get; set; }
+}

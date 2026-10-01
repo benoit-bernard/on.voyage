@@ -1,3 +1,4 @@
+using OnVoyage.Platform.Application.Features.DataRights;
 using OnVoyage.Platform.Application;
 using OnVoyage.Platform.Application.Features.Audit;
 using OnVoyage.Platform.Application.Features.Auth;
@@ -86,6 +87,32 @@ internal static class PlatformEndpoints
         me.MapPut("/consents/{kind}", (string kind, SetConsentRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<ConsentDto>>(new SetConsentCommand(http.User.TravelerId()!.Value, kind, request.Granted, request.TextVersion), ct)));
 
+        // Data rights (F-22, T-507): a copy of one's data, and being forgotten.
+        me.MapPost("/export", async (HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            await Translate(bus.InvokeAsync<Result<ExportStatusDto>>(new RequestExportCommand(http.User.TravelerId()!.Value), ct), StatusCodes.Status202Accepted));
+
+        me.MapGet("/export/{id:guid}", (Guid id, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<ExportStatusDto>>(new GetExportQuery(http.User.TravelerId()!.Value, id), ct)));
+
+        me.MapGet("/export/{id:guid}/archive", async (Guid id, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+        {
+            var result = await bus.InvokeAsync<Result<string>>(new GetExportArchiveQuery(http.User.TravelerId()!.Value, id), ct);
+            if (!result.IsSuccess)
+            {
+                return Problem(result.Error!);
+            }
+
+            http.Response.Headers.CacheControl = "no-store";
+            http.Response.Headers.ContentDisposition = "attachment; filename=\"on-voyage-mes-donnees.json\"";
+            return Results.Text(result.Value!, "application/json");
+        });
+
+        me.MapPost("/deletion", async (HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            await Translate(bus.InvokeAsync<Result<DeletionStatusDto>>(new RequestDeletionCommand(http.User.TravelerId()!.Value), ct), StatusCodes.Status202Accepted));
+
+        me.MapGet("/deletion", (HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<DeletionStatusDto>>(new GetDeletionQuery(http.User.TravelerId()!.Value), ct)));
+
         return app;
     }
 
@@ -121,6 +148,15 @@ internal static class PlatformEndpoints
 
     private static Task<IResult> Translate<T>(Task<Result<T>> pending) => Translate(null, pending);
 
+    /// <summary>For requests that start work (export, deletion): 202 with the status instead of 200.</summary>
+    private static async Task<IResult> Translate<T>(Task<Result<T>> pending, int successStatus)
+    {
+        var result = await pending;
+        return result.IsSuccess ? Results.Json(result.Value, statusCode: successStatus) : Failure(null, result.Error!);
+    }
+
+    private static IResult Problem(Error error) => Failure(null, error);
+
     private static async Task<IResult> Translate<T>(HttpContext? http, Task<Result<T>> pending)
     {
         var result = await pending;
@@ -135,6 +171,7 @@ internal static class PlatformEndpoints
             "invalid_refresh_token" => StatusCodes.Status401Unauthorized,
             "email_already_linked" => StatusCodes.Status409Conflict,
             "email_unavailable" => StatusCodes.Status502BadGateway,
+            "export_not_ready" => StatusCodes.Status409Conflict,
             _ when error.Code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
             _ => StatusCodes.Status400BadRequest,
         };

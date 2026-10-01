@@ -19,6 +19,7 @@ public static class Extensions
     {
         builder.ConfigureOpenTelemetry();
         builder.ConfigurePrivacyLogging();
+        builder.Services.AddSingleton<Exports.ExportStorage>();
         builder.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
         builder.Services.AddServiceDiscovery();
         builder.Services.ConfigureHttpClientDefaults(http =>

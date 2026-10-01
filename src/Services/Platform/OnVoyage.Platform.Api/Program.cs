@@ -1,6 +1,7 @@
 using OnVoyage.Messaging;
 using OnVoyage.Platform.Api.Endpoints;
 using OnVoyage.Platform.Application.Features.Config;
+using OnVoyage.Platform.Application.Features.DataRights;
 using OnVoyage.Platform.Contracts;
 using OnVoyage.Platform.Infrastructure;
 using OnVoyage.ServiceDefaults;
@@ -25,6 +26,13 @@ builder.Host.UseWolverine(options =>
     foreach (var subscriber in builder.Configuration.GetSection("Messaging:ConfigSubscribers").Get<string[]>() ?? ["catalog"])
     {
         options.PublishMessage<ConfigChangedV1>().ToPostgresqlQueue(subscriber);
+    }
+
+    // Data rights (T-507): Platform asks the services that hold traveler data; they answer on the "platform" queue.
+    foreach (var service in builder.Configuration.GetSection("Messaging:DataRightsSubscribers").Get<string[]>() ?? ["discovery", "factory", "insights", "creators"])
+    {
+        options.PublishMessage<TravelerDeletionRequestedV1>().ToPostgresqlQueue(service);
+        options.PublishMessage<TravelerExportRequestedV1>().ToPostgresqlQueue(service);
     }
 });
 

@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.AddScoped<IOnboardingStore, OnboardingStore>();
         services.AddScoped<IProjectionWriter, ProjectionWriter>();
         services.AddScoped<IPlaceReader, PlaceReader>();
+        services.AddScoped<OnVoyage.Discovery.Application.Features.IDataRightsStore, DataRightsStore>();
         services.AddScoped<ITravelerReader, TravelerReader>();
         services.AddScoped<IAffinityStore, AffinityStore>();
         services.AddHostedService<CategoryAffinityJob>();

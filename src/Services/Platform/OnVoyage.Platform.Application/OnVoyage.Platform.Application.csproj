@@ -2,6 +2,8 @@
   <ItemGroup>
     <PackageReference Include="WolverineFx" />
     <PackageReference Include="FluentValidation" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <ProjectReference Include="../OnVoyage.Platform.Domain/OnVoyage.Platform.Domain.csproj" />
     <ProjectReference Include="../OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
   </ItemGroup>

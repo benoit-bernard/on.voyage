@@ -41,6 +41,8 @@ public static class MessagingRoutes
     public static WolverineOptions RouteFactoryEvents(this WolverineOptions options)
     {
         options.PublishMessage<OnVoyage.Platform.Contracts.AdminActionRecordedV1>().ToPostgresqlQueue("platform");
+        options.PublishMessage<OnVoyage.Platform.Contracts.TravelerDataDeletedV1>().ToPostgresqlQueue("platform");
+        options.PublishMessage<OnVoyage.Platform.Contracts.TravelerExportPartReadyV1>().ToPostgresqlQueue("platform");
         options.PublishMessage<PoiPublishedV1>().ToPostgresqlQueue("catalog");
         options.PublishMessage<PoiUnpublishedV1>().ToPostgresqlQueue("catalog");
         options.PublishMessage<StoryPublishedV1>().ToPostgresqlQueue("catalog");

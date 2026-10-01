@@ -48,3 +48,14 @@ public sealed record RequestOtpRequest(string Email);
 public sealed record VerifyOtpRequest(string Email, string Code);
 
 public sealed record AccountDto(Guid TravelerId, bool IsAnonymous, string? Email, IReadOnlyList<string> Roles, DateTimeOffset CreatedAt);
+
+// Deletion and export of a traveler's data (§13, T-507). Platform asks every service; each answers with the matching event.
+
+public sealed record TravelerDeletionRequestedV1(Guid EventId, DateTimeOffset OccurredAt, Guid TravelerId, DateTimeOffset RequestedAt);
+
+public sealed record TravelerDataDeletedV1(Guid EventId, DateTimeOffset OccurredAt, Guid TravelerId, string Service);
+
+public sealed record TravelerExportRequestedV1(Guid EventId, DateTimeOffset OccurredAt, Guid ExportId, Guid TravelerId);
+
+/// <summary><c>Path</c> is the JSON part's path in the private <c>exports/</c> bucket; Platform assembles the archive from the parts.</summary>
+public sealed record TravelerExportPartReadyV1(Guid EventId, DateTimeOffset OccurredAt, Guid ExportId, string Service, string Path);

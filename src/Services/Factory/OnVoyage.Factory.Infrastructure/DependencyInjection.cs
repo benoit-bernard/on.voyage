@@ -30,6 +30,7 @@ public static class DependencyInjection
 
         services.AddDbContextWithWolverineIntegration<FactoryDbContext>(options => FactoryPersistence.Configure(options, connectionString));
         services.AddScoped<IPlaceStore, PlaceStore>();
+        services.AddScoped<OnVoyage.Factory.Application.Features.DataRights.IDataRightsStore, DataRightsStore>();
         services.AddSingleton<IDestinationCatalog, ConfiguredDestinationCatalog>();
         services.AddSingleton<IClassificationRuleProvider, JsonClassificationRuleProvider>();
         services.AddSingleton(provider => configuration.GetSection("Factory:Heritage").Get<HeritageClasses>() ?? HeritageClasses.Defaults);

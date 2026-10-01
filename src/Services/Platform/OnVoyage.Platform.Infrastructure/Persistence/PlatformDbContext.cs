@@ -14,6 +14,11 @@ internal sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> opti
     public DbSet<OtpChallengeRow> OtpChallenges => Set<OtpChallengeRow>();
     public DbSet<RefreshTokenRow> RefreshTokens => Set<RefreshTokenRow>();
     public DbSet<AdminAuditRow> AdminAudit => Set<AdminAuditRow>();
+    public DbSet<DeletionRequestRow> DeletionRequests => Set<DeletionRequestRow>();
+    public DbSet<DeletionAckRow> DeletionAcks => Set<DeletionAckRow>();
+    public DbSet<DeletionLogRow> DeletionLog => Set<DeletionLogRow>();
+    public DbSet<ExportRequestRow> ExportRequests => Set<ExportRequestRow>();
+    public DbSet<ExportPartRow> ExportParts => Set<ExportPartRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -78,6 +83,39 @@ internal sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> opti
             entity.HasIndex(row => row.TokenHash).IsUnique();
             entity.HasIndex(row => row.FamilyId);
             entity.HasIndex(row => row.AccountId);
+        });
+
+        modelBuilder.Entity<DeletionRequestRow>(entity =>
+        {
+            entity.ToTable("deletion_request");
+            entity.HasKey(row => row.TravelerId);
+        });
+
+        modelBuilder.Entity<DeletionAckRow>(entity =>
+        {
+            entity.ToTable("deletion_ack");
+            entity.HasKey(row => new { row.TravelerId, row.Service });
+        });
+
+        modelBuilder.Entity<DeletionLogRow>(entity =>
+        {
+            entity.ToTable("deletion_log");
+            entity.HasKey(row => row.Id);
+            entity.Property(row => row.Id).ValueGeneratedOnAdd();
+        });
+
+        modelBuilder.Entity<ExportRequestRow>(entity =>
+        {
+            entity.ToTable("export_request");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => row.TravelerId);
+            entity.HasIndex(row => row.ExpiresAt);
+        });
+
+        modelBuilder.Entity<ExportPartRow>(entity =>
+        {
+            entity.ToTable("export_part");
+            entity.HasKey(row => new { row.ExportId, row.Service });
         });
 
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())

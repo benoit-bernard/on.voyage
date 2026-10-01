@@ -8,6 +8,7 @@ using OnVoyage.Platform.Application.Ports;
 using OnVoyage.Platform.Infrastructure.Identity;
 using OnVoyage.Platform.Infrastructure.Persistence;
 using Wolverine;
+using OnVoyage.Platform.Application.Features.DataRights;
 using Wolverine.EntityFrameworkCore;
 
 namespace OnVoyage.Platform.Infrastructure;
@@ -25,6 +26,9 @@ public static class DependencyInjection
         services.AddScoped<IRemoteConfigStore, RemoteConfigStore>();
         services.AddScoped<IFeatureFlagStore, FeatureFlagStore>();
         services.AddScoped<IConsentStore, ConsentStore>();
+        services.AddScoped<OnVoyage.Platform.Application.Features.DataRights.IDataRightsStore, DataRightsStore>();
+        services.AddSingleton<OnVoyage.Platform.Application.Features.DataRights.IExportFiles, ExportFiles>();
+        services.AddHostedService<DataRightsJob>();
         services.AddScoped<OnVoyage.Platform.Application.Features.Audit.IAdminAuditStore, AdminAuditStore>();
         services.AddScoped<IAccountStore, AccountStore>();
         services.AddScoped<IOtpStore, OtpStore>();
@@ -108,6 +112,35 @@ public static class DependencyInjection
             {
                 logger.LogError(ex, "Republishing the configuration at startup failed; services will catch up on the next change.");
             }
+        }
+    }
+
+    /// <summary>Hourly housekeeping: expired exports go (rows and files), and anonymous accounts unused for 24 months start their deletion (§16.2).</summary>
+    private sealed class DataRightsJob(IServiceProvider services, IConfiguration configuration, TimeProvider clock, ILogger<DataRightsJob> logger) : BackgroundService
+    {
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            if (!configuration.GetValue("Platform:DataRightsJob", true))
+            {
+                return;
+            }
+
+            using var timer = new PeriodicTimer(TimeSpan.FromMinutes(configuration.GetValue("Platform:DataRightsJobMinutes", 60)), clock);
+            do
+            {
+                try
+                {
+                    await using var scope = services.CreateAsyncScope();
+                    var bus = scope.ServiceProvider.GetRequiredService<IMessageBus>();
+                    await bus.InvokeAsync<int>(new CleanUpExportsCommand(), stoppingToken);
+                    await bus.InvokeAsync<int>(new PurgeInactiveAnonymousAccountsCommand(), stoppingToken);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    logger.LogError(ex, "The data rights housekeeping failed; it will run again.");
+                }
+            }
+            while (await timer.WaitForNextTickAsync(stoppingToken));
         }
     }
 
