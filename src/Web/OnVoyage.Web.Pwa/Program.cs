@@ -19,5 +19,6 @@ builder.Services.AddAppInfrastructure(gatewayAddress, typeof(Program).Assembly.G
 builder.Services.AddScoped<ISessionStore, BrowserSessionStore>();
 builder.Services.AddScoped<OnVoyage.App.Core.Profile.IProfileStore, BrowserProfileStore>();
 builder.Services.AddSingleton<ILocationProvider, NoLocationProvider>();
+builder.Services.AddSingleton<OnVoyage.App.Core.Audio.IAudioPlayer, OnVoyage.UI.Components.Audio.BrowserAudioPlayer>();
 
 await builder.Build().RunAsync();

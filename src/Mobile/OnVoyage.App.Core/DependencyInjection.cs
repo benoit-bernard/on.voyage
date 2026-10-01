@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using OnVoyage.App.Core.Audio;
 using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Home;
 
@@ -13,6 +14,9 @@ public static class DependencyInjection
         services.AddSingleton<SessionService>();
         services.AddSingleton<ISessionProvider>(provider => provider.GetRequiredService<SessionService>());
         services.AddScoped<HomeFeedService>();
+        services.TryAddSingleton<IAnalyticsSink, NullAnalyticsSink>();
+        services.TryAddSingleton<IFlagStore, InMemoryFlagStore>();
+        services.AddSingleton<AudioPlaybackController>();
         return services;
     }
 }

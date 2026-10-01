@@ -1,0 +1,69 @@
+@implements IDisposable
+@inject AudioPlaybackController Player
+
+@if (_state.ShowAiNotice)
+{
+    <aside class="notice" role="alertdialog" aria-labelledby="ai-notice-title">
+        <strong id="ai-notice-title">@AudioSettings.VoiceNotice</strong>
+        <p>Les histoires d'ON.VOYAGE sont écrites d'après des sources citées, puis lues par une voix de synthèse. Un texte est toujours disponible sous l'audio.</p>
+        <button type="button" class="btn" @onclick="() => Player.AcknowledgeAiNoticeAsync()">J'ai compris</button>
+    </aside>
+}
+
+@if (_state.Error is not null)
+{
+    <p class="player-error" role="alert">@_state.Error</p>
+}
+
+@if (_state.Current is { } now)
+{
+    <section class="player" aria-label="Lecteur audio">
+        <div class="player-title">
+            <strong>@now.Title</strong>
+            <span class="player-sub">
+                @if (now.Role == AudioRole.Main)
+                {
+                    <span class="time">@AudioPlaybackController.FormatTime(now.Position) / @AudioPlaybackController.FormatTime(now.Duration)</span>
+                }
+                else
+                {
+                    <span class="time">Annonce…</span>
+                }
+                <span class="ai">@AudioSettings.VoiceNotice</span>
+            </span>
+        </div>
+        <div class="player-controls">
+            <button type="button" aria-label="Reculer de 10 secondes" @onclick="() => Player.SkipAsync(-AudioSettings.SkipSeconds)">−10</button>
+            <button type="button" class="play" aria-label="@(_state.Phase == PlaybackPhase.Playing ? "Pause" : "Lecture")" @onclick="Player.TogglePauseAsync">@(_state.Phase == PlaybackPhase.Playing ? "❚❚" : "▶")</button>
+            <button type="button" aria-label="Avancer de 10 secondes" @onclick="() => Player.SkipAsync(AudioSettings.SkipSeconds)">+10</button>
+            <button type="button" class="speed" aria-label="Vitesse de lecture" @onclick="Player.CycleSpeedAsync">@SpeedLabel(_state.Speed)</button>
+            @if (_state.WaitingTitle is not null)
+            {
+                <button type="button" aria-label="Histoire suivante : @_state.WaitingTitle" @onclick="Player.NextAsync">Suivante</button>
+            }
+
+            <button type="button" aria-label="Arrêter" @onclick="Player.StopAsync">■</button>
+        </div>
+        <progress max="@Math.Max(1, now.Duration.TotalSeconds)" value="@now.Position.TotalSeconds" aria-label="Progression"></progress>
+    </section>
+}
+
+@code {
+    private PlaybackState _state = PlaybackState.Initial;
+
+    protected override void OnInitialized()
+    {
+        _state = Player.State;
+        Player.Changed += OnChanged;
+    }
+
+    private void OnChanged()
+    {
+        _state = Player.State;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private static string SpeedLabel(double speed) => speed == 1d ? "1×" : speed.ToString("0.##", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) + "×";
+
+    public void Dispose() => Player.Changed -= OnChanged;
+}
