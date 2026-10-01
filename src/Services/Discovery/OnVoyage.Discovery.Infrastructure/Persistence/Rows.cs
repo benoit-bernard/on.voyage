@@ -73,7 +73,12 @@ internal sealed class PoiProjectionRow
 {
     public Guid PoiId { get; set; }
     public string Slug { get; set; } = "";
+    public string Name { get; set; } = "";
     public string Destination { get; set; } = "";
+    public double Latitude { get; set; }
+    public double Longitude { get; set; }
+    public int CrowdLevel { get; set; } = 1;
+    public bool AccessRegulated { get; set; }
     public string Weights { get; set; } = "{}";
     public double Importance { get; set; }
     public double Quality { get; set; }
@@ -93,4 +98,33 @@ internal sealed class OnboardingClipRow
     public int DurationSeconds { get; set; }
     public bool Active { get; set; }
     public int Version { get; set; }
+}
+
+internal sealed class SavedPoiRow
+{
+    public Guid TravelerId { get; set; }
+    public Guid PoiId { get; set; }
+    public DateTimeOffset SavedAt { get; set; }
+}
+
+internal sealed class StoryProjectionRow
+{
+    public Guid StoryId { get; set; }
+    public Guid PoiId { get; set; }
+    public string Lang { get; set; } = "fr";
+    public string Kind { get; set; } = "standard";
+    public int DurationSeconds { get; set; }
+    public bool IsPremium { get; set; }
+
+    /// <summary>JSON object part name → media path (<c>main</c>, <c>announce_front</c>…).</summary>
+    public string AudioParts { get; set; } = "{}";
+    public int Version { get; set; }
+}
+
+internal sealed class CategoryAffinityRow
+{
+    public string CodeA { get; set; } = "";
+    public string CodeB { get; set; } = "";
+    public double Lift { get; set; }
+    public DateTimeOffset ComputedAt { get; set; }
 }

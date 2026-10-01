@@ -123,6 +123,11 @@ internal sealed class DiscoveryStore(DiscoveryDbContext db, TimeProvider clock) 
                     OccurredAt = interaction.OccurredAt,
                 });
 
+                if (interaction.Kind == InteractionKinds.Save && poi is { } saved && !await db.Saved.AnyAsync(w => w.TravelerId == travelerId && w.PoiId == saved, cancellationToken) && !db.Saved.Local.Any(w => w.TravelerId == travelerId && w.PoiId == saved))
+                {
+                    db.Saved.Add(new SavedPoiRow { TravelerId = travelerId, PoiId = saved, SavedAt = interaction.OccurredAt });
+                }
+
                 if (interaction.Kind == InteractionKinds.Visit)
                 {
                     db.Visits.Add(new VisitRow
@@ -162,6 +167,35 @@ internal sealed class DiscoveryStore(DiscoveryDbContext db, TimeProvider clock) 
             return row is null ? Locks.None : ParseLocks(row.Locks);
         }
 
+        public async Task SetWishAsync(Guid poiId, bool saved, DateTimeOffset at, CancellationToken cancellationToken)
+        {
+            var row = await db.Saved.FindAsync([travelerId, poiId], cancellationToken);
+            if (saved && row is null)
+            {
+                db.Saved.Add(new SavedPoiRow { TravelerId = travelerId, PoiId = poiId, SavedAt = at });
+            }
+            else if (!saved && row is not null)
+            {
+                db.Saved.Remove(row);
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task DeletePlaceAsync(Guid poiId, CancellationToken cancellationToken)
+        {
+            await db.Interactions.Where(r => r.TravelerId == travelerId && r.PoiId == poiId).ExecuteDeleteAsync(cancellationToken);
+            await db.Visits.Where(r => r.TravelerId == travelerId && r.PoiId == poiId).ExecuteDeleteAsync(cancellationToken);
+            await db.Impressions.Where(r => r.TravelerId == travelerId && r.PoiId == poiId).ExecuteDeleteAsync(cancellationToken);
+            await db.Ratings.Where(r => r.TravelerId == travelerId && r.PoiId == poiId).ExecuteDeleteAsync(cancellationToken);
+        }
+
+        public async Task RecordSurpriseAsync(Guid poiId, DateTimeOffset at, CancellationToken cancellationToken)
+        {
+            db.Impressions.Add(new ImpressionRow { TravelerId = travelerId, ClientEventId = Guid.NewGuid(), PoiId = poiId, Surface = "surprise", ShownAt = at });
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         public async Task SaveAsync(LearnedProfile learned, Locks locks, CancellationToken cancellationToken)
         {
             var row = await db.Vectors.FirstOrDefaultAsync(v => v.TravelerId == travelerId, cancellationToken);
@@ -191,6 +225,11 @@ internal sealed class DiscoveryStore(DiscoveryDbContext db, TimeProvider clock) 
                 rated.Rating = rating;
                 rated.Excluded = learned.Excluded.Contains(poi);
                 rated.UpdatedAt = now;
+            }
+
+            foreach (var stale in ratings.Values.Where(r => !learned.Ratings.ContainsKey(r.PoiId.ToString("D"))))
+            {
+                db.Ratings.Remove(stale);
             }
 
             await db.SaveChangesAsync(cancellationToken);

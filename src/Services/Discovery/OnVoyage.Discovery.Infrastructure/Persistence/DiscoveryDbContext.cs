@@ -14,6 +14,9 @@ internal sealed class DiscoveryDbContext(DbContextOptions<DiscoveryDbContext> op
     public DbSet<ImpressionRow> Impressions => Set<ImpressionRow>();
     public DbSet<PoiProjectionRow> Places => Set<PoiProjectionRow>();
     public DbSet<OnboardingClipRow> Clips => Set<OnboardingClipRow>();
+    public DbSet<SavedPoiRow> Saved => Set<SavedPoiRow>();
+    public DbSet<StoryProjectionRow> Stories => Set<StoryProjectionRow>();
+    public DbSet<CategoryAffinityRow> Affinities => Set<CategoryAffinityRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -79,6 +82,27 @@ internal sealed class DiscoveryDbContext(DbContextOptions<DiscoveryDbContext> op
             e.ToTable("onboarding_clip");
             e.HasKey(r => r.StoryId);
             e.HasIndex(r => r.Lang);
+        });
+
+        modelBuilder.Entity<SavedPoiRow>(e =>
+        {
+            e.ToTable("saved_poi");
+            e.HasKey(r => new { r.TravelerId, r.PoiId });
+            e.HasOne<TravelerRow>().WithMany().HasForeignKey(r => r.TravelerId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<StoryProjectionRow>(e =>
+        {
+            e.ToTable("story_projection");
+            e.HasKey(r => r.StoryId);
+            e.HasIndex(r => r.PoiId);
+            e.Property(r => r.AudioParts).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<CategoryAffinityRow>(e =>
+        {
+            e.ToTable("category_affinity");
+            e.HasKey(r => new { r.CodeA, r.CodeB });
         });
 
         ApplySnakeCaseColumns(modelBuilder);

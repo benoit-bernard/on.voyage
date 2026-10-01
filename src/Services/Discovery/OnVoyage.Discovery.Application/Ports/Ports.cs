@@ -27,6 +27,15 @@ public interface ITravelerSession
     Task<Locks> LocksAsync(CancellationToken cancellationToken);
 
     Task SaveAsync(LearnedProfile learned, Locks locks, CancellationToken cancellationToken);
+
+    /// <summary>Adds or removes a place from the traveler's wishes (idempotent).</summary>
+    Task SetWishAsync(Guid poiId, bool saved, DateTimeOffset at, CancellationToken cancellationToken);
+
+    /// <summary>Deletes the interactions, visits, impressions and rating of one place (F-22: "Mon historique").</summary>
+    Task DeletePlaceAsync(Guid poiId, CancellationToken cancellationToken);
+
+    /// <summary>Records that "Surprenez-moi" proposed this place (kept for the "not the last 20" rule).</summary>
+    Task RecordSurpriseAsync(Guid poiId, DateTimeOffset at, CancellationToken cancellationToken);
 }
 
 public interface IDiscoveryStore
@@ -47,12 +56,18 @@ public interface IOnboardingStore
     Task<bool> SetActiveAsync(IReadOnlyList<Guid> storyIds, CancellationToken cancellationToken);
 }
 
-public sealed record PlaceProjection(Guid PoiId, string Slug, string Destination, IReadOnlyDictionary<string, double> Weights, double Importance, double Quality, bool HiddenGem, bool Fragile, bool IsPublished, int Version);
+public sealed record PlaceProjection(Guid PoiId, string Slug, string Name, string Destination, double Latitude, double Longitude, int CrowdLevel, bool AccessRegulated, IReadOnlyDictionary<string, double> Weights, double Importance, double Quality, bool HiddenGem, bool Fragile, bool IsPublished, int Version);
 
 public sealed record ClipProjection(Guid StoryId, Guid PoiId, string Lang, string Title, string AudioPath, int DurationSeconds, int Version);
 
+public sealed record StoryProjection(Guid StoryId, Guid PoiId, string Lang, string Kind, int DurationSeconds, bool IsPremium, IReadOnlyDictionary<string, string> AudioParts, int Version);
+
 public interface IProjectionWriter
 {
+    Task ApplyStoryAsync(StoryProjection story, CancellationToken cancellationToken);
+
+    Task RemoveStoryAsync(Guid storyId, CancellationToken cancellationToken);
+
     Task ApplyPlaceAsync(PlaceProjection place, CancellationToken cancellationToken);
 
     Task UnpublishPlaceAsync(Guid poiId, int version, CancellationToken cancellationToken);

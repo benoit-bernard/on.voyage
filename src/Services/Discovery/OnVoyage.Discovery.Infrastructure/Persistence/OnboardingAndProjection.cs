@@ -63,7 +63,12 @@ internal sealed class ProjectionWriter(DiscoveryDbContext db) : IProjectionWrite
         }
 
         row.Slug = place.Slug;
+        row.Name = place.Name;
         row.Destination = place.Destination;
+        row.Latitude = place.Latitude;
+        row.Longitude = place.Longitude;
+        row.CrowdLevel = place.CrowdLevel;
+        row.AccessRegulated = place.AccessRegulated;
         row.Weights = JsonSerializer.Serialize(place.Weights);
         row.Importance = place.Importance;
         row.Quality = place.Quality;
@@ -88,6 +93,39 @@ internal sealed class ProjectionWriter(DiscoveryDbContext db) : IProjectionWrite
         }
 
         await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task ApplyStoryAsync(StoryProjection story, CancellationToken cancellationToken)
+    {
+        var row = await db.Stories.FindAsync([story.StoryId], cancellationToken);
+        if (row is null)
+        {
+            row = new StoryProjectionRow { StoryId = story.StoryId };
+            db.Stories.Add(row);
+        }
+        else if (row.Version >= story.Version)
+        {
+            return;
+        }
+
+        row.PoiId = story.PoiId;
+        row.Lang = story.Lang;
+        row.Kind = story.Kind;
+        row.DurationSeconds = story.DurationSeconds;
+        row.IsPremium = story.IsPremium;
+        row.AudioParts = JsonSerializer.Serialize(story.AudioParts);
+        row.Version = story.Version;
+        await db.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task RemoveStoryAsync(Guid storyId, CancellationToken cancellationToken)
+    {
+        var row = await db.Stories.FindAsync([storyId], cancellationToken);
+        if (row is not null)
+        {
+            db.Stories.Remove(row);
+            await db.SaveChangesAsync(cancellationToken);
+        }
     }
 
     public async Task ApplyClipAsync(ClipProjection clip, CancellationToken cancellationToken)

@@ -16,7 +16,8 @@ public sealed record Candidate(
     double Quality,
     double? DistanceMeters,
     int CrowdLevel = 1,
-    bool HiddenGem = false);
+    bool HiddenGem = false,
+    int Impressions7d = 0);
 
 public enum TravelMode { Walk, Bike, Car }
 

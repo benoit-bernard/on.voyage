@@ -53,3 +53,53 @@ public sealed record ActiveClipsRequest(IReadOnlyList<Guid> StoryIds);
 
 /// <summary>What the back-office shows: the clips served now and every clip that could be.</summary>
 public sealed record AdminClipsDto(IReadOnlyList<OnboardingClipDto> Active, IReadOnlyList<OnboardingClipDto> Candidates);
+
+/// <summary>The explanation as a template code and its parameters (§6.9); the app owns the sentences, in French and English.</summary>
+public sealed record WhyDto(string Template, IReadOnlyDictionary<string, string> Params);
+
+public sealed record RecommendationItemDto(Guid PoiId, string Slug, string Name, double Score, int? Compatibility, WhyDto Why, bool IsExploration, Guid? IsAlternativeTo);
+
+public sealed record RecommendationsDto(IReadOnlyList<RecommendationItemDto> Items, string Cohort, int WeightsVersion, DateTimeOffset GeneratedAt);
+
+public sealed record AffinityDto(string Code, double Value);
+
+public sealed record PlanPlaceDto(RecommendationItemDto Item, int LegMeters);
+
+public sealed record PlanDayDto(int Day, IReadOnlyList<PlanPlaceDto> Places, int TotalMeters);
+
+/// <summary>"[Destination] pour vous" (F-11): profile summary, nine places, and the day-by-day plan when <c>days</c> was given.</summary>
+public sealed record DestinationForMeDto(
+    string Slug,
+    string Name,
+    bool Remote,
+    IReadOnlyList<AffinityDto> Strongest,
+    IReadOnlyList<AffinityDto> Weakest,
+    IReadOnlyList<RecommendationItemDto> Places,
+    IReadOnlyList<PlanDayDto>? Plan,
+    string Cohort,
+    int WeightsVersion);
+
+public sealed record CandidateStoryDto(Guid StoryId, string Kind, int DurationSeconds, IReadOnlyDictionary<string, string> AudioParts);
+
+/// <summary>A place the discovery mode may tell. <see cref="BaseScore"/> leaves out Distance, Context and CrowdPenalty: the device adds them (§12.4).</summary>
+public sealed record CandidateDto(
+    Guid PoiId,
+    string Slug,
+    string Name,
+    double Latitude,
+    double Longitude,
+    double Importance,
+    bool Fragile,
+    bool CarAccessible,
+    bool VisibleFromRoad,
+    int CrowdLevel,
+    double BaseScore,
+    IReadOnlyList<CandidateStoryDto> Stories);
+
+public sealed record CandidatesDto(IReadOnlyList<CandidateDto> Items, string Cohort, int WeightsVersion, DateTimeOffset GeneratedAt);
+
+public sealed record SavedItemDto(Guid PoiId, string Slug, string Name, DateTimeOffset SavedAt);
+
+public sealed record SavedGroupDto(string Destination, IReadOnlyList<SavedItemDto> Items);
+
+public sealed record HistoryItemDto(Guid PoiId, string Slug, string Name, DateTimeOffset LastAt, bool Listened, bool Visited);

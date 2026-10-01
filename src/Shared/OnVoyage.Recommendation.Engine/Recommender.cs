@@ -2,7 +2,7 @@ namespace OnVoyage.Recommendation.Engine;
 
 /// <summary>
 /// Explainable hybrid ranking of §6.6. MVP-0 subset: no collaborative filtering (its weight is moved to importance and quality,
-/// as in the cold start rule of §6.7), novelty and context are neutral. Pure: no I/O, deterministic.
+/// as in the cold start rule of §6.7), novelty counts the impressions of the last 7 days (§6.6) and context is neutral. Pure: no I/O, deterministic.
 /// </summary>
 public static class Recommender
 {
@@ -19,6 +19,22 @@ public static class Recommender
             .Select(candidate => Score(profile, candidate, mode, options, wIm, wImp, wQ))
             .OrderByDescending(scored => scored.Score)
             .ThenBy(scored => scored.Candidate.Id, StringComparer.Ordinal)];
+    }
+
+    /// <summary>
+    /// The part of the score that does not depend on where the traveler is, when, or how they move: interest, importance, quality, novelty and
+    /// the hidden-gem boost. The device adds <c>Distance</c>, <c>Context</c> and the crowd penalty at each position (§12.4 candidates).
+    /// </summary>
+    public static double BaseScore(TasteProfile profile, Candidate candidate, RecommendationOptions? options = null)
+    {
+        options ??= new RecommendationOptions();
+        var (wIm, wImp, wQ) = EffectiveWeights(profile, options);
+        var im01 = (InterestMatch(profile, candidate) + 1d) / 2d;
+        return (wIm * im01)
+            + (wImp * candidate.Importance)
+            + (wQ * candidate.Quality)
+            + (options.Novelty * (1d / (1d + Math.Max(0, candidate.Impressions7d))))
+            + (options.GemWeight * (candidate.HiddenGem ? 1d : 0d));
     }
 
     /// <summary>Control cohort ranking (F-03): <c>0.7 · Importance + 0.3 · Distance</c>.</summary>
@@ -45,7 +61,7 @@ public static class Recommender
             + (wImp * candidate.Importance)
             + (options.Distance * DistanceTerm(candidate, mode))
             + (wQ * candidate.Quality)
-            + (options.Novelty * 1d)
+            + (options.Novelty * (1d / (1d + Math.Max(0, candidate.Impressions7d))))
             + (options.Context * 1d)
             - (options.CrowdWeight * crowdPenalty)
             + (options.GemWeight * (candidate.HiddenGem ? 1d : 0d));

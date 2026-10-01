@@ -15,7 +15,12 @@ public static class PoiPublishedHandler
             new PlaceProjection(
                 published.PoiId,
                 published.Slug,
+                published.NameFr,
                 published.Destination.Slug,
+                published.Latitude,
+                published.Longitude,
+                published.Crowd.Peak,
+                published.AccessRegulated,
                 published.Interests.GroupBy(i => i.TaxonomyCode).ToDictionary(g => g.Key, g => (double)g.Max(i => i.Weight)),
                 published.ImportanceScore / 100d,
                 published.ContentQualityScore,
@@ -40,7 +45,8 @@ public static class StoryPublishedHandler
     {
         if (published.Kind != OnboardingKind)
         {
-            return Task.CompletedTask;
+            var parts = published.AudioParts.ToDictionary(part => part.Part, part => part.Path);
+            return writer.ApplyStoryAsync(new StoryProjection(published.StoryId, published.PoiId, published.Lang, published.Kind, published.DurationSeconds, published.IsPremium, parts, published.Version), cancellationToken);
         }
 
         var main = published.AudioParts.FirstOrDefault(part => part.Part == "main");
@@ -52,12 +58,18 @@ public static class StoryPublishedHandler
 
 public static class StoryUnpublishedHandler
 {
+    internal static async Task Both(IProjectionWriter writer, Guid storyId, CancellationToken cancellationToken)
+    {
+        await writer.RemoveClipAsync(storyId, cancellationToken);
+        await writer.RemoveStoryAsync(storyId, cancellationToken);
+    }
+
     public static Task Handle(StoryUnpublishedV1 unpublished, IProjectionWriter writer, CancellationToken cancellationToken) =>
-        writer.RemoveClipAsync(unpublished.StoryId, cancellationToken);
+        Both(writer, unpublished.StoryId, cancellationToken);
 }
 
 public static class StoryArchivedHandler
 {
     public static Task Handle(StoryArchivedV1 archived, IProjectionWriter writer, CancellationToken cancellationToken) =>
-        writer.RemoveClipAsync(archived.StoryId, cancellationToken);
+        StoryUnpublishedHandler.Both(writer, archived.StoryId, cancellationToken);
 }
