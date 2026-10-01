@@ -108,7 +108,7 @@ public sealed class DestinationServiceTests
 
         plan.Count.ShouldBe(2);
         plan.ShouldAllBe(d => d.Places.Count >= 4 && d.Places.Count <= 6);
-        plan.ShouldAllBe(d => d.Places[0].LegMeters == 0 && d.TotalMeters == d.Places.Sum(p => p.LegMeters));
+        plan.ShouldAllBe(d => d.Places[0].LegMeters == 0 && Math.Abs(d.TotalMeters - d.Places.Sum(p => p.LegMeters)) <= d.Places.Count); // legs are rounded one by one
     }
 
     [Fact]
