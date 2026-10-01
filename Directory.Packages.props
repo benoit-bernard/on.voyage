@@ -41,6 +41,7 @@
     <!-- Pinned so Npgsql's older transitive EF Core 10.0.4 never mixes with Design 10.0.12 -->
     <PackageVersion Include="Microsoft.EntityFrameworkCore" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Relational" Version="10.0.12" />
+    <PackageVersion Include="Microsoft.EntityFrameworkCore.Sqlite" Version="10.0.12" />
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.12" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />

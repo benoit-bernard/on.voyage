@@ -6,6 +6,7 @@ using OnVoyage.App.Core;
 using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Profile;
 using OnVoyage.App.Infrastructure;
+using OnVoyage.App.LocalData;
 
 namespace OnVoyage.App;
 
@@ -37,12 +38,14 @@ public static class MauiProgram
         builder.Services.AddSingleton<IAudioPlayer>(provider => provider.GetRequiredService<MediaElementAudioPlayer>());
         builder.Services.AddSingleton<ILocationSource, MauiLocationSource>();
         builder.Services.AddSingleton<IScreenKeepAwake, MauiKeepAwake>();
-        builder.Services.AddSingleton<IFlagStore, PreferencesFlagStore>();
+        builder.Services.AddLocalData(Path.Combine(FileSystem.AppDataDirectory, "user.db"));
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();
         builder.Logging.AddDebug();
 #endif
-        return builder.Build();
+        var app = builder.Build();
+        app.Services.InitializeLocalDataAsync().GetAwaiter().GetResult();
+        return app;
     }
 }

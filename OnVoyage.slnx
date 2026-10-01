@@ -41,10 +41,12 @@
   <Folder Name="/src/Mobile/">
     <Project Path="src/Mobile/OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
     <Project Path="src/Mobile/OnVoyage.App.Infrastructure/OnVoyage.App.Infrastructure.csproj" />
+    <Project Path="src/Mobile/OnVoyage.App.LocalData/OnVoyage.App.LocalData.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/OnVoyage.App.Core.Tests/OnVoyage.App.Core.Tests.csproj" />
     <Project Path="tests/OnVoyage.App.Infrastructure.Tests/OnVoyage.App.Infrastructure.Tests.csproj" />
+    <Project Path="tests/OnVoyage.App.LocalData.Tests/OnVoyage.App.LocalData.Tests.csproj" />
     <Project Path="tests/OnVoyage.ArchitectureTests/OnVoyage.ArchitectureTests.csproj" />
     <Project Path="tests/OnVoyage.Gateway.Tests/OnVoyage.Gateway.Tests.csproj" />
     <Project Path="tests/OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />

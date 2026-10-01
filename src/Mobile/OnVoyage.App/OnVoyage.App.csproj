@@ -33,5 +33,6 @@
     <ProjectReference Include="../../Web/OnVoyage.UI.Components/OnVoyage.UI.Components.csproj" />
     <ProjectReference Include="../OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
     <ProjectReference Include="../OnVoyage.App.Infrastructure/OnVoyage.App.Infrastructure.csproj" />
+    <ProjectReference Include="../OnVoyage.App.LocalData/OnVoyage.App.LocalData.csproj" />
   </ItemGroup>
 </Project>
