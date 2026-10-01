@@ -1,20 +1,20 @@
+using System.ClientModel;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using OnVoyage.Factory.Application;
-using Microsoft.Extensions.AI;
 using OnVoyage.Factory.Application.Content;
 using OnVoyage.Factory.Application.Ports;
 using OnVoyage.Factory.Infrastructure.Audio;
 using OnVoyage.Factory.Infrastructure.Llm;
-using OpenAI;
-using System.ClientModel;
 using OnVoyage.Factory.Infrastructure.Osm;
 using OnVoyage.Factory.Infrastructure.Persistence;
 using OnVoyage.Factory.Infrastructure.Sources;
+using OpenAI;
 using Wolverine.EntityFrameworkCore;
 
 namespace OnVoyage.Factory.Infrastructure;

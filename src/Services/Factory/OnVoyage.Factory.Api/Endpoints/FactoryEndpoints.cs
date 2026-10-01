@@ -1,13 +1,13 @@
+using System.Security.Claims;
 using OnVoyage.Factory.Application;
 using OnVoyage.Factory.Application.Content;
 using OnVoyage.Factory.Application.Features.Content;
 using OnVoyage.Factory.Application.Features.EnrichPlaces;
-using OnVoyage.Factory.Domain.Content;
 using OnVoyage.Factory.Application.Features.ImportPlaces;
 using OnVoyage.Factory.Application.Features.Places;
 using OnVoyage.Factory.Application.Features.ScorePlaces;
+using OnVoyage.Factory.Domain.Content;
 using OnVoyage.ServiceDefaults.Security;
-using System.Security.Claims;
 using Wolverine;
 
 namespace OnVoyage.Factory.Api.Endpoints;

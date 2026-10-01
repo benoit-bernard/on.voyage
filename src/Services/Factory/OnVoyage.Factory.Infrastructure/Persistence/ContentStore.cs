@@ -61,8 +61,16 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
         var now = DateTimeOffset.UtcNow;
         Db.Facts.AddRange(facts.Select(fact => new FactRow
         {
-            Id = fact.Id, PlaceId = fact.PlaceId, DocumentId = fact.DocumentId, Statement = fact.Statement, Type = fact.Type.ToString(),
-            Quote = fact.Quote, Confidence = fact.Confidence, Status = fact.Status.ToString(), Reason = fact.Reason, CreatedAt = now,
+            Id = fact.Id,
+            PlaceId = fact.PlaceId,
+            DocumentId = fact.DocumentId,
+            Statement = fact.Statement,
+            Type = fact.Type.ToString(),
+            Quote = fact.Quote,
+            Confidence = fact.Confidence,
+            Status = fact.Status.ToString(),
+            Reason = fact.Reason,
+            CreatedAt = now,
         }));
         await Db.SaveChangesAsync(cancellationToken);
     }

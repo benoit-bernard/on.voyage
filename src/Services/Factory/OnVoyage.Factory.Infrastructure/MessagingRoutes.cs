@@ -1,4 +1,3 @@
-using Wolverine.ErrorHandling;
 using OnVoyage.Factory.Application.Content;
 using OnVoyage.Factory.Application.Features.Content;
 using OnVoyage.Factory.Application.Features.EnrichPlaces;
@@ -6,6 +5,7 @@ using OnVoyage.Factory.Application.Features.ImportPlaces;
 using OnVoyage.Factory.Application.Features.ScorePlaces;
 using OnVoyage.Factory.Contracts;
 using Wolverine;
+using Wolverine.ErrorHandling;
 using Wolverine.Postgresql;
 
 namespace OnVoyage.Factory.Infrastructure;

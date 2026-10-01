@@ -36,8 +36,18 @@ internal sealed class LlmUsageRecorder(IServiceScopeFactory scopes, IConfigurati
         var db = scope.ServiceProvider.GetRequiredService<FactoryDbContext>();
         db.LlmCalls.Add(new LlmCallRow
         {
-            Id = Guid.CreateVersion7(), Kind = kind, Model = model, PromptId = promptId, PromptVersion = promptVersion, ContentId = contentId,
-            InputTokens = inputTokens, OutputTokens = outputTokens, CostUsd = cost, DurationMs = (int)duration.TotalMilliseconds, Succeeded = succeeded, CreatedAt = clock.GetUtcNow(),
+            Id = Guid.CreateVersion7(),
+            Kind = kind,
+            Model = model,
+            PromptId = promptId,
+            PromptVersion = promptVersion,
+            ContentId = contentId,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            CostUsd = cost,
+            DurationMs = (int)duration.TotalMilliseconds,
+            Succeeded = succeeded,
+            CreatedAt = clock.GetUtcNow(),
         });
         await db.SaveChangesAsync();
     }

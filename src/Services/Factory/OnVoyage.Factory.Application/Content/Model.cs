@@ -118,7 +118,11 @@ public sealed record ContentSettings
     public string SpeechInstructions { get; init; } = "Conteur chaleureux, français de France, rythme posé, sourire dans la voix.";
     public IReadOnlyDictionary<string, double> SourceQuality { get; init; } = new Dictionary<string, double>
     {
-        ["official"] = 1.0, ["merimee"] = 0.95, ["wikipedia"] = 0.7, ["wikidata"] = 0.7, ["other"] = 0.5,
+        ["official"] = 1.0,
+        ["merimee"] = 0.95,
+        ["wikipedia"] = 0.7,
+        ["wikidata"] = 0.7,
+        ["other"] = 0.5,
     };
 
     public string VoiceFor(string language) => language == "en" ? DefaultVoiceEn : DefaultVoiceFr;
