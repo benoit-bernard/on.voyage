@@ -1,0 +1,93 @@
+# Self-hosted observability stack (§17.1, T-009): OTLP collector -> Prometheus (metrics), Loki (logs), Tempo (traces), Grafana.
+# Joins the network of the staging stack (deploy/staging/docker-compose.yml, network "onvoyage-staging"), so start that one first.
+#
+#   cd deploy/staging && docker compose --env-file .env -f observability/docker-compose.yml up -d
+#   then set OTEL_EXPORTER_OTLP_ENDPOINT=http://otel-collector:4317 in .env (vars.STAGING_OTLP_ENDPOINT in CI) and redeploy the services.
+#
+# No port is published except Grafana on 127.0.0.1:3000 (reach it with `ssh -L 3000:127.0.0.1:3000 <vps>`). Nothing in this stack calls
+# an external service: no telemetry, no update check, no plugin download.
+name: onvoyage-observability
+
+x-defaults: &defaults
+  restart: unless-stopped
+  networks: [onvoyage]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "3" }
+
+services:
+  otel-collector:
+    <<: *defaults
+    image: otel/opentelemetry-collector-contrib:0.116.1
+    command: ["--config=/etc/otelcol/config.yaml"]
+    volumes:
+      - ./otel-collector.yaml:/etc/otelcol/config.yaml:ro
+    depends_on: [tempo, loki]
+
+  prometheus:
+    <<: *defaults
+    image: prom/prometheus:v3.1.0
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${METRICS_RETENTION:-30d}
+      - --web.enable-lifecycle
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./alerts.yml:/etc/prometheus/alerts.yml:ro
+      - prometheus-data:/prometheus
+
+  blackbox:
+    <<: *defaults
+    image: prom/blackbox-exporter:v0.25.0
+    command: ["--config.file=/etc/blackbox/blackbox.yml"]
+    volumes:
+      - ./blackbox.yml:/etc/blackbox/blackbox.yml:ro
+
+  loki:
+    <<: *defaults
+    image: grafana/loki:3.3.2
+    command: ["-config.file=/etc/loki/loki.yaml"]
+    volumes:
+      - ./loki.yaml:/etc/loki/loki.yaml:ro
+      - loki-data:/loki
+
+  tempo:
+    <<: *defaults
+    image: grafana/tempo:2.7.0
+    command: ["-config.file=/etc/tempo/tempo.yaml"]
+    volumes:
+      - ./tempo.yaml:/etc/tempo/tempo.yaml:ro
+      - tempo-data:/var/tempo
+
+  grafana:
+    <<: *defaults
+    image: grafana/grafana:11.4.0
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_ANALYTICS_CHECK_FOR_UPDATES: "false"
+      GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES: "false"
+      GF_PLUGINS_PLUGIN_ADMIN_ENABLED: "false"
+      GF_NEWS_NEWS_FEED_ENABLED: "false"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    depends_on: [prometheus, loki, tempo]
+
+volumes:
+  prometheus-data:
+  loki-data:
+  tempo-data:
+  grafana-data:
+
+networks:
+  onvoyage:
+    external: true
+    name: onvoyage-staging

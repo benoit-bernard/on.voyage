@@ -1,0 +1,46 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 30s
+
+rule_files:
+  - /etc/prometheus/alerts.yml
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  # Metrics of every service, pushed over OTLP and exposed by the collector.
+  - job_name: otel-collector
+    honor_labels: true
+    static_configs:
+      - targets: ["otel-collector:8889"]
+
+  # Availability (NF-05, 99.5 % per month): /health of every host, probed from inside the network every 15 s. Add the public URL
+  # (https://<STAGING_DOMAIN>/health) here too, or from an external monitor, to include DNS, TLS and Caddy in the figure.
+  - job_name: blackbox-health
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - http://gateway:8080/health
+          - http://platform-api:8080/health
+          - http://catalog-api:8080/health
+          - http://discovery-api:8080/health
+          - http://factory-api:8080/health
+          - http://factory-worker:8080/health
+          - http://web-admin:8080/health
+          - http://web-pwa:8080/
+          # Future services (uncomment with their compose entry):
+          # - http://insights-api:8080/health
+          # - http://creators-api:8080/health
+          # - http://creators-worker:8080/health
+          # - http://web-public:8080/health
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox:9115
