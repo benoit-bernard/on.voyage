@@ -52,11 +52,13 @@ public sealed class HomePageTests : BunitContext
         Arrange();
 
         var cut = Render<Home>();
-        cut.WaitForAssertion(() => cut.Find("h1").TextContent.ShouldBe("Bonjour, Marseille"));
-
-        cut.Markup.ShouldContain("Lieu1");
-        cut.Markup.ShouldContain("Moins fréquenté, tout aussi beau");
-        cut.Markup.ShouldContain("Dites-nous ce que vous aimez");
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("h1").TextContent.ShouldBe("Bonjour, Marseille");
+            cut.Markup.ShouldContain("Lieu1");
+            cut.Markup.ShouldContain("Moins fréquenté, tout aussi beau");
+            cut.Markup.ShouldContain("Dites-nous ce que vous aimez");
+        });
     }
 
     [Fact]
