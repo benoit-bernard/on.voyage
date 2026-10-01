@@ -3,6 +3,7 @@
 @inject IProfileStore Profiles
 @inject InteractionRecorder Recorder
 @inject TimeProvider Clock
+@inject IReportClient Reports
 
 <PageTitle>@(_poi?.Name ?? "Lieu") · ON.VOYAGE</PageTitle>
 
@@ -25,6 +26,7 @@ else
     }
 
     <div class="actions">
+        <a class="btn btn-soft" href="@NavigateUri" @onclick="() => RecordAsync(InteractionKinds.Navigate)">📍 Y aller</a>
         <button class="btn @(_saved ? "btn-on" : "")" aria-pressed="@(_saved ? "true" : "false")" @onclick="ToggleSavedAsync">
             @(_saved ? "★ Dans vos envies" : "☆ Ajouter à mes envies")
         </button>
@@ -32,16 +34,51 @@ else
         <button class="btn btn-soft" @onclick="() => RecordAsync(InteractionKinds.DislikePoi)">👎</button>
     </div>
 
+    @if (_poi.Stories.Count == 0)
+    {
+        <p class="note" role="status">Histoire bientôt disponible.</p>
+    }
+
     @foreach (var story in _poi.Stories)
     {
         <article>
             <h2>@story.Title</h2>
             <AudioPlayer Source="@story.AudioUrl" />
-            <p>@story.Text</p>
+            <details class="transcript">
+                <summary>Transcription de l'histoire</summary>
+                <p>@story.Text</p>
+            </details>
             @if (!story.AiGenerated)
             {
                 <p class="note">Texte éditorial, en attente de relecture.</p>
             }
+            <details class="report" open="@(_reporting == story.Id)">
+                <summary @onclick="() => _reporting = story.Id" @onclick:preventDefault>Signaler une erreur</summary>
+                @if (_reported.Contains(story.Id))
+                {
+                    <p class="note" role="status">Merci, votre signalement a été transmis.</p>
+                }
+                else if (_reporting == story.Id)
+                {
+                    <label>Type
+                        <select @bind="_reportKind" aria-label="Type de signalement">
+                            @foreach (var kind in Enum.GetValues<ReportKind>())
+                            {
+                                <option value="@kind">@ReportLabels.Label(kind)</option>
+                            }
+                        </select>
+                    </label>
+                    <label>Votre message (500 caractères au plus)
+                        <textarea maxlength="@IReportClient.MaxLength" @bind="_reportText" @bind:event="oninput" rows="3"></textarea>
+                    </label>
+                    <p class="note">Votre position n'est pas envoyée.</p>
+                    @if (_reportError is not null)
+                    {
+                        <p class="note" role="alert">@_reportError</p>
+                    }
+                    <button type="button" class="btn" disabled="@(string.IsNullOrWhiteSpace(_reportText))" @onclick="() => ReportAsync(story.Id)">Envoyer</button>
+                }
+            </details>
         </article>
     }
 
@@ -49,6 +86,7 @@ else
     {
         <section class="learn-more" aria-labelledby="learn-more-title">
             <h2 id="learn-more-title">En savoir plus</h2>
+            <p class="note">Ces liens ouvrent un site ou une application extérieurs à ON.VOYAGE.</p>
             <ul>
                 @foreach (var link in links)
                 {
@@ -77,6 +115,29 @@ else
     private IReadOnlyDictionary<string, double> _weights = new Dictionary<string, double>();
     private bool _notFound;
     private bool _saved;
+    private Guid? _reporting;
+    private readonly HashSet<Guid> _reported = [];
+    private ReportKind _reportKind = ReportKind.InaccurateFact;
+    private string _reportText = string.Empty;
+    private string? _reportError;
+
+    /// <summary>A <c>geo:</c> link: the traveler's own navigation app takes over, ON.VOYAGE computes no route (F-05).</summary>
+    private string NavigateUri => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"geo:{_poi!.Latitude:0.#####},{_poi.Longitude:0.#####}?q={_poi.Latitude:0.#####},{_poi.Longitude:0.#####}({Uri.EscapeDataString(_poi.Name)})");
+
+    private async Task ReportAsync(Guid storyId)
+    {
+        _reportError = null;
+        try
+        {
+            await Reports.ReportAsync(storyId, _reportKind, _reportText, CancellationToken.None);
+            _reported.Add(storyId);
+            _reportText = string.Empty;
+        }
+        catch (HttpRequestException)
+        {
+            _reportError = "Envoi impossible pour l'instant. Réessayez plus tard.";
+        }
+    }
 
     protected override async Task OnParametersSetAsync()
     {

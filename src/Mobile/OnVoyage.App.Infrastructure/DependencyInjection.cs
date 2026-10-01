@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection;
 using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Catalog;
 using OnVoyage.App.Core.Interactions;
+using OnVoyage.App.Core.Reports;
 using OnVoyage.App.Infrastructure.Auth;
 using OnVoyage.App.Infrastructure.Http;
 
@@ -20,6 +21,8 @@ public static class DependencyInjection
         services.AddHttpClient<ICatalogClient, HttpCatalogClient>(client => client.BaseAddress = gatewayBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>();
         services.AddHttpClient<IDiscoveryClient, HttpDiscoveryClient>(client => client.BaseAddress = gatewayBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>();
+        services.AddHttpClient<IReportClient, HttpReportClient>(client => client.BaseAddress = gatewayBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>();
         return services;
     }
