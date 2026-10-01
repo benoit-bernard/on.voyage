@@ -80,4 +80,4 @@ jobs:
       - name: Shell scripts are valid
         run: |
           sudo apt-get update && sudo apt-get install -y shellcheck
-          shellcheck --severity=warning deploy/staging/backup/*.sh deploy/staging/postgres/*.sh deploy/docker/*.sh
+          shellcheck --severity=warning deploy/staging/backup/*.sh deploy/staging/postgres/*.sh deploy/staging/smoke-test.sh

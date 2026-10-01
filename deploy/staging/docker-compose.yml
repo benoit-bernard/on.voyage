@@ -236,8 +236,9 @@ services:
     build:
       context: ../..
       dockerfile: deploy/docker/pwa.Dockerfile
-    environment:
-      PWA_MAP_TILES_URL: ${PWA_MAP_TILES_URL:-}
+      args:
+        # Baked into the image (see pwa.Dockerfile): changing it means rebuilding web-pwa.
+        MAP_TILES_URL: ${PWA_MAP_TILES_URL:-}
 
   web-admin:
     <<: *image-defaults

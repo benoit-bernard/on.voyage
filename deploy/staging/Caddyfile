@@ -66,6 +66,14 @@
 	}
 }
 
+# Address the mobile app calls in Release builds (MauiProgram.cs: https://api.on.voyage/). Same Gateway as /api on the main domain.
+api.{$STAGING_DOMAIN} {
+	import privacy_logs
+	import security_headers
+	encode zstd gzip
+	reverse_proxy gateway:8080
+}
+
 # Back-office. WebSockets (Blazor Server) are upgraded by reverse_proxy.
 admin.{$STAGING_DOMAIN} {
 	import privacy_logs

@@ -32,7 +32,7 @@ tous les services ──▶ postgres (PostGIS 16, une base, un schéma par servi
 | --- | --- | --- |
 | `platform-api`, `catalog-api`, `discovery-api`, `factory-api`, `gateway`, `web-admin` | `deploy/docker/service.Dockerfile` (arguments `PROJECT`, `ASSEMBLY`) | build en deux étapes (SDK 10 puis `aspnet:10.0`), utilisateur non root (`APP_UID`), port 8080, `HEALTHCHECK` sur `/alive` |
 | `factory-worker` | idem, avec `RUNTIME_PACKAGES="curl osm2pgsql ffmpeg"` | `osm2pgsql` (import OSM, ADR-0004) et `ffmpeg` (normalisation audio) sont lus dans le `PATH` |
-| `web-pwa` | `deploy/docker/pwa.Dockerfile` | `dotnet publish` de la PWA, servie par Caddy (utilisateur 10001, port 8080) ; `PWA_MAP_TILES_URL` est écrit dans `appsettings.json` au démarrage |
+| `web-pwa` | `deploy/docker/pwa.Dockerfile` | `dotnet publish` de la PWA, servie par Caddy (utilisateur 10001, port 8080). `MAP_TILES_URL` (variable `STAGING_MAP_TILES_URL`) est écrit dans `appsettings.json` **avant** la publication : le service worker de la PWA contrôle l'empreinte SHA-256 de ce fichier, le modifier après coup casserait l'installation du cache hors ligne. Une image par environnement. |
 | `backup` | `deploy/staging/backup/Dockerfile` | `pg_dump`, `pg_basebackup`, `age` ; utilisateur 999 |
 
 Registre : GitHub Container Registry, `ghcr.io/<propriétaire en minuscules>/onvoyage/<nom>:<sha du commit>` (et `:staging`). Les services à venir (Insights, Creators, Web.Public) s'ajoutent en copiant un bloc de `docker-compose.yml` (déjà présent en commentaire) et une ligne de la matrice de `deploy-staging.yml`.
@@ -92,7 +92,7 @@ Le jeton du registre est celui du workflow (`GITHUB_TOKEN`, `packages: write`) ;
 ## Préparer le VPS (une fois, H-003)
 
 1. VPS européen (≥ 4 vCPU, 16 Go), Docker Engine et le plugin Compose, pare-feu : 22, 80, 443 (et 443/udp) seulement.
-2. Enregistrements DNS `A`/`AAAA` pour `<domaine>` et `admin.<domaine>`.
+2. Enregistrements DNS `A`/`AAAA` pour `<domaine>`, `admin.<domaine>` et `api.<domaine>` (Caddy ne peut pas obtenir de certificat pour un nom absent du DNS : retirer le bloc `api.` du `Caddyfile` si on n'en veut pas).
 3. Compte `deploy` dans le groupe `docker`, clé SSH dédiée ; relever l'empreinte du serveur pour `STAGING_SSH_KNOWN_HOSTS`.
 4. Générer la paire age **hors du serveur** : `age-keygen -o onvoyage-backup.key`. Publier la ligne `# public key: age1…` dans `STAGING_BACKUP_AGE_RECIPIENT` ; ranger la clé privée dans le gestionnaire de secrets du propriétaire (voir [runbooks/restore.md](runbooks/restore.md)).
 5. Renseigner les secrets et variables ci-dessus, puis lancer le workflow `deploy-staging` (Run workflow).
@@ -129,4 +129,6 @@ Les migrations doivent rester **rétrocompatibles d'une version** (§21) : les a
 ## Limites connues
 
 - Aucune de ces briques n'a été exécutée sur un vrai VPS dans cette tranche : voir le compte rendu de vérification de la PR (compose validé par `docker compose config`, scripts de sauvegarde exécutés contre un PostgreSQL local ; images, Caddy, pile d'observabilité et workflow de déploiement non exécutés).
+- L'app mobile en Release appelle `https://api.on.voyage/` (adresse figée dans `MauiProgram.cs`, hors Debug) : le Caddyfile expose le Gateway sous `api.<domaine>` pour que ce nom existe, mais un build mobile ne vise le staging qu'après changement de cette adresse (ou d'un réglage de build à introduire). La PWA, elle, est servie sur la même origine.
+- Les sessions du back-office sont gardées en mémoire du conteneur `web-admin` : chaque déploiement déconnecte les éditeurs.
 - Un seul VPS : la disponibilité de 99,5 % (NF-05) dépend de lui ; la sonde de santé et l'alerte `MonthlyAvailabilityBelowTarget` servent à la mesurer.
