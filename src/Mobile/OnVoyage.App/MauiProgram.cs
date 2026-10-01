@@ -1,4 +1,7 @@
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
+using OnVoyage.App.Core.Audio;
+using OnVoyage.App.Core.Discovery;
 using OnVoyage.App.Core;
 using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Profile;
@@ -22,7 +25,7 @@ public static class MauiProgram
     public static MauiApp CreateMauiApp()
     {
         var builder = MauiApp.CreateBuilder();
-        builder.UseMauiApp<App>();
+        builder.UseMauiApp<App>().UseMauiCommunityToolkit().UseMauiCommunityToolkitMediaElement();
 
         builder.Services.AddMauiBlazorWebView();
         builder.Services.AddAppCore();
@@ -30,6 +33,11 @@ public static class MauiProgram
         builder.Services.AddSingleton<ISessionStore, SecureSessionStore>();
         builder.Services.AddSingleton<IProfileStore, PreferencesProfileStore>();
         builder.Services.AddSingleton<ILocationProvider, DeviceLocationProvider>();
+        builder.Services.AddSingleton<MediaElementAudioPlayer>();
+        builder.Services.AddSingleton<IAudioPlayer>(provider => provider.GetRequiredService<MediaElementAudioPlayer>());
+        builder.Services.AddSingleton<ILocationSource, MauiLocationSource>();
+        builder.Services.AddSingleton<IScreenKeepAwake, MauiKeepAwake>();
+        builder.Services.AddSingleton<IFlagStore, PreferencesFlagStore>();
 
 #if DEBUG
         builder.Services.AddBlazorWebViewDeveloperTools();

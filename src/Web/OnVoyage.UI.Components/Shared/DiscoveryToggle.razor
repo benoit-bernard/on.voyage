@@ -1,0 +1,88 @@
+@implements IDisposable
+@inject IServiceProvider Services
+
+@if (_discovery is not null)
+{
+    <section class="discovery" aria-labelledby="discovery-title">
+        <h2 id="discovery-title">Mode découverte</h2>
+        @if (!_state.IsOn)
+        {
+            <p class="hint">Gardez l'écran allumé : ON.VOYAGE vous raconte les lieux quand vous vous en approchez. Votre position reste sur votre téléphone.</p>
+            <label class="check"><input type="checkbox" @bind="_keepScreenOn" /> Garder l'écran allumé</label>
+            <button type="button" class="btn" disabled="@_starting" @onclick="StartAsync">Activer le mode découverte</button>
+            @if (_message is not null)
+            {
+                <p class="note" role="status">@_message</p>
+            }
+        }
+        else
+        {
+            <p class="status" role="status">@Describe()</p>
+            <button type="button" class="btn btn-soft" @onclick="StopAsync">Arrêter le mode découverte</button>
+        }
+    </section>
+}
+
+@code {
+    private DiscoveryModeController? _discovery;
+    private DiscoveryState _state = DiscoveryState.Off;
+    private bool _keepScreenOn = true;
+    private bool _starting;
+    private string? _message;
+
+    protected override void OnInitialized()
+    {
+        _discovery = Services.GetService(typeof(DiscoveryModeController)) as DiscoveryModeController;
+        if (_discovery is not null)
+        {
+            _state = _discovery.State;
+            _discovery.Changed += OnChanged;
+        }
+    }
+
+    private void OnChanged()
+    {
+        _state = _discovery!.State;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task StartAsync()
+    {
+        _starting = true;
+        _message = null;
+        var result = await _discovery!.StartAsync(_keepScreenOn);
+        _message = result switch
+        {
+            DiscoveryStartResult.PermissionDenied => "Sans l'accès à votre position, le mode découverte ne peut pas fonctionner. Vous pouvez l'autoriser dans les réglages du téléphone.",
+            DiscoveryStartResult.NothingToTell => "Aucune histoire n'est encore disponible pour cette destination.",
+            _ => null,
+        };
+        _starting = false;
+    }
+
+    private Task StopAsync() => _discovery!.StopAsync();
+
+    private string Describe()
+    {
+        var mode = _state.Mode switch { TravelMode.Bike => "à vélo", TravelMode.Car => "en voiture", _ => "à pied" };
+        if (_state.SignalLost)
+        {
+            return $"Signal GPS perdu ({mode}) : rien ne sera raconté tant qu'il n'est pas revenu.";
+        }
+
+        return _state.Engine switch
+        {
+            EngineState.Announcing or EngineState.Playing => $"Je vous raconte : {_state.LastTitle}.",
+            EngineState.Cooldown => $"Un instant avant le prochain lieu ({mode}).",
+            _ => $"À l'écoute de ce qui vous entoure ({mode}).",
+        };
+    }
+
+    public void Dispose()
+    {
+        if (_discovery is not null)
+        {
+            _discovery.Changed -= OnChanged;
+        }
+    }
+}

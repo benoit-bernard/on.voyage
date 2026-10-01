@@ -1,0 +1,7 @@
+.discovery { margin: 1rem 0; padding: .9rem 1rem; border-radius: .9rem; background: var(--ov-chip); }
+.discovery h2 { margin: 0 0 .4rem; font-size: 1.05rem; }
+.hint, .note { color: var(--ov-muted); font-size: .85rem; }
+.check { display: flex; gap: .5rem; align-items: center; margin: .5rem 0; }
+.btn { padding: .6rem .9rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
+.btn-soft { background: var(--ov-surface); color: var(--ov-ink); }
+.status { font-weight: 600; }

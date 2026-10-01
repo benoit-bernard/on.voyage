@@ -2,11 +2,17 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:ui="clr-namespace:OnVoyage.UI.Components;assembly=OnVoyage.UI.Components"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
              x:Class="OnVoyage.App.MainPage"
              BackgroundColor="#F7F4EE">
-    <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
-        <BlazorWebView.RootComponents>
-            <RootComponent Selector="#app" ComponentType="{x:Type ui:OnVoyageRoutes}" />
-        </BlazorWebView.RootComponents>
-    </BlazorWebView>
+    <Grid RowDefinitions="*,Auto">
+        <BlazorWebView x:Name="blazorWebView" HostPage="wwwroot/index.html">
+            <BlazorWebView.RootComponents>
+                <RootComponent Selector="#app" ComponentType="{x:Type ui:OnVoyageRoutes}" />
+            </BlazorWebView.RootComponents>
+        </BlazorWebView>
+        <!-- The audio player: invisible, the Razor player bar drives it through MediaElementAudioPlayer. -->
+        <toolkit:MediaElement x:Name="mediaElement" Grid.Row="1" HeightRequest="1" WidthRequest="1" Opacity="0"
+                              ShouldAutoPlay="False" ShouldShowPlaybackControls="False" />
+    </Grid>
 </ContentPage>
