@@ -34,7 +34,8 @@ public sealed class BatchTests(PostgresFixture postgres) : IAsyncLifetime
     {
         await _f.ExecuteAsync("""
             create temp table copies as select * from factory.place where status = 'Candidate' order by slug limit 2;
-            update copies set id = gen_random_uuid(), slug = 'copie-' || slug, name = 'Copie ' || row_number() over (), osm_id = osm_id + 900000, qid = null, location = st_translate(location, 0.01, 0), footprint = null;
+            update copies set id = gen_random_uuid(), slug = 'copie-' || slug, osm_id = osm_id + 900000, qid = null, location = st_translate(location, 0.01, 0), footprint = null;
+            with numbered as (select id, row_number() over (order by slug) as n from copies) update copies set name = 'Copie ' || numbered.n from numbered where numbered.id = copies.id;
             insert into factory.place select * from copies;
             """);
         _names = await _f.QueryListAsync("select name from factory.place where status = 'Candidate' order by slug", reader => reader.GetString(0));
