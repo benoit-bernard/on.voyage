@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Services/Platform/OnVoyage.Platform.Application/OnVoyage.Platform.Application.csproj" />
+  </ItemGroup>
+</Project>

@@ -14,6 +14,7 @@ internal sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> option
     public DbSet<PoiInterestRow> PoiInterests => Set<PoiInterestRow>();
     public DbSet<PoiEthicsRow> PoiEthics => Set<PoiEthicsRow>();
     public DbSet<StoryRow> Stories => Set<StoryRow>();
+    public DbSet<ConfigSnapshotRow> ConfigSnapshot => Set<ConfigSnapshotRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -29,6 +30,13 @@ internal sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> option
             entity.HasIndex(row => row.Slug).IsUnique();
             entity.Property(row => row.Center).HasColumnType("geography (point, 4326)");
             entity.Property(row => row.CreatedAt).HasDefaultValueSql("now()");
+        });
+
+        modelBuilder.Entity<ConfigSnapshotRow>(entity =>
+        {
+            entity.ToTable("config_snapshot");
+            entity.HasKey(row => row.Key);
+            entity.Property(row => row.Value).HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<TaxonomyNodeRow>(entity =>

@@ -15,3 +15,10 @@ public interface IPoiReader
 
     Task<Destination?> FindDestinationAsync(string slug, CancellationToken cancellationToken);
 }
+
+/// <summary>Local projection of Platform's remote configuration (<c>catalog.config_snapshot</c>).</summary>
+public interface IConfigSnapshotStore
+{
+    /// <summary>Applies a change only if its version is newer; returns false for a duplicate or stale event (idempotent consumption).</summary>
+    Task<bool> ApplyAsync(string key, string valueJson, int version, CancellationToken cancellationToken);
+}

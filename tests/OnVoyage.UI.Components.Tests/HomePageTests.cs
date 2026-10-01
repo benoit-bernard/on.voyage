@@ -29,7 +29,16 @@ public sealed class HomePageTests : BunitContext
         }
 
         Services.AddSingleton(client);
-        Services.AddSingleton<IProfileStore, InMemoryProfileStore>();
+        // A traveler outside the 20 % control cohort, so the personalised ranking (not the id-ordered control list) is shown.
+        var store = new InMemoryProfileStore();
+        var profile = new LocalProfile();
+        while (OnVoyage.Recommendation.Engine.ControlCohort.Contains(profile.TravelerId))
+        {
+            profile = new LocalProfile();
+        }
+
+        store.SaveAsync(profile, CancellationToken.None).GetAwaiter().GetResult();
+        Services.AddSingleton<IProfileStore>(store);
         Services.AddSingleton<ILocationProvider, NoLocationProvider>();
         Services.AddSingleton<HomeFeedService>();
     }

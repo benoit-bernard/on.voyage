@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
-    <PackageReference Include="Testcontainers.PostgreSql" />
+    <ProjectReference Include="../../OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />
     <ProjectReference Include="../../../src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
     <ProjectReference Include="../../../src/Services/Catalog/OnVoyage.Catalog.Infrastructure/OnVoyage.Catalog.Infrastructure.csproj" />
   </ItemGroup>

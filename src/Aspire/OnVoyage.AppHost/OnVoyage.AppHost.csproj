@@ -6,6 +6,7 @@
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+    <ProjectReference Include="../../Services/Platform/OnVoyage.Platform.Api/OnVoyage.Platform.Api.csproj" />
     <ProjectReference Include="../../Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
     <ProjectReference Include="../../Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj" />
     <ProjectReference Include="../../Web/OnVoyage.Web.Pwa/OnVoyage.Web.Pwa.csproj" />

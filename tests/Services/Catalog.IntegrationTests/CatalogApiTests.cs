@@ -1,22 +1,24 @@
 using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using OnVoyage.Catalog.Api;
 using OnVoyage.Catalog.Contracts;
+using OnVoyage.TestInfrastructure;
 
 namespace Catalog.IntegrationTests;
 
 [Collection(PostgresTestGroup.Name)]
 public sealed class CatalogApiTests(PostgresFixture postgres) : IAsyncLifetime
 {
-    private WebApplicationFactory<Program> _factory = null!;
+    private WebApplicationFactory<CatalogApiMarker> _factory = null!;
     private HttpClient _client = null!;
 
     public async ValueTask InitializeAsync()
     {
         var connection = await postgres.CreateDatabaseAsync();
-        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        _factory = new WebApplicationFactory<CatalogApiMarker>().WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("ConnectionStrings:catalogdb", connection);
+            builder.UseSetting("ConnectionStrings:onvoyage", connection);
             builder.UseSetting("Catalog:SeedDemoData", "true");
         });
         _client = _factory.CreateClient();
@@ -110,9 +112,9 @@ public sealed class CatalogApiTests(PostgresFixture postgres) : IAsyncLifetime
     public async Task Premium_stories_cannot_carry_public_text()
     {
         var connection = await postgres.CreateDatabaseAsync();
-        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        await using var factory = new WebApplicationFactory<CatalogApiMarker>().WithWebHostBuilder(builder =>
         {
-            builder.UseSetting("ConnectionStrings:catalogdb", connection);
+            builder.UseSetting("ConnectionStrings:onvoyage", connection);
             builder.UseSetting("Catalog:SeedDemoData", "true");
         });
         using var _ = factory.CreateClient();

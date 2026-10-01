@@ -1,0 +1,465 @@
+{
+  "auth": {
+    "otp_ttl_minutes": 10,
+    "otp_max_attempts": 5,
+    "otp_resend_seconds": 60,
+    "access_token_minutes": 60
+  },
+  "onboarding": {
+    "clips_count": 5,
+    "clip_seconds": 15,
+    "eta": 0.35,
+    "category_seed": 0.6
+  },
+  "profile": {
+    "eta": 0.15,
+    "user_lock_days": 30,
+    "decay_half_life_days": 0,
+    "signals": {
+      "onboarding_up": 1.0,
+      "onboarding_down": -0.8,
+      "like": 1.0,
+      "meh": -0.1,
+      "dislike_poi": -0.6,
+      "dislike_poi_category_factor": 0.3,
+      "dislike_category": -1.0,
+      "listen_80": 0.5,
+      "replay": 0.6,
+      "abandon_early": -0.3,
+      "save": 0.8,
+      "navigate": 0.7,
+      "visit": 0.9,
+      "external_link": 0.4
+    },
+    "ratings": {
+      "like": 1.0,
+      "meh": -0.2,
+      "dislike_poi": -1.0,
+      "listen_80": 0.4,
+      "replay": 0.5,
+      "abandon_early": -0.3,
+      "save": 0.8,
+      "navigate": 0.6,
+      "visit": 0.9,
+      "external_link": 0.2
+    },
+    "abandon_early": {
+      "max_percent": 10,
+      "max_seconds": 20
+    },
+    "repeated_dislikes": {
+      "threshold": 3,
+      "window_days": 30,
+      "signal": -0.6
+    },
+    "category_child_weight": 0.5,
+    "depth_weights": {
+      "onboarding": 1,
+      "explicit": 3,
+      "listen_80": 1,
+      "save": 2,
+      "visit": 3,
+      "visit_min_confidence": 0.7
+    }
+  },
+  "cf": {
+    "k": 50,
+    "min_profile_depth": 10,
+    "active_days": 365,
+    "lambda": 5,
+    "full_support": 10,
+    "refresh_hours": 6,
+    "top_scores": 200,
+    "explanation_share": 0.3
+  },
+  "reco": {
+    "weights_version": 1,
+    "weights": {
+      "im": 0.3,
+      "cf": 0.15,
+      "imp": 0.15,
+      "dist": 0.15,
+      "q": 0.1,
+      "nov": 0.05,
+      "ctx": 0.1
+    },
+    "ethical": {
+      "off": {
+        "crowd": 0.0,
+        "gem": 0.0
+      },
+      "balanced": {
+        "crowd": 0.1,
+        "gem": 0.05
+      },
+      "strong": {
+        "crowd": 0.25,
+        "gem": 0.15
+      }
+    },
+    "d0_m": {
+      "walk": 800,
+      "bike": 3000,
+      "car": 15000
+    },
+    "cold_start_depth": 5,
+    "compatibility_min_depth": 5,
+    "compatibility_cap": 98,
+    "exploration_share": 0.2,
+    "adjacent_abs_u_max": 0.2,
+    "adjacent_lift_min": 1.1,
+    "liked_u_min": 0.5,
+    "affinity_min_travelers": 50,
+    "mmr_lambda": 0.7,
+    "mmr_candidates": 50,
+    "max_category_share": 0.4,
+    "similar_liked_threshold": 0.7,
+    "destination_page_size": 9,
+    "control_cohort_percent": 20,
+    "control_weights": {
+      "imp": 0.7,
+      "dist": 0.3
+    },
+    "surprise": {
+      "top_candidates": 10,
+      "exclude_last": 20,
+      "max_crowd_level": 3
+    },
+    "plan": {
+      "candidates_per_day": 6,
+      "min_per_day": 4,
+      "max_per_day": 6,
+      "max_cluster_km": {
+        "walk": 3,
+        "bike": 10,
+        "car": 40
+      }
+    },
+    "sunset_window_minutes": {
+      "before": 90,
+      "after": 30
+    }
+  },
+  "ethics": {
+    "seasons": {
+      "peak": [
+        7,
+        8
+      ],
+      "shoulder": [
+        4,
+        5,
+        6,
+        9,
+        10
+      ],
+      "offpeak": [
+        11,
+        12,
+        1,
+        2,
+        3
+      ]
+    },
+    "midday_hours": [
+      11,
+      16
+    ],
+    "timezone": "Europe/Paris",
+    "crowd_percentiles": [
+      20,
+      50,
+      80,
+      95
+    ],
+    "hidden_gem": {
+      "min_importance": 45,
+      "max_popularity_percentile": 40,
+      "max_peak_crowd": 2
+    },
+    "alternative_card_min_crowd": 4,
+    "filter_less_crowded_max": 2,
+    "initial_profile": {
+      "peak_plus_one_categories": [
+        "leisure.beaches",
+        "nature.coast",
+        "nature.cliffs_gorges",
+        "nature.viewpoints",
+        "villages"
+      ],
+      "weekend_delta_min_percentile": 50,
+      "midday_categories": [
+        "leisure.beaches",
+        "nature.cliffs_gorges"
+      ]
+    }
+  },
+  "trigger": {
+    "radius_m": {
+      "walk": 100,
+      "bike": 250,
+      "car_min": 800
+    },
+    "car_radius_speed_factor": 1.2,
+    "min_importance": {
+      "walk": 50,
+      "bike": 60,
+      "car": 70
+    },
+    "heading_cone_deg": {
+      "bike": 90,
+      "car": 60
+    },
+    "front_cone_deg": 45,
+    "max_accuracy_m": {
+      "walk": 50,
+      "bike": 60,
+      "car": 100
+    },
+    "speed_kmh": {
+      "bike_min": 7,
+      "car_min": 30
+    },
+    "speed_median_window": 5,
+    "mode_switch_seconds": 30,
+    "car_anticipation_s": 60,
+    "min_gap_s": 90,
+    "max_queue": 1,
+    "repeat_after_days": 30,
+    "stationary_stop_minutes": 5,
+    "gps_loss_seconds": 20,
+    "min_trigger_score": 0.45,
+    "visit_radius_m": 60,
+    "visit_min_minutes": 5,
+    "visit_full_minutes": 10,
+    "visit_max_speed_kmh": 2,
+    "visit_accuracy_factor": {
+      "le_20m": 1.0,
+      "le_50m": 0.8,
+      "other": 0.5
+    },
+    "auto_stop_idle_hours": 2,
+    "candidates_refresh_hours": 6,
+    "candidates_refresh_interactions": 10
+  },
+  "reminders": {
+    "walk_radius_m": 800,
+    "car_detour_minutes": 12,
+    "detour_factor": 1.3,
+    "per_poi_days": 30,
+    "per_day_max": 3
+  },
+  "audio": {
+    "resume_after_interruption_s": 30
+  },
+  "content": {
+    "auto_publish_threshold": null,
+    "error_reports_suspend_threshold": 3,
+    "quality_warning_below": 0.8,
+    "words_per_minute": 150,
+    "length_tolerance": 0.15,
+    "max_facts_per_document": 25,
+    "min_facts_used": 3,
+    "overlap": {
+      "max_shared_words": 8,
+      "ngram": 5,
+      "max_jaccard": 0.03
+    },
+    "classification_min_confidence": 0.6,
+    "source_quality": {
+      "official": 1.0,
+      "merimee": 0.95,
+      "wikipedia": 0.7,
+      "wikidata": 0.7,
+      "other": 0.5
+    },
+    "retries": {
+      "max": 3,
+      "delays_seconds": [
+        10,
+        60,
+        300
+      ]
+    },
+    "use_batch_api": false,
+    "llm": {
+      "extractor_model": null,
+      "writer_model": null,
+      "verifier_model": null,
+      "classifier_model": null,
+      "verifier_temperature": 0
+    }
+  },
+  "tts": {
+    "provider": "openai",
+    "model": "gpt-4o-mini-tts",
+    "voice_fr": "marin",
+    "voice_en": "cedar",
+    "loudness_lufs": -16,
+    "bitrate_kbps": 48,
+    "trim_silence_ms": 300
+  },
+  "data": {
+    "dedup_distance_m": 75,
+    "dedup_trigram_min": 0.6,
+    "dedup_trigram_auto": 0.85,
+    "wikidata_rescue_min_sitelinks": 3,
+    "wikimedia_concurrency": 1,
+    "sparql_batch_size": 200,
+    "image_width_px": 800,
+    "map_max_zoom": 15
+  },
+  "ads": {
+    "k_threshold": 20,
+    "min_rank": 3
+  },
+  "creators": {
+    "min_followers_display": 20,
+    "tip_max_chars": 280,
+    "bio_max_chars": 300,
+    "max_specialties": 5,
+    "poi_block_max": 3,
+    "home_section_items": 5,
+    "list_min_pois": 3,
+    "list_max_pois": 50,
+    "itinerary_max_days": 7,
+    "import_initial_items": 200,
+    "sync_hours": 24,
+    "thumbnail_width_px": 480,
+    "thumbnail_check_days": 7,
+    "geotag_auto_propose_threshold": 0.9,
+    "stats_k_threshold": 20,
+    "stats_retention_months": 25,
+    "attribution_days": 7,
+    "vector_weights": {
+      "link": 1.0,
+      "tip_bonus": 0.5,
+      "itinerary_bonus": 0.5
+    },
+    "signal": {
+      "w_creator": 0.1,
+      "followed": 1.0,
+      "similar_factor": 0.6,
+      "similar_min_affinity": 0.5,
+      "content_opened": 0.3,
+      "follow_profile_signal": 0.2
+    },
+    "voyage_comme": {
+      "keep_min_im": 0.45,
+      "add_share": 0.3,
+      "radius_km": {
+        "walk": 5,
+        "car": 30
+      },
+      "low_match_share": 0.5
+    },
+    "rejected_links_retention_days": 30,
+    "commercial_hashtags": [
+      "#publicité",
+      "#publicite",
+      "#pub",
+      "#ad",
+      "#sponsorisé",
+      "#sponsorise",
+      "#collaborationcommerciale",
+      "#partenariat"
+    ],
+    "llm": {
+      "geotag_model": null
+    }
+  },
+  "billing": {
+    "grace_days": 7,
+    "signed_url_minutes": 5,
+    "pack_url_minutes": 60,
+    "free_anecdotes_per_destination": 1
+  },
+  "security": {
+    "rate_per_traveler_per_min": 120,
+    "rate_per_ip_per_min": 300,
+    "reports_per_day": 10,
+    "otp_per_email_per_hour": 5,
+    "edge_config_refresh_seconds": 60,
+    "blocked_user_agents": [
+      "GPTBot",
+      "OAI-SearchBot",
+      "ChatGPT-User",
+      "ClaudeBot",
+      "Claude-User",
+      "Claude-SearchBot",
+      "anthropic-ai",
+      "Google-Extended",
+      "GoogleOther",
+      "Applebot-Extended",
+      "PerplexityBot",
+      "Perplexity-User",
+      "CCBot",
+      "Bytespider",
+      "Meta-ExternalAgent",
+      "Meta-ExternalFetcher",
+      "FacebookBot",
+      "Amazonbot",
+      "cohere-ai",
+      "cohere-training-data-crawler",
+      "DuckAssistBot",
+      "Diffbot",
+      "Omgilibot",
+      "Timpibot",
+      "YouBot",
+      "MistralAI-User"
+    ]
+  },
+  "deletion": {
+    "required_services": {
+      "MVP-0": [
+        "discovery",
+        "factory",
+        "insights",
+        "creators"
+      ],
+      "MVP": [
+        "discovery",
+        "factory",
+        "insights",
+        "billing",
+        "creators"
+      ],
+      "V1.1": [
+        "discovery",
+        "factory",
+        "insights",
+        "billing",
+        "ads",
+        "creators"
+      ]
+    }
+  },
+  "retention": {
+    "anonymous_inactive_months": 24,
+    "analytics_raw_months": 13,
+    "technical_events_days": 90,
+    "server_logs_days": 30,
+    "error_reports_months": 12,
+    "impressions_days": 90,
+    "export_link_hours": 24,
+    "backup_days": 30,
+    "deletion_alert_hours": 24
+  },
+  "cache": {
+    "catalog_minutes": 5,
+    "coordinate_decimals": 3
+  },
+  "sync": {
+    "batch_seconds": 60,
+    "batch_items": 20,
+    "refresh_hours": 6,
+    "max_interactions_per_batch": 200,
+    "max_events_per_batch": 500
+  },
+  "app": {
+    "min_app_version": "1.0.0",
+    "wifi_only_downloads": true,
+    "min_android_api": 26,
+    "min_ios": "16.0"
+  }
+}

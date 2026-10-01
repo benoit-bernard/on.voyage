@@ -7,5 +7,6 @@
     <ProjectReference Include="../OnVoyage.Catalog.Infrastructure/OnVoyage.Catalog.Infrastructure.csproj" />
     <ProjectReference Include="../OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
     <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
+    <ProjectReference Include="../../../Shared/OnVoyage.Messaging/OnVoyage.Messaging.csproj" />
   </ItemGroup>
 </Project>

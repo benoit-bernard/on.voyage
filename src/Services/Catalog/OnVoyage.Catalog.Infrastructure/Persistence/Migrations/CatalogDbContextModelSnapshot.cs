@@ -28,6 +28,30 @@ namespace OnVoyage.Catalog.Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "unaccent");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("OnVoyage.Catalog.Infrastructure.Persistence.ConfigSnapshotRow", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasColumnType("text")
+                        .HasColumnName("key");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("value");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Key");
+
+                    b.ToTable("config_snapshot", "catalog");
+                });
+
             modelBuilder.Entity("OnVoyage.Catalog.Infrastructure.Persistence.DestinationRow", b =>
                 {
                     b.Property<Guid>("Id")

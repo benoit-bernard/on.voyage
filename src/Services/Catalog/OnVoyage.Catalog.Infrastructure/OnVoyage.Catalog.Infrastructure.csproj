@@ -4,6 +4,8 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
     <ProjectReference Include="../OnVoyage.Catalog.Application/OnVoyage.Catalog.Application.csproj" />
     <ProjectReference Include="../OnVoyage.Catalog.Domain/OnVoyage.Catalog.Domain.csproj" />
   </ItemGroup>

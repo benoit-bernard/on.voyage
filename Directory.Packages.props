@@ -4,9 +4,11 @@
     <CentralPackageTransitivePinningEnabled>true</CentralPackageTransitivePinningEnabled>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="WolverineFx" Version="6.43.0" />
+    <PackageVersion Include="WolverineFx" Version="6.44.0" />
+    <PackageVersion Include="WolverineFx.Postgresql" Version="6.44.0" />
+    <PackageVersion Include="WolverineFx.EntityFrameworkCore" Version="6.44.0" />
     <PackageVersion Include="FluentValidation" Version="12.1.1" />
-    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.43.0" />
+    <PackageVersion Include="WolverineFx.RuntimeCompilation" Version="6.44.0" />
     <PackageVersion Include="Yarp.ReverseProxy" Version="2.3.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery.Yarp" Version="10.10.0" />
     <PackageVersion Include="Microsoft.Extensions.ServiceDiscovery" Version="10.10.0" />
@@ -27,6 +29,7 @@
     <PackageVersion Include="CommunityToolkit.Maui" Version="15.0.1" />
     <PackageVersion Include="Microsoft.Extensions.Logging.Debug" Version="10.0.12" />
     <PackageVersion Include="xunit.v3" Version="4.0.1" />
+    <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.1" />
     <PackageVersion Include="Shouldly" Version="4.3.0" />
     <PackageVersion Include="NSubstitute" Version="6.2.0" />
     <PackageVersion Include="bunit" Version="2.11.3" />
@@ -41,5 +44,6 @@
     <PackageVersion Include="Microsoft.EntityFrameworkCore.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Diagnostics.HealthChecks" Version="10.0.12" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
+    <PackageVersion Include="Npgsql" Version="10.0.3" />
   </ItemGroup>
 </Project>

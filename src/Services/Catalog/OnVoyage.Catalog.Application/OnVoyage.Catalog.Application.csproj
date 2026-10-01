@@ -4,5 +4,6 @@
     <PackageReference Include="FluentValidation" />
     <ProjectReference Include="../OnVoyage.Catalog.Domain/OnVoyage.Catalog.Domain.csproj" />
     <ProjectReference Include="../OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
+    <ProjectReference Include="../../Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
   </ItemGroup>
 </Project>

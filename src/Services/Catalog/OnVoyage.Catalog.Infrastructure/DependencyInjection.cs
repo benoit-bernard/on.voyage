@@ -4,19 +4,24 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using OnVoyage.Catalog.Application.Ports;
 using OnVoyage.Catalog.Infrastructure.Persistence;
+using OnVoyage.ServiceDefaults.Configuration;
+using Wolverine.EntityFrameworkCore;
 
 namespace OnVoyage.Catalog.Infrastructure;
 
 public static class DependencyInjection
 {
-    public const string ConnectionName = "catalogdb";
+    public const string ConnectionName = "onvoyage";
 
     public static IServiceCollection AddCatalogInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString(ConnectionName)
             ?? throw new InvalidOperationException($"Connection string '{ConnectionName}' is missing.");
 
-        services.AddDbContext<CatalogDbContext>(options => CatalogPersistence.Configure(options, connectionString));
+        services.AddDbContextWithWolverineIntegration<CatalogDbContext>(options => CatalogPersistence.Configure(options, connectionString));
+        services.AddMemoryCache();
+        services.AddScoped<IConfigSnapshotStore, ConfigSnapshotStore>();
+        services.AddSingleton<IConfigSnapshot, DbConfigSnapshot>();
         services.AddScoped<IPoiReader, PostgisPoiReader>();
         services.AddSingleton(TimeProvider.System);
         services.AddHealthChecks().AddCheck<CatalogDatabaseHealthCheck>("catalog-db", tags: ["ready"]);

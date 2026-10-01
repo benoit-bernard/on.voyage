@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="FluentValidation" />
+    <ProjectReference Include="../OnVoyage.Platform.Domain/OnVoyage.Platform.Domain.csproj" />
+    <ProjectReference Include="../OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
+  </ItemGroup>
+</Project>

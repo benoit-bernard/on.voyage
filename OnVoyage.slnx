@@ -6,6 +6,13 @@
   <Folder Name="/src/Gateway/">
     <Project Path="src/Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Platform/">
+    <Project Path="src/Services/Platform/OnVoyage.Platform.Api/OnVoyage.Platform.Api.csproj" />
+    <Project Path="src/Services/Platform/OnVoyage.Platform.Application/OnVoyage.Platform.Application.csproj" />
+    <Project Path="src/Services/Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
+    <Project Path="src/Services/Platform/OnVoyage.Platform.Domain/OnVoyage.Platform.Domain.csproj" />
+    <Project Path="src/Services/Platform/OnVoyage.Platform.Infrastructure/OnVoyage.Platform.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Catalog/">
     <Project Path="src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
     <Project Path="src/Services/Catalog/OnVoyage.Catalog.Application/OnVoyage.Catalog.Application.csproj" />
@@ -14,6 +21,7 @@
     <Project Path="src/Services/Catalog/OnVoyage.Catalog.Infrastructure/OnVoyage.Catalog.Infrastructure.csproj" />
   </Folder>
   <Folder Name="/src/Shared/">
+    <Project Path="src/Shared/OnVoyage.Messaging/OnVoyage.Messaging.csproj" />
     <Project Path="src/Shared/OnVoyage.Recommendation.Engine/OnVoyage.Recommendation.Engine.csproj" />
     <Project Path="src/Shared/OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
   </Folder>
@@ -28,11 +36,14 @@
   <Folder Name="/tests/">
     <Project Path="tests/OnVoyage.App.Core.Tests/OnVoyage.App.Core.Tests.csproj" />
     <Project Path="tests/OnVoyage.ArchitectureTests/OnVoyage.ArchitectureTests.csproj" />
+    <Project Path="tests/OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />
     <Project Path="tests/OnVoyage.Recommendation.Engine.Tests/OnVoyage.Recommendation.Engine.Tests.csproj" />
     <Project Path="tests/OnVoyage.UI.Components.Tests/OnVoyage.UI.Components.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Services/">
     <Project Path="tests/Services/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
     <Project Path="tests/Services/Catalog.UnitTests/Catalog.UnitTests.csproj" />
+    <Project Path="tests/Services/Platform.IntegrationTests/Platform.IntegrationTests.csproj" />
+    <Project Path="tests/Services/Platform.UnitTests/Platform.UnitTests.csproj" />
   </Folder>
 </Solution>

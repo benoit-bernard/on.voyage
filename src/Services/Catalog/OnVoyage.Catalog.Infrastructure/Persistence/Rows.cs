@@ -94,3 +94,11 @@ internal sealed class StoryRow
     public string Status { get; set; } = "published";
     public DateTimeOffset? PublishedAt { get; set; }
 }
+
+internal sealed class ConfigSnapshotRow
+{
+    public string Key { get; set; } = string.Empty;
+    public string Value { get; set; } = "{}";
+    public int Version { get; set; }
+    public DateTimeOffset UpdatedAt { get; set; }
+}

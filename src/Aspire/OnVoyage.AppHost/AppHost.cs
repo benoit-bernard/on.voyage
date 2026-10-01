@@ -1,20 +1,28 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
-// PostGIS image: the Catalog migrations create postgis, pg_trgm and unaccent (cahier des charges §9.6).
+// One PostGIS database, one schema per service (cahier des charges §9.6). The Wolverine queues live here too.
 var postgres = builder.AddPostgres("postgres")
     .WithImage("postgis/postgis", "16-3.4")
     .WithDataVolume("onvoyage-postgres");
-var catalogDb = postgres.AddDatabase("catalogdb", "onvoyage_catalog");
+var database = postgres.AddDatabase("onvoyage");
+
+var platform = builder.AddProject<Projects.OnVoyage_Platform_Api>("platform-api")
+    .WithReference(database)
+    .WaitFor(database)
+    .WithHttpHealthCheck("/health");
 
 var catalog = builder.AddProject<Projects.OnVoyage_Catalog_Api>("catalog-api")
-    .WithReference(catalogDb)
-    .WaitFor(catalogDb)
+    .WithReference(database)
+    .WaitFor(database)
+    .WaitFor(platform)
     .WithEnvironment("Catalog__SeedDemoData", "true")
     .WithHttpHealthCheck("/health");
 
 var gateway = builder.AddProject<Projects.OnVoyage_Gateway>("gateway")
     .WithReference(catalog)
+    .WithReference(platform)
     .WaitFor(catalog)
+    .WaitFor(platform)
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health");
 

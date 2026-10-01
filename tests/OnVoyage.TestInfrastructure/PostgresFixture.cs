@@ -1,7 +1,8 @@
 using Npgsql;
 using Testcontainers.PostgreSql;
+using Xunit;
 
-namespace Catalog.IntegrationTests;
+namespace OnVoyage.TestInfrastructure;
 
 /// <summary>
 /// One PostGIS server for the whole run. CI and developers with Docker get a Testcontainers container;
@@ -46,10 +47,4 @@ public sealed class PostgresFixture : IAsyncLifetime
             await _container.DisposeAsync();
         }
     }
-}
-
-[CollectionDefinition(Name)]
-public sealed class PostgresTestGroup : ICollectionFixture<PostgresFixture>
-{
-    public const string Name = "postgres";
 }
