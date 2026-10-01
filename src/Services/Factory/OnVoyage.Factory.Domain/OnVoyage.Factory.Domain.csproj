@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../Shared/OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
+  </ItemGroup>
+</Project>

@@ -16,6 +16,8 @@ jobs:
       - uses: actions/setup-dotnet@v4
         with:
           global-json-file: global.json
+      - name: Install osm2pgsql (Factory integration tests run the real import)
+        run: sudo apt-get update && sudo apt-get install -y osm2pgsql
       - name: Restore
         run: dotnet restore OnVoyage.slnx
       - name: Build (warnings are errors)

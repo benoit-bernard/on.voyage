@@ -21,6 +21,7 @@ public static class DependencyInjection
         services.AddDbContextWithWolverineIntegration<CatalogDbContext>(options => CatalogPersistence.Configure(options, connectionString));
         services.AddMemoryCache();
         services.AddScoped<IConfigSnapshotStore, ConfigSnapshotStore>();
+        services.AddScoped<IPoiProjectionWriter, PoiProjectionWriter>();
         services.AddSingleton<IConfigSnapshot, DbConfigSnapshot>();
         services.AddScoped<IPoiReader, PostgisPoiReader>();
         services.AddSingleton(TimeProvider.System);

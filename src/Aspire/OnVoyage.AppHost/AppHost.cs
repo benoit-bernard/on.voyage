@@ -40,9 +40,22 @@ if (builder.ExecutionContext.IsRunMode)
     catalog.WithEnvironment("Catalog__SeedDemoData", "true");
 }
 
+// Factory: the worker runs the pipeline jobs (osm2pgsql, Wikimedia, later LLM and TTS); the API is the back-office entry point.
+var factoryWorker = builder.AddProject<Projects.OnVoyage_Factory_Worker>("factory-worker")
+    .WithReference(database)
+    .WaitFor(database)
+    .WithHttpHealthCheck("/health");
+
+var factoryApi = builder.AddProject<Projects.OnVoyage_Factory_Api>("factory-api")
+    .WithReference(database)
+    .WaitFor(factoryWorker)
+    .WithEnvironment("Auth__JwtSecret", jwtSecret)
+    .WithHttpHealthCheck("/health");
+
 var gateway = builder.AddProject<Projects.OnVoyage_Gateway>("gateway")
     .WithReference(catalog)
     .WithReference(platform)
+    .WithReference(factoryApi)
     .WaitFor(catalog)
     .WaitFor(platform)
     .WithEnvironment("Auth__JwtSecret", jwtSecret)

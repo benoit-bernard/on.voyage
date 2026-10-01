@@ -1,0 +1,116 @@
+using Microsoft.EntityFrameworkCore;
+using OnVoyage.Catalog.Application.Ports;
+using OnVoyage.Factory.Contracts;
+
+namespace OnVoyage.Catalog.Infrastructure.Persistence;
+
+internal sealed class PoiProjectionWriter(CatalogDbContext db, TimeProvider clock) : IPoiProjectionWriter
+{
+    public async Task<bool> ApplyPublishedAsync(PoiPublishedV1 published, CancellationToken cancellationToken)
+    {
+        var row = await db.Pois.Include(poi => poi.Texts).Include(poi => poi.Interests).Include(poi => poi.Ethics)
+            .FirstOrDefaultAsync(poi => poi.Id == published.PoiId, cancellationToken);
+        if (row is not null && row.Version >= published.Version)
+        {
+            return false;
+        }
+
+        var destination = await db.Destinations.FirstOrDefaultAsync(item => item.Slug == published.Destination.Slug, cancellationToken);
+        if (destination is null)
+        {
+            destination = new DestinationRow
+            {
+                Id = Guid.CreateVersion7(),
+                Slug = published.Destination.Slug,
+                NameFr = published.Destination.Name,
+                Center = PoiMapper.ToPoint(new Domain.GeoPoint(published.Destination.Latitude, published.Destination.Longitude)),
+                IsActive = true,
+            };
+            db.Destinations.Add(destination);
+        }
+
+        if (row is null)
+        {
+            row = new PoiRow { Id = published.PoiId, DestinationId = destination.Id, Destination = destination, CreatedAt = clock.GetUtcNow() };
+            db.Pois.Add(row);
+        }
+
+        row.Slug = await AvailableSlugAsync(published, destination.Id, cancellationToken);
+        row.Location = PoiMapper.ToPoint(new Domain.GeoPoint(published.Latitude, published.Longitude));
+        row.ImportanceScore = (short)published.ImportanceScore;
+        row.HiddenGem = published.HiddenGem;
+        row.ContentQualityScore = published.ContentQualityScore;
+        row.TaxonomyVersion = published.TaxonomyVersion;
+        row.Version = published.Version;
+        row.PublishedAt ??= published.OccurredAt;
+
+        row.UpdatedAt = clock.GetUtcNow();
+
+        UpsertText(row, "fr", published.NameFr);
+        if (published.NameEn is not null)
+        {
+            UpsertText(row, "en", published.NameEn);
+        }
+
+        foreach (var stale in row.Interests.Where(interest => published.Interests.All(item => item.TaxonomyCode != interest.TaxonomyCode)).ToList())
+        {
+            db.PoiInterests.Remove(stale);
+        }
+
+        foreach (var interest in published.Interests)
+        {
+            var existing = row.Interests.FirstOrDefault(item => item.TaxonomyCode == interest.TaxonomyCode);
+            if (existing is null)
+            {
+                db.PoiInterests.Add(new PoiInterestRow { PoiId = row.Id, TaxonomyCode = interest.TaxonomyCode, Weight = interest.Weight });
+            }
+            else
+            {
+                existing.Weight = interest.Weight;
+            }
+        }
+
+        row.Ethics ??= new PoiEthicsRow { PoiId = row.Id };
+        row.Ethics.CrowdProfile = new CrowdProfileJson { Offpeak = (short)published.Crowd.Offpeak, Shoulder = (short)published.Crowd.Shoulder, Peak = (short)published.Crowd.Peak };
+        row.Ethics.Fragile = published.Fragile;
+        row.Ethics.AccessRegulated = published.AccessRegulated;
+
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    public async Task<bool> ApplyUnpublishedAsync(PoiUnpublishedV1 unpublished, CancellationToken cancellationToken)
+    {
+        var row = await db.Pois.FirstOrDefaultAsync(poi => poi.Id == unpublished.PoiId, cancellationToken);
+        if (row is null || row.Version >= unpublished.Version)
+        {
+            return false;
+        }
+
+        row.PublishedAt = null;
+        row.Version = unpublished.Version;
+        row.UpdatedAt = clock.GetUtcNow();
+        await db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+
+    private void UpsertText(PoiRow row, string lang, string name)
+    {
+        var text = row.Texts.FirstOrDefault(item => item.Lang == lang);
+        if (text is null)
+        {
+            db.PoiTexts.Add(new PoiTextRow { PoiId = row.Id, Lang = lang, Name = name });
+        }
+        else
+        {
+            text.Name = name;
+        }
+    }
+
+    /// <summary>Slugs are unique per destination; if another place (say a demo one) already has this slug, the new one gets a short id suffix.</summary>
+    private async Task<string> AvailableSlugAsync(PoiPublishedV1 published, Guid destinationId, CancellationToken cancellationToken)
+    {
+        var taken = await db.Pois.AnyAsync(poi => poi.DestinationId == destinationId && poi.Slug == published.Slug && poi.Id != published.PoiId, cancellationToken);
+        return taken ? $"{published.Slug}-{published.PoiId.ToString("N")[^8..]}" : published.Slug;
+    }
+}

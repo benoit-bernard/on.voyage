@@ -1,0 +1,44 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<osm version="0.6" generator="onvoyage-tests">
+  <node id="1001" version="3" lat="43.2955" lon="5.3610" />
+  <node id="1002" version="1" lat="43.2955" lon="5.3626" />
+  <node id="1003" version="1" lat="43.2965" lon="5.3626" />
+  <node id="1004" version="1" lat="43.2965" lon="5.3610" />
+  <node id="3001" version="2" lat="43.2960" lon="5.3618">
+    <tag k="tourism" v="museum" /><tag k="name" v="Musée d'Histoire (dans le fort)" />
+  </node>
+  <node id="3002" version="1" lat="43.2960" lon="5.3619">
+    <tag k="historic" v="fort" /><tag k="name" v="Fort Saint Jean" />
+  </node>
+  <node id="3003" version="1" lat="43.2860" lon="5.3530">
+    <tag k="natural" v="beach" /><tag k="name" v="Plage des Catalans" />
+  </node>
+  <node id="3004" version="4" lat="43.2840" lon="5.3713">
+    <tag k="tourism" v="viewpoint" /><tag k="name" v="Notre-Dame de la Garde" /><tag k="wikidata" v="Q273003" />
+  </node>
+  <node id="3005" version="1" lat="43.2899" lon="5.3660">
+    <tag k="amenity" v="place_of_worship" /><tag k="name" v="Abbaye Saint-Victor" /><tag k="wikidata" v="Q1075331" />
+  </node>
+  <node id="3006" version="1" lat="43.3000" lon="5.3800">
+    <tag k="amenity" v="place_of_worship" /><tag k="name" v="Chapelle sans histoire" />
+  </node>
+  <node id="3007" version="1" lat="43.2900" lon="5.3700"><tag k="tourism" v="viewpoint" /></node>
+  <node id="3008" version="1" lat="43.2910" lon="5.3710"><tag k="historic" v="memorial" /><tag k="name" v="Stèle anonyme" /></node>
+  <node id="3009" version="1" lat="43.2920" lon="5.3720"><tag k="historic" v="memorial" /><tag k="name" v="Mémorial notable" /><tag k="wikidata" v="Q9999999" /></node>
+  <node id="3010" version="1" lat="43.2150" lon="5.4400"><tag k="place" v="village" /><tag k="name" v="Les Goudes" /></node>
+  <node id="3011" version="1" lat="43.2930" lon="5.3730"><tag k="shop" v="bakery" /><tag k="name" v="Boulangerie" /></node>
+  <node id="3012" version="1" lat="43.3050" lon="5.3900"><tag k="historic" v="yes" /><tag k="name" v="Lieu mystérieux" /></node>
+  <node id="4001" version="1" lat="43.2590" lon="5.3820" />
+  <node id="4002" version="1" lat="43.2590" lon="5.3840" />
+  <node id="4003" version="1" lat="43.2600" lon="5.3840" />
+  <node id="4004" version="1" lat="43.2600" lon="5.3820" />
+  <way id="2001" version="5">
+    <nd ref="1001" /><nd ref="1002" /><nd ref="1003" /><nd ref="1004" /><nd ref="1001" />
+    <tag k="historic" v="fort" /><tag k="name" v="Fort Saint-Jean" /><tag k="name:en" v="Fort Saint-Jean" /><tag k="wikidata" v="Q1457372" />
+  </way>
+  <way id="4101" version="1"><nd ref="4001" /><nd ref="4002" /><nd ref="4003" /><nd ref="4004" /><nd ref="4001" /></way>
+  <relation id="5001" version="2">
+    <member type="way" ref="4101" role="outer" />
+    <tag k="type" v="multipolygon" /><tag k="leisure" v="nature_reserve" /><tag k="name" v="Réserve de test" />
+  </relation>
+</osm>

@@ -14,11 +14,15 @@ public static class MessagingExtensions
 {
     public const string TransportSchema = "wolverine_queues";
 
-    public static WolverineOptions AddOnVoyageMessaging(this WolverineOptions options, string connectionString, string serviceName)
+    /// <param name="listen">False for hosts that only publish (an API that hands work to a worker through the queue).</param>
+    public static WolverineOptions AddOnVoyageMessaging(this WolverineOptions options, string connectionString, string serviceName, bool listen = true)
     {
         // Envelope storage lives in the service's own schema; the queues are shared so services can publish to each other.
         options.UsePostgresqlPersistenceAndTransport(connectionString, serviceName, TransportSchema).AutoProvision();
-        options.ListenToPostgresqlQueue(serviceName);
+        if (listen)
+        {
+            options.ListenToPostgresqlQueue(serviceName);
+        }
 
         options.Policies.UseDurableInboxOnAllListeners();
         options.Policies.UseDurableOutboxOnAllSendingEndpoints();

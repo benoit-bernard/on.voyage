@@ -10,7 +10,7 @@
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
     <InvariantGlobalization>false</InvariantGlobalization>
     <GenerateDocumentationFile>false</GenerateDocumentationFile>
-    <NoWarn>$(NoWarn);CA1848;CA1716;CA1062;CA2007;CA1707;CA1812;CA1031</NoWarn>
+    <NoWarn>$(NoWarn);CA1848;CA1873;CA1716;CA1062;CA2007;CA1707;CA1812;CA1031</NoWarn>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
   </PropertyGroup>
 </Project>

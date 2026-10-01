@@ -1,0 +1,9 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../../src/Services/Factory/OnVoyage.Factory.Domain/OnVoyage.Factory.Domain.csproj" />
+    <ProjectReference Include="../../../src/Services/Factory/OnVoyage.Factory.Infrastructure/OnVoyage.Factory.Infrastructure.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../../data-pipeline/taxonomy/mappings.json" Link="mappings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

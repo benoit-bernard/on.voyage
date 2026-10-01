@@ -13,6 +13,14 @@
     <Project Path="src/Services/Platform/OnVoyage.Platform.Domain/OnVoyage.Platform.Domain.csproj" />
     <Project Path="src/Services/Platform/OnVoyage.Platform.Infrastructure/OnVoyage.Platform.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Factory/">
+    <Project Path="src/Services/Factory/OnVoyage.Factory.Api/OnVoyage.Factory.Api.csproj" />
+    <Project Path="src/Services/Factory/OnVoyage.Factory.Application/OnVoyage.Factory.Application.csproj" />
+    <Project Path="src/Services/Factory/OnVoyage.Factory.Contracts/OnVoyage.Factory.Contracts.csproj" />
+    <Project Path="src/Services/Factory/OnVoyage.Factory.Domain/OnVoyage.Factory.Domain.csproj" />
+    <Project Path="src/Services/Factory/OnVoyage.Factory.Infrastructure/OnVoyage.Factory.Infrastructure.csproj" />
+    <Project Path="src/Services/Factory/OnVoyage.Factory.Worker/OnVoyage.Factory.Worker.csproj" />
+  </Folder>
   <Folder Name="/src/Services/Catalog/">
     <Project Path="src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
     <Project Path="src/Services/Catalog/OnVoyage.Catalog.Application/OnVoyage.Catalog.Application.csproj" />
@@ -45,6 +53,7 @@
   <Folder Name="/tests/Services/">
     <Project Path="tests/Services/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
     <Project Path="tests/Services/Catalog.UnitTests/Catalog.UnitTests.csproj" />
+    <Project Path="tests/Services/Factory.UnitTests/Factory.UnitTests.csproj" />
     <Project Path="tests/Services/Platform.IntegrationTests/Platform.IntegrationTests.csproj" />
     <Project Path="tests/Services/Platform.UnitTests/Platform.UnitTests.csproj" />
   </Folder>

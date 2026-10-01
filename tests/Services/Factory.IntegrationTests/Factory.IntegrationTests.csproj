@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <ProjectReference Include="../../OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />
+    <ProjectReference Include="../../../src/Services/Factory/OnVoyage.Factory.Api/OnVoyage.Factory.Api.csproj" />
+    <ProjectReference Include="../../../src/Services/Factory/OnVoyage.Factory.Worker/OnVoyage.Factory.Worker.csproj" />
+    <ProjectReference Include="../../../src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="Data/marseille-sample.osm" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

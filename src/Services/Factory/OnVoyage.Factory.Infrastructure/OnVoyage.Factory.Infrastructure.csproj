@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL.NetTopologySuite" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="WolverineFx.Postgresql" />
+    <ProjectReference Include="../OnVoyage.Factory.Application/OnVoyage.Factory.Application.csproj" />
+    <ProjectReference Include="../OnVoyage.Factory.Domain/OnVoyage.Factory.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="../../../../data-pipeline/taxonomy/mappings.json" LogicalName="mappings.json" />
+    <EmbeddedResource Include="../../../../data-pipeline/osm/onvoyage.lua" LogicalName="onvoyage.lua" />
+    <InternalsVisibleTo Include="Factory.UnitTests" />
+    <InternalsVisibleTo Include="Factory.IntegrationTests" />
+  </ItemGroup>
+</Project>

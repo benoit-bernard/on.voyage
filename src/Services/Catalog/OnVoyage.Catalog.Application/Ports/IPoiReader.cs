@@ -22,3 +22,12 @@ public interface IConfigSnapshotStore
     /// <summary>Applies a change only if its version is newer; returns false for a duplicate or stale event (idempotent consumption).</summary>
     Task<bool> ApplyAsync(string key, string valueJson, int version, CancellationToken cancellationToken);
 }
+
+/// <summary>Write side of the catalog projection of Factory's publication events.</summary>
+public interface IPoiProjectionWriter
+{
+    /// <summary>Applies a publication if it is newer than what the catalog holds; false for a duplicate or stale event.</summary>
+    Task<bool> ApplyPublishedAsync(OnVoyage.Factory.Contracts.PoiPublishedV1 published, CancellationToken cancellationToken);
+
+    Task<bool> ApplyUnpublishedAsync(OnVoyage.Factory.Contracts.PoiUnpublishedV1 unpublished, CancellationToken cancellationToken);
+}
