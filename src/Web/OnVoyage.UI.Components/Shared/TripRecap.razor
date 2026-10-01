@@ -1,0 +1,32 @@
+@implements IDisposable
+@inject FeedbackTracker Tracker
+
+@if (Tracker.RecapAvailable)
+{
+    <section class="recap" aria-labelledby="recap-title">
+        <h2 id="recap-title">Votre trajet en @Tracker.Unrated.Count histoires</h2>
+        <p class="hint">Un geste par histoire pour améliorer vos prochaines suggestions.</p>
+        <ul>
+            @foreach (var story in Tracker.Unrated.ToList())
+            {
+                <li>
+                    <span>@story.Title</span>
+                    <span class="row" role="group" aria-label="Avis sur @story.Title">
+                        <button type="button" aria-label="J'ai aimé @story.Title" @onclick="() => Tracker.RateAsync(story.StoryId, FeedbackChoice.Liked)">❤️</button>
+                        <button type="button" aria-label="Bof pour @story.Title" @onclick="() => Tracker.RateAsync(story.StoryId, FeedbackChoice.Meh)">😐</button>
+                        <button type="button" aria-label="Pas pour moi : @story.Title" @onclick="() => Tracker.RateAsync(story.StoryId, FeedbackChoice.NotForMe)">👎</button>
+                    </span>
+                </li>
+            }
+        </ul>
+        <button type="button" class="btn btn-soft" @onclick="Tracker.DismissRecap">Plus tard</button>
+    </section>
+}
+
+@code {
+    protected override void OnInitialized() => Tracker.Changed += OnChanged;
+
+    public void Dispose() => Tracker.Changed -= OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+}

@@ -28,6 +28,8 @@ internal sealed class SilentPlayer : IAudioPlayer
 
     public Task StopAsync() => Add("stop");
 
+    public void Raise(AudioPlayerEvent playerEvent) => Event?.Invoke(playerEvent);
+
     public void At(double seconds, double duration) => Event?.Invoke(new AudioPlayerEvent.PositionChanged(TimeSpan.FromSeconds(seconds), TimeSpan.FromSeconds(duration)));
 
     private Task Add(string call)

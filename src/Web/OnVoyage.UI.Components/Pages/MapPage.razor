@@ -53,6 +53,9 @@ else
 }
 
 @code {
+    /// <summary>"D'autres lieux comme celui-ci" opens the map with this level-1 category selected.</summary>
+    [SupplyParameterFromQuery(Name = "categorie")] public string? InitialCategory { get; set; }
+
     private IReadOnlyList<PoiSummaryDto> _pois = [];
     private IReadOnlyList<string> _categories = [];
     private IReadOnlySet<Guid> _saved = new HashSet<Guid>();
@@ -75,6 +78,11 @@ else
             _saved = profile.Saved;
             _categories = [.. _pois.Select(poi => poi.Category).Distinct().Order(StringComparer.Ordinal)];
             _me = position is { } p ? (p.Latitude, p.Longitude, 30d) : null;
+            if (InitialCategory is { Length: > 0 } initial && _filters.Categories.Count == 0)
+            {
+                _filters = _filters with { Categories = new HashSet<string> { initial } };
+            }
+
             Rebuild();
         }
         catch (HttpRequestException)

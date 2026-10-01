@@ -1,0 +1,150 @@
+@page "/destination"
+@using Mobility = OnVoyage.Recommendation.Engine.TravelMode
+@inject DestinationService Destinations
+@inject ILocationProvider Location
+
+<PageTitle>Pour vous · ON.VOYAGE</PageTitle>
+
+@if (_error is not null)
+{
+    <p class="empty" role="alert">@_error</p>
+    <button class="btn" @onclick="LoadAsync">Réessayer</button>
+}
+else if (_view is null)
+{
+    <p class="empty" aria-live="polite">Chargement…</p>
+}
+else
+{
+    <h1>@_view.Name pour vous</h1>
+    @if (_view.Remote)
+    {
+        <p class="hint">Vous préparez votre voyage : les distances sont comptées depuis le centre de @_view.Name.</p>
+    }
+
+    <section aria-labelledby="profile-title" class="profile">
+        <h2 id="profile-title">Votre profil</h2>
+        @if (_view.Strongest.Count == 0 && _view.Weakest.Count == 0)
+        {
+            <p class="hint">Pas encore de goûts connus : <a href="onboarding">dites-nous ce que vous aimez</a>, ou écoutez quelques histoires.</p>
+        }
+
+        @foreach (var bar in _view.Strongest)
+        {
+            <div class="bar" role="img" aria-label="@bar.Label : @Percent(bar.Value) %">
+                <span class="label">@bar.Label</span>
+                <span class="track"><span class="fill like" style="width:@Percent(bar.Value)%"></span></span>
+            </div>
+        }
+
+        @foreach (var bar in _view.Weakest)
+        {
+            <div class="bar" role="img" aria-label="Moins pour vous : @bar.Label">
+                <span class="label">Moins pour vous : @bar.Label</span>
+                <span class="track"><span class="fill dislike" style="width:@Percent(-bar.Value)%"></span></span>
+            </div>
+        }
+    </section>
+
+    <section aria-labelledby="places-title">
+        <h2 id="places-title">Pour vous à @_view.Name</h2>
+        @foreach (var place in _view.Places)
+        {
+            <PlaceCardView Card="place.Card" />
+            @if (_view.Remote)
+            {
+                <p class="from-center">À @Distance(place.DistanceMeters) du centre</p>
+            }
+        }
+    </section>
+
+    <section aria-labelledby="plan-title" class="plan">
+        <h2 id="plan-title">Que visiter ?</h2>
+        <div class="form">
+            <label>Jours
+                <select @bind="_days" aria-label="Nombre de jours">
+                    @for (var d = 1; d <= 4; d++)
+                    {
+                        <option value="@d">@d</option>
+                    }
+                </select>
+            </label>
+            <label>Déplacement
+                <select @bind="_mobility" aria-label="Mobilité">
+                    <option value="@Mobility.Walk">À pied</option>
+                    <option value="@Mobility.Bike">À vélo</option>
+                    <option value="@Mobility.Car">En voiture</option>
+                </select>
+            </label>
+            <button type="button" class="btn" @onclick="PlanAsync">Proposer un programme</button>
+        </div>
+
+        @if (_plan is not null)
+        {
+            @if (_plan.Count == 0)
+            {
+                <p class="hint">Pas assez de lieux pour composer un programme.</p>
+            }
+
+            @foreach (var day in _plan)
+            {
+                <article class="day">
+                    <h3>Jour @day.Day <span class="meta">· @Distance(day.TotalMeters) de marche à vol d'oiseau</span></h3>
+                    <ol>
+                        @foreach (var place in day.Places)
+                        {
+                            <li>
+                                <a href="lieu/@place.Card.Poi.Slug">@place.Card.Poi.Name</a>
+                                @if (place.LegMeters > 0)
+                                {
+                                    <span class="meta">+ @Distance(place.LegMeters)</span>
+                                }
+                            </li>
+                        }
+                    </ol>
+                </article>
+            }
+        }
+    </section>
+}
+
+@code {
+    private DestinationView? _view;
+    private IReadOnlyList<PlannedDayView>? _plan;
+    private string? _error;
+    private int _days = 2;
+    private Mobility _mobility = Mobility.Walk;
+    private Position? _position;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        try
+        {
+            _position = await Location.GetCurrentAsync(CancellationToken.None);
+            _view = await Destinations.BuildAsync(_position?.Latitude, _position?.Longitude, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Impossible de charger la destination. Vérifiez votre connexion.";
+        }
+    }
+
+    private async Task PlanAsync()
+    {
+        try
+        {
+            _plan = await Destinations.PlanAsync(_days, _mobility, _position?.Latitude, _position?.Longitude, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Impossible de composer le programme. Vérifiez votre connexion.";
+        }
+    }
+
+    private static int Percent(double value) => (int)Math.Round(Math.Clamp(value, 0d, 1d) * 100d);
+
+    private static string Distance(int meters) => meters < 1000 ? $"{meters} m" : $"{meters / 1000d:0.#} km";
+}

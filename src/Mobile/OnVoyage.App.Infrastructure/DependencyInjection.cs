@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Core.Catalog;
+using OnVoyage.App.Core.Interactions;
 using OnVoyage.App.Infrastructure.Auth;
 using OnVoyage.App.Infrastructure.Http;
 
@@ -17,6 +18,8 @@ public static class DependencyInjection
         // The identity client must not go through the bearer handler: the handler depends on it to refresh tokens.
         services.AddHttpClient<IAuthClient, HttpAuthClient>(client => client.BaseAddress = gatewayBaseAddress);
         services.AddHttpClient<ICatalogClient, HttpCatalogClient>(client => client.BaseAddress = gatewayBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>();
+        services.AddHttpClient<IDiscoveryClient, HttpDiscoveryClient>(client => client.BaseAddress = gatewayBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>();
         return services;
     }

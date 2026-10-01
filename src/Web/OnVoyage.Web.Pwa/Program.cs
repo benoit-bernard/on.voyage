@@ -20,6 +20,7 @@ builder.Services.AddSingleton(builder.Configuration.GetSection("Map").Get<OnVoya
 builder.Services.AddAppInfrastructure(gatewayAddress, typeof(Program).Assembly.GetName().Version?.ToString(3) ?? "0.1.0");
 builder.Services.AddScoped<ISessionStore, BrowserSessionStore>();
 builder.Services.AddScoped<OnVoyage.App.Core.Profile.IProfileStore, BrowserProfileStore>();
+builder.Services.AddSingleton<OnVoyage.App.Core.Wishes.IReminderStore, BrowserReminderStore>();
 builder.Services.AddSingleton<OnVoyage.UI.Components.Device.BrowserLocation>();
 builder.Services.AddSingleton<ILocationProvider>(provider => provider.GetRequiredService<OnVoyage.UI.Components.Device.BrowserLocation>());
 builder.Services.AddSingleton<OnVoyage.App.Core.Discovery.ILocationSource>(provider => provider.GetRequiredService<OnVoyage.UI.Components.Device.BrowserLocation>());

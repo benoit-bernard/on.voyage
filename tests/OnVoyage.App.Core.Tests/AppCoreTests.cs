@@ -40,18 +40,18 @@ public sealed class AppCoreTests
     }
 
     [Fact]
-    public void Saving_twice_removes_the_place_and_only_the_first_save_learns()
+    public void Saving_twice_removes_the_place_and_remembers_the_date_of_the_save()
     {
         var id = Guid.CreateVersion7();
-        var weights = new Dictionary<string, double> { ["nature"] = 1d };
+        var now = new DateTimeOffset(2026, 6, 1, 9, 0, 0, TimeSpan.Zero);
 
-        var saved = ProfileUpdater.ToggleSaved(new LocalProfile(), id, weights);
-        var unsaved = ProfileUpdater.ToggleSaved(saved, id, weights);
+        var saved = ProfileUpdater.ToggleSaved(new LocalProfile(), id, now);
+        var unsaved = ProfileUpdater.ToggleSaved(saved, id, now.AddDays(1));
 
         saved.Saved.ShouldContain(id);
-        saved.Depth.ShouldBe(1);
+        saved.SavedAt[id].ShouldBe(now);
         unsaved.Saved.ShouldBeEmpty();
-        unsaved.Depth.ShouldBe(1);
+        unsaved.SavedAt.ShouldBeEmpty();
     }
 
     [Fact]

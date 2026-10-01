@@ -23,7 +23,11 @@ public enum PlayOrigin
     Discovery,
 }
 
-public sealed record PlayRequest(Guid StoryId, Guid PoiId, string Title, IReadOnlyList<AudioSource> Parts, PlayOrigin Origin, int? DurationSeconds = null);
+/// <summary>
+/// A story to play. <see cref="Weights"/> is the place's taste vector, carried so that the feedback after the story can move the local profile
+/// without another call; it is null when the caller does not have it.
+/// </summary>
+public sealed record PlayRequest(Guid StoryId, Guid PoiId, string Title, IReadOnlyList<AudioSource> Parts, PlayOrigin Origin, int? DurationSeconds = null, IReadOnlyDictionary<string, double>? Weights = null);
 
 public enum PlaybackPhase
 {
@@ -133,4 +137,12 @@ public sealed record AudioSettings(double ResumeAfterInterruptionSeconds = 30d)
     public const double SkipSeconds = 10d;
 
     public const string VoiceNotice = "Voix générée par intelligence artificielle";
+}
+
+/// <summary>What listening tells about taste, beyond the explicit feedback of F-07.</summary>
+public enum ListeningSignal
+{
+    Listened80,
+    Replay,
+    AbandonedEarly,
 }

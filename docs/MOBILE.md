@@ -34,6 +34,10 @@ Publier avec `dotnet publish src/Web/OnVoyage.Web.Pwa -c Release`, fixer `Gatewa
 
 Voir ADR-0010. Pour la carte : renseigner `Map:TilesUrl` (fichier `.pmtiles` servi avec requêtes Range) et ajouter les polices dans `src/Web/OnVoyage.UI.Components/wwwroot/fonts/`. Le mode découverte demande la permission de position uniquement quand on appuie sur le bouton ; dans la PWA il ne fonctionne que page ouverte (le navigateur coupe la position écran verrouillé).
 
+## Retours, envies et destination
+
+Voir ADR-0011. Les interactions (retours, enregistrements, signaux d'écoute, visites) partent vers `POST /api/discovery/v1/me/interactions` ; sur téléphone elles attendent dans la file de `user.db` (le planificateur de 60 s démarre dans `MauiProgram`). Pages : `/envies`, `/destination`, `/carte`.
+
 ## Reste à faire pour le MVP-0 mobile
 
 Essai sur appareil (audio écran verrouillé, GPS réel), traces GPX réelles de H-001, fichier PMTiles et polices de la carte, signature des builds (H-003), endpoint d'événements de la plateforme pour vider la file d'envoi.

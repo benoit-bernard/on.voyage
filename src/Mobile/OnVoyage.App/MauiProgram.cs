@@ -46,6 +46,7 @@ public static class MauiProgram
 #endif
         var app = builder.Build();
         app.Services.InitializeLocalDataAsync().GetAwaiter().GetResult();
+        app.Services.GetRequiredService<OnVoyage.App.LocalData.Sync.SyncScheduler>().Start();
         return app;
     }
 }

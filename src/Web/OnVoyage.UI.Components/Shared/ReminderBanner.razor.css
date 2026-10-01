@@ -1,0 +1,5 @@
+.reminder { margin: .75rem 0; padding: .8rem 1rem; border-radius: .9rem; background: var(--ov-chip); border: 1px solid var(--ov-accent); }
+.reminder p { margin: 0 0 .5rem; }
+.row { display: flex; gap: .75rem; align-items: center; }
+.row a { color: var(--ov-accent); font-weight: 700; }
+.row button { border: 0; background: transparent; color: var(--ov-muted); font: inherit; cursor: pointer; }

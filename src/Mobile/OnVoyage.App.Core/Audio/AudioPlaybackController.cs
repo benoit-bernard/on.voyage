@@ -28,6 +28,7 @@ public sealed class AudioPlaybackController
     private bool _noticePending;
     private string? _error;
     private double _highestPercent;
+    private bool _reported80;
     private int _reportedMilestone;
     private bool _completed;
     private bool _wasPlayingBeforeInterruption;
@@ -52,6 +53,9 @@ public sealed class AudioPlaybackController
 
     /// <summary>A story is over: finished, skipped or stopped. <c>Completed</c> is true when it was heard to the end.</summary>
     public event Action<PlayRequest, bool>? StoryEnded;
+
+    /// <summary>Learning signals of §6.2: the story was heard to 80 %, heard again, or dropped within its first 20 seconds.</summary>
+    public event Action<PlayRequest, ListeningSignal>? Listening;
 
     public PlaybackState State { get; private set; } = PlaybackState.Initial;
 
@@ -157,7 +161,9 @@ public sealed class AudioPlaybackController
         }
 
         Track("audio_replayed");
+        Listening?.Invoke(_current, ListeningSignal.Replay);
         _highestPercent = 0;
+        _reported80 = false;
         _reportedMilestone = 0;
         _completed = false;
         await _player.SeekAsync(TimeSpan.Zero);
@@ -197,6 +203,7 @@ public sealed class AudioPlaybackController
         _position = TimeSpan.Zero;
         _duration = TimeSpan.Zero;
         _highestPercent = 0;
+        _reported80 = false;
         _reportedMilestone = 0;
         _completed = false;
         _interruptedAt = null;
@@ -231,6 +238,7 @@ public sealed class AudioPlaybackController
             if (!_playedThisSession.Add(request.StoryId))
             {
                 Track("audio_replayed");
+                Listening?.Invoke(request, ListeningSignal.Replay);
             }
 
             Track("audio_started", ("origin", request.Origin.ToString().ToLowerInvariant()));
@@ -281,6 +289,12 @@ public sealed class AudioPlaybackController
         {
             var percent = changed.Position / changed.Duration * 100d;
             _highestPercent = Math.Max(_highestPercent, percent);
+            if (_highestPercent >= 80d && !_reported80)
+            {
+                _reported80 = true;
+                Listening?.Invoke(_current, ListeningSignal.Listened80);
+            }
+
             foreach (var milestone in new[] { 25, 50, 75 })
             {
                 if (_highestPercent >= milestone && _reportedMilestone < milestone)
@@ -383,6 +397,11 @@ public sealed class AudioPlaybackController
         if (skipped)
         {
             await _player.StopAsync();
+            if (!_completed && _highestPercent < 10d && _position < TimeSpan.FromSeconds(20) && _current?.Parts[_partIndex].Role == AudioRole.Main)
+            {
+                Listening?.Invoke(request, ListeningSignal.AbandonedEarly);
+            }
+
             if (!_completed && _highestPercent > 0)
             {
                 Track("audio_skipped", ("percent", (int)Math.Round(_highestPercent, MidpointRounding.AwayFromZero)));

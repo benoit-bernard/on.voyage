@@ -30,7 +30,8 @@ public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profil
         }
 
         var destination = await catalog.GetDestinationAsync(profile.Destination, cancellationToken);
-        var pois = await catalog.GetPoisAsync(profile.Destination, latitude, longitude, cancellationToken);
+        var pois = (await catalog.GetPoisAsync(profile.Destination, latitude, longitude, cancellationToken))
+            .Where(poi => !profile.Excluded.Contains(poi.Id)).ToArray();
         var byId = pois.ToDictionary(poi => poi.Id.ToString("N"));
         var candidates = pois.Select(ToCandidate).ToArray();
         var control = ControlCohort.Contains(profile.TravelerId);
@@ -65,10 +66,10 @@ public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profil
         return new HomeFeed(destination?.Name ?? "Marseille", control ? "Incontournables" : "Pour vous", control, forYou, lessCrowded, saved);
     }
 
-    internal static Candidate ToCandidate(PoiSummaryDto poi) =>
+    public static Candidate ToCandidate(PoiSummaryDto poi) =>
         new(poi.Id.ToString("N"), poi.Weights, poi.Importance, poi.Quality, poi.DistanceMeters, poi.CrowdLevel, poi.HiddenGem);
 
-    internal static TasteProfile ToTaste(LocalProfile profile) => new(profile.Affinities, profile.Depth);
+    public static TasteProfile ToTaste(LocalProfile profile) => new(profile.Affinities, profile.Depth);
 
     private static PlaceCard ToCard(ScoredCandidate scored, PoiSummaryDto poi, LocalProfile profile)
     {
@@ -76,7 +77,7 @@ public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profil
         return new PlaceCard(poi, scored.CompatibilityPercent, badge, Explain(scored.Reason), profile.Saved.Contains(poi.Id));
     }
 
-    internal static string Explain(Reason reason) => reason.Code switch
+    public static string Explain(Reason reason) => reason.Code switch
     {
         ReasonCode.Categories => $"Vous aimez : {string.Join(" et ", reason.Categories.Select(Label))}.",
         ReasonCode.HiddenGem => "Moins fréquenté, tout aussi riche.",

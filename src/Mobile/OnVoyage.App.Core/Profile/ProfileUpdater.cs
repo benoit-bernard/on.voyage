@@ -33,28 +33,31 @@ public static class ProfileUpdater
         };
     }
 
-    /// <summary>Moves the affinity of every dimension of the place toward the signal: <c>u[k] += eta · p[k] · (signal − u[k])</c>, clamped to [-1, 1].</summary>
+    /// <summary>Moves the affinity of every dimension of the place with the rule of §6.4: <c>u[k] += η · s · p[k] · (1 − |u[k]|)</c>, clamped to [-1, 1].</summary>
     public static LocalProfile ApplySignal(LocalProfile profile, IReadOnlyDictionary<string, double> placeWeights, double signal)
     {
-        var affinities = new Dictionary<string, double>(profile.Affinities);
-        foreach (var (code, weight) in placeWeights)
-        {
-            var current = affinities.GetValueOrDefault(code);
-            affinities[code] = Math.Clamp(current + (Eta * weight * (signal - current)), -1d, 1d);
-        }
-
+        var affinities = Recommendation.Engine.Learning.InterestLearning.Step(profile.Affinities, placeWeights, signal, Eta, new Dictionary<string, DateTimeOffset>(), DateTimeOffset.UtcNow);
         return profile with { Affinities = affinities, Depth = profile.Depth + 1 };
     }
 
-    public static LocalProfile ToggleSaved(LocalProfile profile, Guid placeId, IReadOnlyDictionary<string, double> placeWeights)
+    /// <summary>
+    /// Adds or removes a place from "Mes envies". Learning is not done here: saving goes through the interaction recorder (kind <c>save</c>),
+    /// which moves the profile with the shared rule and queues the event.
+    /// </summary>
+    public static LocalProfile ToggleSaved(LocalProfile profile, Guid placeId, DateTimeOffset now)
     {
         var saved = new HashSet<Guid>(profile.Saved);
+        var savedAt = new Dictionary<Guid, DateTimeOffset>(profile.SavedAt);
         if (!saved.Remove(placeId))
         {
             saved.Add(placeId);
-            return ApplySignal(profile with { Saved = saved }, placeWeights, SaveSignal);
+            savedAt[placeId] = now;
+        }
+        else
+        {
+            savedAt.Remove(placeId);
         }
 
-        return profile with { Saved = saved };
+        return profile with { Saved = saved, SavedAt = savedAt };
     }
 }

@@ -3,6 +3,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OnVoyage.App.Core.Audio;
 using OnVoyage.App.Core.Discovery;
+using OnVoyage.App.Core.Interactions;
+using OnVoyage.App.Core.Wishes;
 using OnVoyage.App.LocalData.Sync;
 
 namespace OnVoyage.App.LocalData;
@@ -17,11 +19,14 @@ public static class DependencyInjection
     {
         services.AddDbContextFactory<UserDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
         services.TryAddSingleton(TimeProvider.System);
-        services.TryAddSingleton<ISyncTransport, HoldingSyncTransport>();
+        services.AddSingleton<SyncScheduler>();
+        services.TryAddSingleton<ISyncTransport, DiscoverySyncTransport>();
         services.AddSingleton<SyncOutbox>(provider => new SyncOutbox(provider.GetRequiredService<IDbContextFactory<UserDbContext>>(), provider.GetRequiredService<ISyncTransport>(), provider.GetRequiredService<TimeProvider>()));
         services.Replace(ServiceDescriptor.Singleton<ITellHistoryStore, DbTellHistoryStore>());
         services.Replace(ServiceDescriptor.Singleton<IVisitSink, DbVisitSink>());
         services.Replace(ServiceDescriptor.Singleton<IFlagStore, DbFlagStore>());
+        services.Replace(ServiceDescriptor.Singleton<IReminderStore, DbReminderStore>());
+        services.Replace(ServiceDescriptor.Singleton<IInteractionOutbox, DbInteractionOutbox>());
         return services;
     }
 

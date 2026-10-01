@@ -1,0 +1,25 @@
+@implements IDisposable
+@inject ProximityReminderService Reminders
+
+@if (Reminders.Current is { } reminder)
+{
+    <aside class="reminder" role="status">
+        <p>@reminder.Message</p>
+        <div class="row">
+            <a href="lieu/@reminder.Slug" @onclick="Reminders.Dismiss">Voir le lieu</a>
+            <button type="button" @onclick="Reminders.Dismiss">Fermer</button>
+        </div>
+    </aside>
+}
+
+@code {
+    protected override void OnInitialized()
+    {
+        Reminders.Changed += OnChanged;
+        Reminders.Start();
+    }
+
+    public void Dispose() => Reminders.Changed -= OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+}

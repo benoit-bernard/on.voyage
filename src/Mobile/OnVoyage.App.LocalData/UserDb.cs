@@ -20,12 +20,15 @@ public sealed class UserDbContext(DbContextOptions<UserDbContext> options) : DbC
 
     public DbSet<SyncItem> SyncItems => Set<SyncItem>();
 
+    public DbSet<ReminderEntry> Reminders => Set<ReminderEntry>();
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.Entity<Setting>(e => e.HasKey(x => x.Key));
         modelBuilder.Entity<TellEntry>(e => e.HasKey(x => x.PoiId));
         modelBuilder.Entity<SavedWish>(e => e.HasKey(x => x.PoiId));
         modelBuilder.Entity<CachedResponse>(e => e.HasKey(x => x.Key));
+        modelBuilder.Entity<ReminderEntry>(e => e.HasKey(x => x.PoiId));
         modelBuilder.Entity<VisitEntry>(e => e.HasKey(x => x.Id));
         modelBuilder.Entity<SyncItem>(e =>
         {
@@ -55,6 +58,14 @@ public sealed class TellEntry
     public Guid PoiId { get; set; }
 
     public DateTimeOffset At { get; set; }
+}
+
+/// <summary>When a saved place was last the object of a proximity reminder. Never synchronised (F-08).</summary>
+public sealed class ReminderEntry
+{
+    public Guid PoiId { get; set; }
+
+    public DateTimeOffset LastRemindedAt { get; set; }
 }
 
 public sealed class VisitEntry

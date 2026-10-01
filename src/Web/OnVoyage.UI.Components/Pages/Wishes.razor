@@ -1,0 +1,91 @@
+@page "/envies"
+@inject ICatalogClient Catalog
+@inject IProfileStore Profiles
+@inject TimeProvider Clock
+
+<PageTitle>Mes envies · ON.VOYAGE</PageTitle>
+
+<h1>Mes envies</h1>
+
+@if (_error is not null)
+{
+    <p class="empty" role="alert">@_error</p>
+    <button class="btn" @onclick="LoadAsync">Réessayer</button>
+}
+else if (_groups is null)
+{
+    <p class="empty" aria-live="polite">Chargement…</p>
+}
+else if (_groups.Count == 0)
+{
+    <p class="empty">Vous n'avez rien enregistré pour l'instant. Sur la fiche d'un lieu, « Ajouter à mes envies » le garde ici et vous prévient quand vous passez à proximité.</p>
+}
+else
+{
+    @foreach (var group in _groups)
+    {
+        <section aria-labelledby="@group.Id">
+            <h2 id="@group.Id">@group.Destination</h2>
+            <ul>
+                @foreach (var wish in group.Wishes)
+                {
+                    <li>
+                        <a href="lieu/@wish.Poi.Slug">
+                            <strong>@wish.Poi.Name</strong>
+                            <span class="meta">@wish.SavedLabel</span>
+                        </a>
+                        <button type="button" class="remove" aria-label="Retirer @wish.Poi.Name de mes envies" @onclick="() => RemoveAsync(wish.Poi.Id)">✕</button>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
+    <p class="hint">Quand vous passez à moins de 800 m d'un de ces lieux (ou à moins de 12 minutes de détour en voiture) avec le mode découverte allumé, ON.VOYAGE vous le rappelle, au plus une fois par mois et trois fois par jour. Le calcul se fait sur votre téléphone : votre position n'est pas envoyée.</p>
+}
+
+@code {
+    private sealed record Wish(PoiSummaryDto Poi, string SavedLabel);
+
+    private sealed record Group(string Id, string Destination, IReadOnlyList<Wish> Wishes);
+
+    private List<Group>? _groups;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        try
+        {
+            var profile = await Profiles.LoadAsync(CancellationToken.None);
+            var destination = await Catalog.GetDestinationAsync(profile.Destination, CancellationToken.None);
+            var pois = await Catalog.GetPoisAsync(profile.Destination, null, null, CancellationToken.None);
+            var wishes = pois
+                .Where(poi => profile.Saved.Contains(poi.Id))
+                .OrderByDescending(poi => profile.SavedAt.GetValueOrDefault(poi.Id))
+                .Select(poi => new Wish(poi, SavedLabel(profile, poi.Id)))
+                .ToArray();
+
+            // Grouped by destination; the catalogue does not carry the city of a place yet, so there is no second level.
+            _groups = wishes.Length == 0 ? [] : [new Group("dest-" + profile.Destination, destination?.Name ?? profile.Destination, wishes)];
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Impossible de charger vos envies. Vérifiez votre connexion.";
+        }
+    }
+
+    private string SavedLabel(LocalProfile profile, Guid id) =>
+        profile.SavedAt.TryGetValue(id, out var at)
+            ? at.Year < Clock.GetUtcNow().Year ? $"Ajouté en {at.Year}" : "Ajouté cette année"
+            : string.Empty;
+
+    private async Task RemoveAsync(Guid id)
+    {
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        await Profiles.SaveAsync(ProfileUpdater.ToggleSaved(profile, id, Clock.GetUtcNow()), CancellationToken.None);
+        await LoadAsync();
+    }
+}

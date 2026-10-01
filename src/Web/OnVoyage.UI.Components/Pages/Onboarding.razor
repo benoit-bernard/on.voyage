@@ -1,5 +1,6 @@
 @page "/onboarding"
 @inject IProfileStore Profiles
+@inject InteractionRecorder Recorder
 @inject NavigationManager Navigation
 
 <PageTitle>Vos goûts · ON.VOYAGE</PageTitle>
@@ -36,6 +37,16 @@
         var liked = _states.Where(pair => pair.Value == 1).Select(pair => pair.Key).ToArray();
         var disliked = _states.Where(pair => pair.Value == -1).Select(pair => pair.Key).ToArray();
         await Profiles.SaveAsync(ProfileUpdater.ApplyOnboarding(profile, liked, disliked), CancellationToken.None);
+        foreach (var code in liked)
+        {
+            await Recorder.RecordCategoryAsync(code, true);
+        }
+
+        foreach (var code in disliked)
+        {
+            await Recorder.RecordCategoryAsync(code, false);
+        }
+
         Navigation.NavigateTo("");
     }
 

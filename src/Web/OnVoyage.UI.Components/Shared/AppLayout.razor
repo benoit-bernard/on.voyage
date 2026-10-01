@@ -3,11 +3,13 @@
 <div class="shell">
     <header class="topbar">
         <a href="" class="brand" aria-label="ON.VOYAGE, accueil">ON<span>.</span>VOYAGE</a>
-        <nav class="topnav"><a href="carte">Carte</a><a href="compte" class="account">Compte</a></nav>
+        <nav class="topnav"><a href="destination">Destination</a><a href="carte">Carte</a><a href="envies">Envies</a><a href="compte" class="account">Compte</a></nav>
     </header>
     <main class="content">
+        <ReminderBanner />
         @Body
     </main>
+    <FeedbackBanner />
     <PlayerBar />
     <footer class="attribution">© OpenStreetMap contributors · Aucune donnée de voyageur n'est transmise à un tiers.</footer>
 </div>

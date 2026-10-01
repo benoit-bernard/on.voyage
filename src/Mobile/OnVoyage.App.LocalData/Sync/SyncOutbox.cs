@@ -1,6 +1,13 @@
 using Microsoft.EntityFrameworkCore;
+using OnVoyage.App.Core.Interactions;
+using OnVoyage.Discovery.Contracts;
 
 namespace OnVoyage.App.LocalData.Sync;
+
+public static class SyncTypes
+{
+    public const string Interaction = "interaction";
+}
 
 public sealed record SyncEvent(Guid ClientEventId, string Type, string Payload, DateTimeOffset CreatedAt);
 
@@ -23,6 +30,25 @@ public interface ISyncTransport
 /// Used until the platform exposes the events endpoint (Insights, T-801): every send is deferred, so events stay in <c>user.db</c>
 /// and nothing is lost or sent. Replace it by registering a real <see cref="ISyncTransport"/> before <c>AddLocalData</c>.
 /// </summary>
+/// <summary>Sends the queued interactions to Discovery. The answer's vector replaces the local profile (the server is the reference).</summary>
+public sealed class DiscoverySyncTransport(InteractionSender sender) : ISyncTransport
+{
+    public async Task<SyncOutcome> SendAsync(IReadOnlyList<SyncEvent> batch, CancellationToken cancellationToken)
+    {
+        var interactions = batch
+            .Where(e => e.Type == SyncTypes.Interaction)
+            .Select(e => System.Text.Json.JsonSerializer.Deserialize<InteractionDto>(e.Payload))
+            .OfType<InteractionDto>()
+            .ToArray();
+        if (interactions.Length == 0)
+        {
+            return SyncOutcome.Accepted;
+        }
+
+        return await sender.SendAsync(interactions, cancellationToken) ? SyncOutcome.Accepted : SyncOutcome.Retry;
+    }
+}
+
 public sealed class HoldingSyncTransport : ISyncTransport
 {
     public Task<SyncOutcome> SendAsync(IReadOnlyList<SyncEvent> batch, CancellationToken cancellationToken) => Task.FromResult(SyncOutcome.Retry);
@@ -138,5 +164,31 @@ public sealed class SyncOutbox(IDbContextFactory<UserDbContext> factory, ISyncTr
     {
         var seconds = _settings.FirstRetry.TotalSeconds * Math.Pow(2, Math.Min(attempts - 1, 20));
         return TimeSpan.FromSeconds(Math.Min(seconds, _settings.MaxRetry.TotalSeconds));
+    }
+}
+
+/// <summary>The 60-second beat of §14.3: sends what is due. The host also calls <see cref="SyncOutbox.FlushAsync"/> when the network comes back.</summary>
+public sealed class SyncScheduler(SyncOutbox outbox, TimeProvider time) : IDisposable
+{
+    private ITimer? _timer;
+
+    public void Start(TimeSpan? every = null)
+    {
+        var period = every ?? TimeSpan.FromSeconds(60);
+        _timer ??= time.CreateTimer(_ => _ = TickAsync(), null, period, period);
+    }
+
+    public void Dispose() => _timer?.Dispose();
+
+    internal async Task TickAsync()
+    {
+        try
+        {
+            await outbox.FlushAsync(false);
+        }
+        catch (Exception ex) when (ex is DbUpdateException or InvalidOperationException)
+        {
+            // The next beat tries again; a failing disk must not take the app down.
+        }
     }
 }

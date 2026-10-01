@@ -18,7 +18,9 @@ public sealed class PlaceLinksTests : BunitContext
         catalog.GetPoiAsync("fort", Arg.Any<CancellationToken>()).Returns(new PoiDetailDto(id, "fort", "Fort Saint-Jean", "history", 43.29, 5.36, 0.8, 2, false, [], ["© OpenStreetMap contributors"], links));
         catalog.GetPoisAsync("marseille", null, null, Arg.Any<CancellationToken>()).Returns([]);
         Services.AddSingleton(catalog);
-        Services.AddSingleton<IProfileStore>(new InMemoryProfileStore());
+        var profiles = new InMemoryProfileStore();
+        Services.AddSingleton<IProfileStore>(profiles);
+        this.AddLearning(profiles);
         return Render<Place>(parameters => parameters.Add(p => p.Slug, "fort"));
     }
 

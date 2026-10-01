@@ -39,6 +39,7 @@ public sealed class HomePageTests : BunitContext
 
         store.SaveAsync(profile, CancellationToken.None).GetAwaiter().GetResult();
         Services.AddSingleton<IProfileStore>(store);
+        this.AddLearning(store);
         Services.AddSingleton<ILocationProvider, NoLocationProvider>();
         var sessions = Substitute.For<OnVoyage.App.Core.Auth.ISessionProvider>();
         sessions.EnsureSessionAsync(Arg.Any<CancellationToken>()).Returns(new OnVoyage.Platform.Contracts.AuthSessionDto("t", DateTimeOffset.MaxValue, "r", DateTimeOffset.MaxValue, profile.TravelerId, true, null, []));
@@ -58,7 +59,7 @@ public sealed class HomePageTests : BunitContext
             cut.Markup.ShouldContain("Lieu1");
             cut.Markup.ShouldContain("Moins fréquenté, tout aussi beau");
             cut.Markup.ShouldContain("Dites-nous ce que vous aimez");
-        });
+        }, TimeSpan.FromSeconds(10)); // the first render of a run pays for JIT and can take over the default second
     }
 
     [Fact]
@@ -75,7 +76,9 @@ public sealed class HomePageTests : BunitContext
     [Fact]
     public void Onboarding_chips_cycle_like_dislike_neutral_and_are_accessible()
     {
-        Services.AddSingleton<IProfileStore, InMemoryProfileStore>();
+        var profiles = new InMemoryProfileStore();
+        Services.AddSingleton<IProfileStore>(profiles);
+        this.AddLearning(profiles);
         var cut = Render<Onboarding>();
         var chip = cut.FindAll("button.chip")[0];
 

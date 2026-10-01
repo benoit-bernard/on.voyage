@@ -104,6 +104,7 @@ public sealed class DiscoveryModeController(
 
             _engine = new TriggerEngine(settings.Current, _history);
             _engine.SetCandidates(candidates);
+            _engine.SetExcluded(profile.Excluded);
             _engine.Start();
             _keepScreenOn = keepScreenOn;
             keepAwake.SetAwake(keepScreenOn);
@@ -198,6 +199,8 @@ public sealed class DiscoveryModeController(
                 return;
             }
 
+            // A "Pas pour moi" given during the trip takes effect on the next position.
+            _engine.SetExcluded((await profiles.LoadAsync(CancellationToken.None)).Excluded);
             _engine.SetExternalPlayback(audio.State.Current is { Origin: PlayOrigin.Manual });
             var outcome = _engine.OnFix(fix);
             foreach (var visit in outcome.Visits)
@@ -303,14 +306,14 @@ public sealed class DiscoveryModeController(
             candidates.Add(new TriggerCandidate(
                 poi.Id, poi.Name, poi.Latitude, poi.Longitude, (int)Math.Round(poi.Importance * 100d), Math.Clamp(baseScore, 0d, 1d), poi.CrowdLevel,
                 poi.Fragile, VisibleFromRoad: false, CarAccessible: false, poi.StoryId!.Value));
-            stories[poi.Id] = new Told(poi.StoryId.Value, poi.Name, poi.AudioParts!);
+            stories[poi.Id] = new Told(poi.StoryId.Value, poi.Name, poi.AudioParts!, poi.Weights);
         }
 
         return (candidates, stories);
     }
 
     /// <summary>The audio of one story, ready to become a <see cref="PlayRequest"/> once the direction is known.</summary>
-    internal sealed record Told(Guid StoryId, string Title, IReadOnlyDictionary<string, string> Parts)
+    internal sealed record Told(Guid StoryId, string Title, IReadOnlyDictionary<string, string> Parts, IReadOnlyDictionary<string, double>? Weights = null)
     {
         public PlayRequest ToRequest(AnnouncementDirection direction, Guid poiId)
         {
@@ -322,7 +325,7 @@ public sealed class DiscoveryModeController(
             }
 
             sources.Add(new AudioSource(Parts["main"], AudioRole.Main));
-            return new PlayRequest(StoryId, poiId, Title, sources, PlayOrigin.Discovery);
+            return new PlayRequest(StoryId, poiId, Title, sources, PlayOrigin.Discovery, null, Weights);
         }
     }
 }

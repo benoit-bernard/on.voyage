@@ -52,8 +52,10 @@ public sealed class StoreTests : IAsyncDisposable
         await using var db = await _services.GetRequiredService<IDbContextFactory<UserDbContext>>().CreateDbContextAsync(Ct);
         (await db.Visits.SingleAsync(Ct)).DwellSeconds.ShouldBe(420);
         var queued = await db.SyncItems.SingleAsync(Ct);
-        queued.Type.ShouldBe("visit");
+        queued.Type.ShouldBe("interaction");
         queued.Payload.ShouldContain(poi.ToString());
+        queued.Payload.ShouldContain("\"Kind\":\"visit\"");
+        queued.ClientEventId.ShouldNotBe(Guid.Empty);
         queued.Payload.ShouldNotContain("lat");
         queued.Payload.ShouldNotContain("lng");
     }

@@ -1,0 +1,53 @@
+@implements IDisposable
+@inject FeedbackTracker Tracker
+
+@if (Tracker.Banner is { } story)
+{
+    <section class="feedback" aria-labelledby="feedback-title">
+        <h2 id="feedback-title">Cette histoire vous a plu ?</h2>
+        <p class="story">@story.Title</p>
+        @if (_choosingScope)
+        {
+            <fieldset>
+                <legend>Pas pour moi : que voulez-vous ne plus voir ?</legend>
+                <label><input type="radio" name="scope" checked="@(_scope == NotForMeScope.Place)" @onchange="() => _scope = NotForMeScope.Place" /> Ce lieu</label>
+                @if (story.Category is { } category)
+                {
+                    <label><input type="radio" name="scope" checked="@(_scope == NotForMeScope.Category)" @onchange="() => _scope = NotForMeScope.Category" /> Ce type de lieu (@HomeFeedService.Label(category))</label>
+                }
+            </fieldset>
+            <div class="row">
+                <button type="button" class="btn" @onclick="() => RateAsync(story, FeedbackChoice.NotForMe, _scope)">Valider</button>
+                <button type="button" class="btn btn-soft" @onclick="() => _choosingScope = false">Retour</button>
+            </div>
+        }
+        else
+        {
+            <div class="row" role="group" aria-label="Votre avis">
+                <button type="button" class="btn btn-soft" @onclick="() => RateAsync(story, FeedbackChoice.Liked)">❤️ J'ai aimé</button>
+                <button type="button" class="btn btn-soft" @onclick="() => RateAsync(story, FeedbackChoice.Meh)">😐 Bof</button>
+                <button type="button" class="btn btn-soft" @onclick="() => { _choosingScope = true; _scope = NotForMeScope.Place; }">👎 Pas pour moi</button>
+            </div>
+        }
+        <a class="more" href="@MoreLikeThis(story)" @onclick="Tracker.DismissBanner">D'autres lieux comme celui-ci</a>
+    </section>
+}
+
+@code {
+    private bool _choosingScope;
+    private NotForMeScope _scope = NotForMeScope.Place;
+
+    protected override void OnInitialized() => Tracker.Changed += OnChanged;
+
+    public void Dispose() => Tracker.Changed -= OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private static string MoreLikeThis(ListenedStory story) => story.Category is { } category ? $"carte?categorie={Uri.EscapeDataString(category)}" : "carte";
+
+    private async Task RateAsync(ListenedStory story, FeedbackChoice choice, NotForMeScope scope = NotForMeScope.Place)
+    {
+        _choosingScope = false;
+        await Tracker.RateAsync(story.StoryId, choice, scope);
+    }
+}
