@@ -128,7 +128,7 @@ public sealed class DestinationService(ICatalogClient catalog, IProfileStore pro
             }
 
             var candidates = Pois.Select(poi => HomeFeedService.ToCandidate(poi) with { DistanceMeters = Remote ? null : poi.DistanceMeters });
-            return [.. Recommender.Rank(HomeFeedService.ToTaste(Profile), candidates, mode)
+            return [.. Recommender.Rank(HomeFeedService.ToTaste(Profile), candidates, mode, Profile.Options())
                 .Select(scored => new Ranked(byId[scored.Candidate.Id], scored.Score, scored.CompatibilityPercent, scored.Reason))];
         }
 

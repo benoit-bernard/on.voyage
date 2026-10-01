@@ -1,0 +1,301 @@
+@page "/reglages"
+@inject IPrivacyApi Api
+@inject IProfileStore Profiles
+@inject SessionService Session
+@inject NavigationManager Navigation
+@inject TimeProvider Clock
+
+<PageTitle>Réglages et vie privée · ON.VOYAGE</PageTitle>
+
+<a class="back" href="">← Retour</a>
+<h1>Réglages et vie privée</h1>
+
+@if (_message is not null)
+{
+    <p class="notice" role="status">@_message</p>
+}
+
+<section aria-labelledby="ethics">
+    <h2 id="ethics">Lieux moins fréquentés</h2>
+    <p class="hint">« Privilégier les lieux moins fréquentés » : plus le réglage est fort, plus les lieux très visités passent après les autres.</p>
+    <div class="choices" role="radiogroup" aria-labelledby="ethics">
+        @foreach (var (mode, label) in Modes)
+        {
+            <label><input type="radio" name="ethical" checked="@(_ethical == mode)" @onchange="() => SetEthicalAsync(mode)" /> @label</label>
+        }
+    </div>
+</section>
+
+<section aria-labelledby="stats">
+    <h2 id="stats">Statistiques d'usage</h2>
+    <p class="hint">Nous aider à améliorer ON.VOYAGE : des événements d'usage anonymes (écrans vus, écoutes), sans position ni identité, sans service tiers. Refusé tant que vous n'avez pas choisi.</p>
+    <div class="row">
+        <button type="button" class="btn @(_analytics == true ? "" : "btn-soft")" aria-pressed="@Pressed(_analytics == true)" @onclick="() => SetAnalyticsAsync(true)">Accepter</button>
+        <button type="button" class="btn @(_analytics == true ? "btn-soft" : "")" aria-pressed="@Pressed(_analytics != true)" @onclick="() => SetAnalyticsAsync(false)">Refuser</button>
+    </div>
+</section>
+
+<section aria-labelledby="location">
+    <h2 id="location">Localisation</h2>
+    <p class="hint">La position sert à choisir les lieux autour de vous, sur votre téléphone, et n'est ni enregistrée ni associée à votre compte. Pour l'autoriser ou la retirer, ouvrez les réglages de votre appareil.</p>
+</section>
+
+<section aria-labelledby="profile">
+    <h2 id="profile">Mon profil</h2>
+    @if (_profile is null)
+    {
+        <p class="hint">@(_profileError ?? "Chargement…")</p>
+    }
+    else
+    {
+        <p class="hint">Vos goûts, tels que ON.VOYAGE les comprend (profondeur @_profile.ProfileDepth, niveau « @_profile.Level »). Corrigez une catégorie avec le curseur : elle ne bougera plus toute seule pendant 30 jours.</p>
+        @foreach (var axis in Interests.LevelOne)
+        {
+            <div class="axis">
+                <label for="axis-@axis">@HomeFeedService.Label(axis)@LockMark(axis)</label>
+                <input id="axis-@axis" type="range" min="-1" max="1" step="0.1" value="@Value(axis)" @onchange="e => CorrectAsync(axis, e.Value)" />
+                <span class="value" aria-hidden="true">@Value(axis).ToString("+0.0;-0.0;0", System.Globalization.CultureInfo.InvariantCulture)</span>
+                <button type="button" class="link" aria-label="Remettre @HomeFeedService.Label(axis) à zéro" @onclick="() => CorrectAsync(axis, 0d)">Remettre à zéro</button>
+            </div>
+        }
+    }
+</section>
+
+<section aria-labelledby="history">
+    <h2 id="history">Mon historique</h2>
+    @if (_history is null)
+    {
+        <p class="hint">@(_historyError ?? "Chargement…")</p>
+    }
+    else if (_history.Count == 0)
+    {
+        <p class="hint">Aucun lieu écouté ou visité pour l'instant.</p>
+    }
+    else
+    {
+        <ul class="history">
+            @foreach (var item in _history)
+            {
+                <li>
+                    <span><strong>@item.Name</strong> <small>@item.LastAt.ToLocalTime().ToString("d MMM yyyy", System.Globalization.CultureInfo.GetCultureInfo("fr-FR")) · @(item.Visited ? "visité" : "écouté")</small></span>
+                    <button type="button" class="link" aria-label="Supprimer @item.Name de mon historique" @onclick="() => DeleteHistoryAsync(item.PoiId)">Supprimer</button>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+<section aria-labelledby="export">
+    <h2 id="export">Exporter mes données</h2>
+    <p class="hint">Une archive JSON de vos données (profil, interactions, envies, visites, consentements, signalements), téléchargeable pendant 24 heures.</p>
+    @if (_export is { Status: "ready" })
+    {
+        <a class="btn" download="on-voyage-mes-donnees.json" href="@_exportHref">Télécharger l'archive</a>
+    }
+    else if (_export is not null)
+    {
+        <p class="hint" role="status">Préparation en cours (@string.Join(", ", _export.PendingServices))…</p>
+        <button type="button" class="btn btn-soft" @onclick="RefreshExportAsync">Actualiser</button>
+    }
+    else
+    {
+        <button type="button" class="btn" @onclick="StartExportAsync" disabled="@_busy">Préparer mon export</button>
+    }
+</section>
+
+<section aria-labelledby="delete">
+    <h2 id="delete">Supprimer mon compte</h2>
+    <p class="hint">Supprime votre compte et toutes vos données sur nos services, y compris les interactions, le profil, les envies et les visites. Les signalements sont anonymisés. Cette action est définitive.</p>
+    <label class="check"><input type="checkbox" @bind="_confirmDelete" /> Je comprends que c'est définitif</label>
+    <button type="button" class="btn danger" disabled="@(!_confirmDelete || _busy)" @onclick="DeleteAccountAsync">Supprimer mon compte</button>
+</section>
+
+<p class="hint"><a href="sources">Sources et licences</a></p>
+
+@code {
+    private static readonly (string Mode, string Label)[] Modes = [("off", "Désactivé"), ("balanced", "Équilibré"), ("strong", "Fort")];
+    private string _ethical = "balanced";
+    private bool? _analytics;
+    private ProfileDto? _profile;
+    private string? _profileError;
+    private IReadOnlyList<HistoryItemDto>? _history;
+    private string? _historyError;
+    private ExportStatusDto? _export;
+    private string? _exportHref;
+    private string? _message;
+    private bool _confirmDelete;
+    private bool _busy;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _ethical = (await Profiles.LoadAsync(CancellationToken.None)).EthicalMode;
+        await Task.WhenAll(LoadConsentAsync(), LoadProfileAsync(), LoadHistoryAsync());
+    }
+
+    private static string Pressed(bool on) => on ? "true" : "false";
+
+    private double Value(string code) => Math.Round(_profile!.Vector.GetValueOrDefault(code), 1);
+
+    private string LockMark(string code) => _profile!.Locks.TryGetValue(code, out var until) && until > Clock.GetUtcNow() ? " 🔒" : string.Empty;
+
+    private async Task LoadConsentAsync()
+    {
+        try
+        {
+            var consents = await Api.GetConsentsAsync(CancellationToken.None);
+            _analytics = consents.FirstOrDefault(c => c.Kind == ConsentTexts.AnalyticsKind)?.Granted;
+        }
+        catch (HttpRequestException)
+        {
+            _analytics = null; // no answer means refused
+        }
+    }
+
+    private async Task LoadProfileAsync()
+    {
+        try
+        {
+            _profile = await Api.GetProfileAsync(CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _profileError = "Profil indisponible hors connexion.";
+        }
+    }
+
+    private async Task LoadHistoryAsync()
+    {
+        try
+        {
+            _history = await Api.GetHistoryAsync(CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _historyError = "Historique indisponible hors connexion.";
+        }
+    }
+
+    private async Task SetEthicalAsync(string mode)
+    {
+        _ethical = mode;
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        await Profiles.SaveAsync(profile with { EthicalMode = mode }, CancellationToken.None);
+        try
+        {
+            await Api.UpdateSettingsAsync(new SettingsPatch(null, mode), CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Réglage enregistré sur cet appareil ; il sera pris en compte par le serveur à la prochaine connexion.";
+        }
+    }
+
+    private async Task SetAnalyticsAsync(bool granted)
+    {
+        try
+        {
+            await Api.SetConsentAsync(ConsentTexts.AnalyticsKind, granted, ConsentTexts.AnalyticsVersion, CancellationToken.None);
+            _analytics = granted;
+            _message = granted ? "Merci. Vous pouvez changer d'avis à tout moment." : "Les statistiques d'usage sont désactivées.";
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Impossible d'enregistrer ce choix pour l'instant. Réessayez avec une connexion.";
+        }
+    }
+
+    private async Task CorrectAsync(string code, object? raw)
+    {
+        if (!double.TryParse(raw?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
+        {
+            return;
+        }
+
+        await CorrectAsync(code, value);
+    }
+
+    private async Task CorrectAsync(string code, double value)
+    {
+        try
+        {
+            _profile = await Api.CorrectProfileAsync([new ProfileCorrection(code, Math.Clamp(value, -1d, 1d))], CancellationToken.None);
+            var local = await Profiles.LoadAsync(CancellationToken.None);
+            await Profiles.SaveAsync(local with { Affinities = new Dictionary<string, double>(_profile.Vector) }, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Correction impossible hors connexion.";
+        }
+    }
+
+    private async Task DeleteHistoryAsync(Guid poiId)
+    {
+        try
+        {
+            var response = await Api.DeleteHistoryAsync(poiId, CancellationToken.None);
+            var local = await Profiles.LoadAsync(CancellationToken.None);
+            await Profiles.SaveAsync(local with { Affinities = new Dictionary<string, double>(response.Vector), Depth = response.ProfileDepth }, CancellationToken.None);
+            _history = await Api.GetHistoryAsync(CancellationToken.None);
+            await LoadProfileAsync();
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Suppression impossible hors connexion.";
+        }
+    }
+
+    private async Task StartExportAsync()
+    {
+        _busy = true;
+        try
+        {
+            _export = await Api.StartExportAsync(CancellationToken.None);
+            await RefreshExportAsync();
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Export impossible pour l'instant. Réessayez avec une connexion.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+
+    private async Task RefreshExportAsync()
+    {
+        try
+        {
+            _export = await Api.GetExportAsync(_export!.ExportId, CancellationToken.None);
+            if (_export.Status == "ready")
+            {
+                var json = await Api.DownloadExportAsync(_export.ExportId, CancellationToken.None);
+                _exportHref = "data:application/json;charset=utf-8," + Uri.EscapeDataString(json);
+            }
+        }
+        catch (HttpRequestException)
+        {
+            _message = "Impossible d'actualiser l'export pour l'instant.";
+        }
+    }
+
+    private async Task DeleteAccountAsync()
+    {
+        _busy = true;
+        try
+        {
+            await Api.RequestDeletionAsync(CancellationToken.None);
+            await Profiles.SaveAsync(new LocalProfile(), CancellationToken.None);
+            await Session.SignOutAsync(CancellationToken.None);
+            Navigation.NavigateTo("onboarding");
+        }
+        catch (HttpRequestException)
+        {
+            _message = "La demande n'a pas pu être envoyée. Rien n'a été supprimé ; réessayez avec une connexion.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

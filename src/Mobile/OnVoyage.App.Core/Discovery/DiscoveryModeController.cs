@@ -292,7 +292,7 @@ public sealed class DiscoveryModeController(
         var recommendation = withStory.Select(HomeFeedService.ToCandidate).ToArray();
         if (!control)
         {
-            foreach (var scored in Recommender.Rank(HomeFeedService.ToTaste(profile), recommendation, Recommendation.Engine.TravelMode.Walk))
+            foreach (var scored in Recommender.Rank(HomeFeedService.ToTaste(profile), recommendation, Recommendation.Engine.TravelMode.Walk, profile.Options()))
             {
                 scores[scored.Candidate.Id] = scored.Score;
             }

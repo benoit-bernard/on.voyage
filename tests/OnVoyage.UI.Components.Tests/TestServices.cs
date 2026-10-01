@@ -25,6 +25,7 @@ internal static class TestServices
         var discovery = Substitute.For<OnVoyage.App.Core.Interactions.IDiscoveryClient>();
         discovery.GetOnboardingClipsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<OnboardingClipDto>>([]));
         context.Services.AddSingleton(discovery);
+        context.Services.AddSingleton(Substitute.For<OnVoyage.App.Core.Privacy.IPrivacyApi>());
         context.Services.AddSingleton(Substitute.For<OnVoyage.App.Core.Reports.IReportClient>());
         context.Services.AddSingleton(new OnVoyage.App.Core.Interactions.InteractionSender(discovery, profiles));
         context.Services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();

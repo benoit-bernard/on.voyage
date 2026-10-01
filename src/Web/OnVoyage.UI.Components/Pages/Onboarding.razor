@@ -5,12 +5,16 @@
 @inject AudioPlaybackController Audio
 @inject ICatalogClient Catalog
 @inject NavigationManager Navigation
+@inject IPrivacyApi Privacy
 
 <PageTitle>Vos goûts · ON.VOYAGE</PageTitle>
 
 <div class="top">
-    <span class="step" aria-live="polite">Étape @_step sur 3</span>
-    <button type="button" class="link" @onclick="SkipAsync">Passer</button>
+    <span class="step" aria-live="polite">Étape @Math.Min(_step, 3) sur 3</span>
+    @if (_step < 4)
+    {
+        <button type="button" class="link" @onclick="SkipAsync">Passer</button>
+    }
 </div>
 
 @if (_step == 1)
@@ -64,6 +68,15 @@ else if (_step == 2)
     </div>
     <div class="actions">
         <button type="button" class="btn" @onclick="() => _step = 3">Continuer</button>
+    </div>
+}
+else if (_step == 4)
+{
+    <h1>Nous aider à améliorer ON.VOYAGE</h1>
+    <p>Des statistiques d'usage anonymes (écrans vus, écoutes) nous aident à corriger et à améliorer l'application. Aucune position, aucune identité, aucun service tiers. Vous pouvez changer d'avis à tout moment dans les réglages.</p>
+    <div class="actions">
+        <button type="button" class="btn btn-soft" @onclick="() => ConsentAsync(true)">Accepter</button>
+        <button type="button" class="btn btn-soft" @onclick="() => ConsentAsync(false)">Refuser</button>
     </div>
 }
 else
@@ -176,6 +189,21 @@ else
         var liked = _states.Where(pair => pair.Value == 1).Select(pair => pair.Key).ToArray();
         var disliked = _states.Where(pair => pair.Value == -1).Select(pair => pair.Key).ToArray();
         _offline = !await OnboardingFlow.SubmitAsync(_answers, liked, disliked, CancellationToken.None);
+        _step = 4;
+    }
+
+    /// <summary>Two buttons of equal weight, nothing pre-ticked (§16.3). Until a choice reaches the server, the answer is "no".</summary>
+    private async Task ConsentAsync(bool granted)
+    {
+        try
+        {
+            await Privacy.SetConsentAsync(ConsentTexts.AnalyticsKind, granted, ConsentTexts.AnalyticsVersion, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            // Offline: no consent is recorded, which counts as a refusal; the settings let the traveler choose again.
+        }
+
         Navigation.NavigateTo("");
     }
 
@@ -183,6 +211,6 @@ else
     {
         await Audio.StopAsync();
         await OnboardingFlow.SkipAsync(CancellationToken.None);
-        Navigation.NavigateTo("");
+        _step = 4;
     }
 }

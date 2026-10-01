@@ -26,4 +26,13 @@ public sealed record LocalProfile
     public string? PendingOnboardingJson { get; init; }
 
     public string Destination { get; init; } = "marseille";
+
+    /// <summary>"Privilégier les lieux moins fréquentés" (F-13): <c>off</c>, <c>balanced</c> or <c>strong</c>.</summary>
+    public string EthicalMode { get; init; } = "balanced";
+
+    /// <summary>The weights of §6.6 for this traveler's ethical setting.</summary>
+    public Recommendation.Engine.RecommendationOptions Options() => new()
+    {
+        Ethical = EthicalMode switch { "off" => Recommendation.Engine.EthicalLevel.Off, "strong" => Recommendation.Engine.EthicalLevel.Strong, _ => Recommendation.Engine.EthicalLevel.Balanced },
+    };
 }

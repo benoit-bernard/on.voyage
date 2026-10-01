@@ -5,6 +5,7 @@ using NSubstitute;
 using OnVoyage.App.Core.Audio;
 using OnVoyage.App.Core.Interactions;
 using OnVoyage.App.Core.Onboarding;
+using OnVoyage.App.Core.Privacy;
 using OnVoyage.App.Core.Profile;
 using OnVoyage.Discovery.Contracts;
 using OnVoyage.UI.Components.Pages;
@@ -14,6 +15,7 @@ namespace OnVoyage.UI.Components.Tests;
 public sealed class OnboardingTests : BunitContext
 {
     private readonly IDiscoveryClient _client = Substitute.For<IDiscoveryClient>();
+    private readonly IPrivacyApi _privacy = Substitute.For<IPrivacyApi>();
     private readonly InMemoryProfileStore _profiles = new();
     private readonly FailableSilentPlayer _player = new();
     private readonly List<OnboardingRequest> _posted = [];
@@ -69,6 +71,7 @@ public sealed class OnboardingTests : BunitContext
 
         Services.AddSingleton<IProfileStore>(_profiles);
         Services.AddSingleton(_client);
+        Services.AddSingleton(_privacy);
         Services.AddSingleton(catalog);
         Services.AddSingleton(new AudioPlaybackController(_player, new NullAnalyticsSink(), new InMemoryFlagStore(), clock));
         Services.AddSingleton(new InteractionSender(_client, _profiles));
@@ -108,6 +111,12 @@ public sealed class OnboardingTests : BunitContext
         cut.Find("h1").TextContent.ShouldBe("Où partez-vous ?");
         cut.FindAll(".actions button").First(b => b.TextContent == "Marseille").Click();
 
+        // Last screen: the statistics consent, two buttons of the same weight, nothing pre-ticked (§16.3).
+        cut.Find("h1").TextContent.ShouldBe("Nous aider à améliorer ON.VOYAGE");
+        cut.FindAll(".actions button").Select(b => b.ClassList.Contains("btn-soft")).ShouldAllBe(soft => soft);
+        cut.FindAll(".actions button").First(b => b.TextContent == "Accepter").Click();
+        await _privacy.Received(1).SetConsentAsync("analytics", true, Arg.Any<string>(), Arg.Any<CancellationToken>());
+
         _posted.ShouldHaveSingleItem();
         _posted[0].Clips.Select(c => c.Liked).ShouldBe([true, false, true, false, true]);
         _posted[0].Clips.Select(c => c.StoryId).ShouldBe(_clips.Select(c => c.StoryId));
@@ -125,6 +134,7 @@ public sealed class OnboardingTests : BunitContext
         var profile = (await _profiles.LoadAsync(CancellationToken.None));
         profile.OnboardingDone.ShouldBeTrue();
         profile.Affinities.ShouldBeEmpty();
+        cut.WaitForAssertion(() => cut.Find("h1").TextContent.ShouldBe("Nous aider à améliorer ON.VOYAGE"), TimeSpan.FromSeconds(5)); // skipping still asks for the consent, which defaults to no
     }
 
     [Fact]
@@ -173,6 +183,8 @@ public sealed class OnboardingTests : BunitContext
         cut.FindAll("button.chip")[1].Click(); // architecture liked
         cut.Find(".actions button").Click();
         cut.FindAll(".actions button").First(b => b.TextContent == "Je prépare un voyage").Click();
+        _privacy.SetConsentAsync(Arg.Any<string>(), Arg.Any<bool>(), Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.FromException(new HttpRequestException("offline")));
+        cut.FindAll(".actions button").First(b => b.TextContent == "Refuser").Click(); // offline: no consent recorded, the traveler is not blocked
 
         var profile = (await _profiles.LoadAsync(CancellationToken.None));
         profile.PendingOnboardingJson.ShouldNotBeNull();

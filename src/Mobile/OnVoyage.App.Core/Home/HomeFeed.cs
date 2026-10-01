@@ -45,7 +45,7 @@ public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profil
         }
         else
         {
-            forYou = [.. Recommender.Rank(ToTaste(profile), candidates, TravelMode.Walk)
+            forYou = [.. Recommender.Rank(ToTaste(profile), candidates, TravelMode.Walk, profile.Options())
                 .Take(ForYouCount)
                 .Select(scored => ToCard(scored, byId[scored.Candidate.Id], profile))];
         }
