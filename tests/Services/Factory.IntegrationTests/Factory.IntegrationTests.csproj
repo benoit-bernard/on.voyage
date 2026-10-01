@@ -6,6 +6,7 @@
     <ProjectReference Include="../../../src/Services/Factory/OnVoyage.Factory.Api/OnVoyage.Factory.Api.csproj" />
     <ProjectReference Include="../../../src/Services/Factory/OnVoyage.Factory.Worker/OnVoyage.Factory.Worker.csproj" />
     <ProjectReference Include="../../../src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
+    <ProjectReference Include="../../../src/Services/Platform/OnVoyage.Platform.Api/OnVoyage.Platform.Api.csproj" />
   </ItemGroup>
   <ItemGroup>
     <None Include="Data/marseille-sample.osm" CopyToOutputDirectory="PreserveNewest" />

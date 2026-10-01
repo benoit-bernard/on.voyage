@@ -90,6 +90,12 @@ public interface IContentStore
     Task<int> CountDistinctReportersAsync(Guid storyId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<StoryReport>> ListReportsAsync(Guid storyId, CancellationToken cancellationToken);
+
+    /// <summary>Stories that have reports, newest first. <paramref name="status"/> keeps the stories that have at least one report in that status.</summary>
+    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken);
+
+    /// <summary>Closes the story's open reports with a status and a note; returns how many were open.</summary>
+    Task<int> ResolveReportsAsync(Guid storyId, string status, string? resolution, DateTimeOffset at, CancellationToken cancellationToken);
 }
 
 public interface IContentSettingsProvider

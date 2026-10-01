@@ -27,6 +27,10 @@ public sealed record GenerateAudioCommand(Guid StoryId);
 
 public sealed record ReportStoryCommand(Guid StoryId, Guid TravelerId, string Reason);
 
+public sealed record ListReportInboxQuery(string? Status, int Limit);
+
+public sealed record ResolveStoryReportsCommand(Guid StoryId, string Status, string? Note);
+
 public sealed record ChangeStoryVoiceCommand(Guid StoryId, string Voice);
 
 public sealed record ResetAudioCommand(Guid StoryId);
@@ -179,6 +183,7 @@ public static class StoryEditorialHandler
             PublishedAt = null,
         };
         await content.SaveStoryAsync(correction, cancellationToken);
+        await content.ResolveReportsAsync(story.Id, ReportStatus.Handled, $"correction v{correction.Version}", now, cancellationToken);
         return Result.Success(correction);
     }
 }
@@ -337,6 +342,7 @@ public static class StoryPublicationHandler
         var resumed = story with { Status = ContentStatus.Published, UpdatedAt = now };
         var parts = await content.ListAudioPartsAsync(story.Id, cancellationToken);
         await content.SaveStoryWithEventsAsync(resumed, [await BuildPublishedEventAsync(resumed, parts, content, now, cancellationToken)], null, cancellationToken);
+        await content.ResolveReportsAsync(story.Id, ReportStatus.Dismissed, "remise en ligne après relecture", now, cancellationToken);
         return Result.Success(resumed);
     }
 
@@ -363,6 +369,42 @@ public static class StoryPublicationHandler
             false,
             [.. parts.Select(part => new StoryAudioPartV1(part.Part, part.Path, part.Sha256, part.DurationSeconds))],
             [.. documents.Select(document => new StorySourceV1(document.Title, document.Publisher, document.Url, document.License)).DistinctBy(source => source.Url)]);
+    }
+}
+
+public static class StoryReportInboxHandler
+{
+    public static async Task<Result<IReadOnlyList<ReportInboxItem>>> Handle(ListReportInboxQuery query, IContentStore content, CancellationToken cancellationToken)
+    {
+        if (query.Status is { Length: > 0 } status && !ReportStatus.IsKnown(status))
+        {
+            return Result.Failure<IReadOnlyList<ReportInboxItem>>("validation", "Unknown report status.");
+        }
+
+        return Result.Success(await content.ListReportInboxAsync(query.Status, Math.Clamp(query.Limit, 1, 200), cancellationToken));
+    }
+
+    /// <summary>Closes every open report of a story without touching the story: "handled" (fixed elsewhere) or "dismissed" (not a mistake).</summary>
+    public static async Task<Result<int>> Handle(ResolveStoryReportsCommand command, IContentStore content, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        if (command.Status is not (ReportStatus.Handled or ReportStatus.Dismissed))
+        {
+            return Result.Failure<int>("validation", "A report is closed as Handled or Dismissed.");
+        }
+
+        if (await content.FindStoryAsync(command.StoryId, cancellationToken) is null)
+        {
+            return Result.Failure<int>("story_not_found", "Story not found.");
+        }
+
+        var note = command.Note?.Trim();
+        if (note is { Length: > 300 })
+        {
+            return Result.Failure<int>("validation", "The note is up to 300 characters.");
+        }
+
+        var closed = await content.ResolveReportsAsync(command.StoryId, command.Status, string.IsNullOrEmpty(note) ? null : note, clock.GetUtcNow(), cancellationToken);
+        return closed == 0 ? Result.Failure<int>("nothing_to_resolve", "This story has no open report.") : Result.Success(closed);
     }
 }
 

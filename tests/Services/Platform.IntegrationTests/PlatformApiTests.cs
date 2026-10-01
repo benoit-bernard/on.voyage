@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.DependencyInjection;
 using System.Net.Http.Json;
 using Npgsql;
 using OnVoyage.Platform.Contracts;
@@ -79,6 +80,38 @@ public sealed class PlatformApiTests(PostgresFixture postgres) : IAsyncLifetime
 
         (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/config/nothing_here/history", admin)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
         (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/config", await _p.AnonymousAsync())).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task Admin_writes_in_platform_are_journaled_with_what_was_asked_and_reads_are_not()
+    {
+        var admin = await AdminAsync();
+        await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/flags", admin);
+        (await _p.SendAsync(HttpMethod.Put, "/api/platform/v1/admin/config/reco", admin, new { value = new { radius_m = 4321 } })).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await _p.SendAsync(HttpMethod.Put, "/api/platform/v1/admin/config/Bad-Key", admin, new { value = new { x = 1 } })).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        var journal = await (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/audit?service=platform", admin)).Content.ReadFromJsonAsync<List<AdminActionDto>>(Ct);
+
+        journal!.Count.ShouldBe(2, "the read is not journaled; the audit read itself is a read too");
+        journal.ShouldAllBe(entry => entry.Service == "platform" && entry.Actor == admin.TravelerId.ToString());
+        journal.Select(entry => entry.Status).Order().ShouldBe([200, 400]);
+        journal.Single(entry => entry.Status == 200).Summary!.ShouldContain("4321");
+        journal.Single(entry => entry.Status == 200).Target.ShouldBe("/api/platform/v1/admin/config/reco");
+
+        (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/audit", await _p.AnonymousAsync())).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
+    public async Task The_same_event_delivered_twice_is_journaled_once()
+    {
+        await using var scope = _p.Services.CreateAsyncScope();
+        var store = scope.ServiceProvider.GetRequiredService<OnVoyage.Platform.Application.Features.Audit.IAdminAuditStore>();
+        var action = new AdminActionRecordedV1(Guid.CreateVersion7(), DateTimeOffset.UtcNow, "factory", "actor-1", "POST publish", "/x", 200, "id=x");
+
+        (await store.AddAsync(action, Ct)).ShouldBeTrue();
+        (await store.AddAsync(action, Ct)).ShouldBeFalse();
+
+        (await store.ListAsync(10, "factory", null, Ct)).Count(entry => entry.EventId == action.EventId).ShouldBe(1);
     }
 
     [Fact]

@@ -64,6 +64,8 @@ internal sealed class PlatformHarness : IAsyncDisposable
 
     public HttpClient Client { get; }
 
+    public IServiceProvider Services => _factory.Services;
+
     public static async Task<PlatformHarness> StartAsync(PostgresFixture postgres, string? connection = null, params string[] adminEmails)
     {
         connection ??= await postgres.CreateDatabaseAsync();

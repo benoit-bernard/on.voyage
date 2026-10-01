@@ -69,3 +69,15 @@ internal sealed class RefreshTokenRow
     public DateTimeOffset? UsedAt { get; set; }
     public DateTimeOffset? RevokedAt { get; set; }
 }
+
+internal sealed class AdminAuditRow
+{
+    public Guid EventId { get; set; }
+    public DateTimeOffset At { get; set; }
+    public string Service { get; set; } = string.Empty;
+    public string Actor { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    public int Status { get; set; }
+    public string? Summary { get; set; }
+}

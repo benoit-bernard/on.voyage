@@ -61,7 +61,13 @@ public sealed record NewBatch(string Destination, int? MinImportance, IReadOnlyL
 
 public sealed record PronunciationItem(string Destination, string Term, string Replacement);
 
-public sealed record AuditItem(Guid Id, DateTimeOffset At, string Actor, string Action, string Target, int Status, string? Detail);
+public sealed record AuditItem(Guid EventId, DateTimeOffset At, string Service, string Actor, string Action, string Target, int Status, string? Summary);
+
+public sealed record ReportRemarkItem(string Reason, DateTimeOffset CreatedAt, string Status, string? Resolution);
+
+public sealed record ReportInboxItem(
+    Guid StoryId, Guid PlaceId, string PlaceName, string StoryTitle, string Lang, string Kind, int Version, string StoryStatus, int OpenReports,
+    DateTimeOffset LatestAt, IReadOnlyList<ReportRemarkItem> Remarks);
 
 /// <summary>An error the API explained with a Problem Details body; the page shows <see cref="Title"/> to the editor.</summary>
 public sealed class AdminApiException(string title, int status) : Exception(title)

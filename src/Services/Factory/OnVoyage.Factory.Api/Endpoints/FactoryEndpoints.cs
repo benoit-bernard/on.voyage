@@ -35,6 +35,8 @@ internal sealed record ApproveStoryRequest(double? EditorialScore);
 
 internal sealed record BatchRequest(string Destination, int? MinImportance, string[]? PlaceStatuses, string? Lang, StoryKind? Kind, int? Limit);
 
+internal sealed record ResolveReportsRequest(string Status, string? Note);
+
 internal sealed record VoiceRequest(string Voice);
 
 internal sealed record ReasonRequest(string Reason);
@@ -50,12 +52,13 @@ internal sealed class AuditFilter(IMessageBus bus) : IEndpointFilter
     {
         var http = context.HttpContext;
         var write = !HttpMethods.IsGet(http.Request.Method) && !HttpMethods.IsHead(http.Request.Method);
+        var summary = write ? AdminActionSummary.Of(context) : null;
         var result = await next(context);
         if (write)
         {
             var status = result is IStatusCodeHttpResult { StatusCode: { } code } ? code : http.Response.StatusCode;
             var actor = http.User.TravelerId()?.ToString() ?? "unknown";
-            await bus.InvokeAsync<Result<bool>>(new RecordAuditCommand(actor, $"{http.Request.Method} {http.GetEndpoint()?.DisplayName}", http.Request.Path.Value ?? string.Empty, status, null), http.RequestAborted);
+            await bus.InvokeAsync<Result<bool>>(new RecordAuditCommand(actor, $"{http.Request.Method} {http.GetEndpoint()?.DisplayName}", http.Request.Path.Value ?? string.Empty, status, summary), http.RequestAborted);
         }
 
         return result;
@@ -217,6 +220,10 @@ internal static class FactoryEndpoints
             await bus.SendAsync(new GenerateAudioCommand(id));
             return Results.Accepted();
         });
+        admin.MapGet("/reports", (string? status, int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<ReportInboxItem>>>(new ListReportInboxQuery(status, limit ?? 100), ct), items => items));
+        admin.MapPost("/stories/{id:guid}/reports/resolve", (Guid id, ResolveReportsRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<int>>(new ResolveStoryReportsCommand(id, request.Status, request.Note), ct), closed => new { closed }));
         admin.MapPut("/stories/{id:guid}/voice", (Guid id, VoiceRequest request, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<StoryRecord>>(new ChangeStoryVoiceCommand(id, request.Voice), ct), story => story));
         admin.MapPost("/stories/{id:guid}/audio/reset", (Guid id, IMessageBus bus, CancellationToken ct) =>

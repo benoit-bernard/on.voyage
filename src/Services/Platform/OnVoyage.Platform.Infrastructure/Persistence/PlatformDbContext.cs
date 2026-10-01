@@ -13,6 +13,7 @@ internal sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> opti
     public DbSet<AccountRow> Accounts => Set<AccountRow>();
     public DbSet<OtpChallengeRow> OtpChallenges => Set<OtpChallengeRow>();
     public DbSet<RefreshTokenRow> RefreshTokens => Set<RefreshTokenRow>();
+    public DbSet<AdminAuditRow> AdminAudit => Set<AdminAuditRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +32,15 @@ internal sealed class PlatformDbContext(DbContextOptions<PlatformDbContext> opti
             entity.ToTable("remote_config_history");
             entity.HasKey(row => new { row.Key, row.Version });
             entity.Property(row => row.Value).HasColumnType("jsonb");
+        });
+
+        // Append-only journal of admin writes from every service (SEC-10). The event id makes redelivery harmless.
+        modelBuilder.Entity<AdminAuditRow>(entity =>
+        {
+            entity.ToTable("admin_audit");
+            entity.HasKey(row => row.EventId);
+            entity.HasIndex(row => row.At);
+            entity.HasIndex(row => new { row.Service, row.At });
         });
 
         modelBuilder.Entity<FeatureFlagRow>(entity =>

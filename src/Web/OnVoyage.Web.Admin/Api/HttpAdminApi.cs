@@ -171,5 +171,12 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
     public Task DeletePronunciationAsync(string destination, string term, CancellationToken cancellationToken = default) =>
         WriteAsync(HttpMethod.Delete, $"{Factory}/pronunciations/{Uri.EscapeDataString(destination)}/{Uri.EscapeDataString(term)}", null, cancellationToken);
 
-    public Task<IReadOnlyList<AuditItem>> ListAuditAsync(int limit, CancellationToken cancellationToken = default) => GetAsync<IReadOnlyList<AuditItem>>($"{Factory}/audit?limit={limit}", cancellationToken);
+    public Task<IReadOnlyList<AuditItem>> ListAuditAsync(int limit, string? service = null, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<AuditItem>>($"{Platform}/audit?limit={limit}{(string.IsNullOrEmpty(service) ? string.Empty : $"&service={Uri.EscapeDataString(service)}")}", cancellationToken);
+
+    public Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<ReportInboxItem>>($"{Factory}/reports?limit={limit}{(string.IsNullOrEmpty(status) ? string.Empty : $"&status={Uri.EscapeDataString(status)}")}", cancellationToken);
+
+    public async Task<int> ResolveReportsAsync(Guid storyId, string status, string? note, CancellationToken cancellationToken = default) =>
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/stories/{storyId}/reports/resolve", new { status, note }, cancellationToken)).GetProperty("closed").GetInt32();
 }

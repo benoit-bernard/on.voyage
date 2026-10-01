@@ -116,10 +116,11 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
 
         modelBuilder.Entity<StoryReportRow>(entity =>
         {
-            entity.ToTable("story_report");
+            entity.ToTable("story_report", table => table.HasCheckConstraint("ck_story_report_status", "status in ('Open', 'Handled', 'Dismissed')"));
             entity.HasKey(row => row.Id);
             entity.HasIndex(row => new { row.StoryId, row.TravelerId }).IsUnique();
             entity.HasIndex(row => new { row.TravelerId, row.CreatedAt });
+            entity.HasIndex(row => new { row.Status, row.CreatedAt });
         });
 
         modelBuilder.Entity<PronunciationRow>(entity =>

@@ -195,6 +195,9 @@ internal sealed class StoryReportRow
     public Guid TravelerId { get; set; }
     public string Reason { get; set; } = string.Empty;
     public DateTimeOffset CreatedAt { get; set; }
+    public string Status { get; set; } = "Open";
+    public DateTimeOffset? HandledAt { get; set; }
+    public string? Resolution { get; set; }
 }
 
 internal sealed class PronunciationRow

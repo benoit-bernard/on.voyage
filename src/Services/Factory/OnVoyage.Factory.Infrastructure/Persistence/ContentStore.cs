@@ -205,10 +205,44 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
         return true;
     }
 
+    public async Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken)
+    {
+        var withStatus = Db.StoryReports.AsNoTracking();
+        if (!string.IsNullOrEmpty(status))
+        {
+            withStatus = withStatus.Where(row => row.Status == status);
+        }
+
+        var storyIds = await withStatus.GroupBy(row => row.StoryId).Select(group => new { StoryId = group.Key, Latest = group.Max(row => row.CreatedAt) })
+            .OrderByDescending(item => item.Latest).Take(limit).Select(item => item.StoryId).ToListAsync(cancellationToken);
+        if (storyIds.Count == 0)
+        {
+            return [];
+        }
+
+        var stories = await Db.Stories.AsNoTracking().Where(story => storyIds.Contains(story.Id)).ToDictionaryAsync(story => story.Id, cancellationToken);
+        var placeIds = stories.Values.Select(story => story.PlaceId).Distinct().ToList();
+        var places = await Db.Places.AsNoTracking().Where(place => placeIds.Contains(place.Id)).ToDictionaryAsync(place => place.Id, place => place.Name, cancellationToken);
+        var reports = (await Db.StoryReports.AsNoTracking().Where(row => storyIds.Contains(row.StoryId)).OrderBy(row => row.CreatedAt).ToListAsync(cancellationToken)).ToLookup(row => row.StoryId);
+
+        return [.. storyIds.Where(stories.ContainsKey).Select(id =>
+        {
+            var story = stories[id];
+            var items = reports[id].ToList();
+            return new ReportInboxItem(
+                id, story.PlaceId, places.GetValueOrDefault(story.PlaceId, string.Empty), story.Title, story.Lang, story.Kind, story.Version, story.Status,
+                items.Count(row => row.Status == "Open"), items.Max(row => row.CreatedAt), [.. items.Select(row => new ReportRemark(row.Reason, row.CreatedAt, row.Status, row.Resolution))]);
+        })];
+    }
+
+    public async Task<int> ResolveReportsAsync(Guid storyId, string status, string? resolution, DateTimeOffset at, CancellationToken cancellationToken) =>
+        await Db.StoryReports.Where(row => row.StoryId == storyId && row.Status == "Open").ExecuteUpdateAsync(
+            update => update.SetProperty(row => row.Status, status).SetProperty(row => row.HandledAt, at).SetProperty(row => row.Resolution, resolution), cancellationToken);
+
     public Task<int> CountDistinctReportersAsync(Guid storyId, CancellationToken cancellationToken) =>
-        Db.StoryReports.Where(row => row.StoryId == storyId).Select(row => row.TravelerId).Distinct().CountAsync(cancellationToken);
+        Db.StoryReports.Where(row => row.StoryId == storyId && row.Status == "Open").Select(row => row.TravelerId).Distinct().CountAsync(cancellationToken);
 
     public async Task<IReadOnlyList<StoryReport>> ListReportsAsync(Guid storyId, CancellationToken cancellationToken) =>
         [.. (await Db.StoryReports.AsNoTracking().Where(row => row.StoryId == storyId).OrderBy(row => row.CreatedAt).ToListAsync(cancellationToken))
-            .Select(row => new StoryReport(row.Id, row.StoryId, row.TravelerId, row.Reason, row.CreatedAt))];
+            .Select(row => new StoryReport(row.Id, row.StoryId, row.TravelerId, row.Reason, row.CreatedAt, row.Status, row.HandledAt, row.Resolution))];
 }

@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.AddScoped<IRemoteConfigStore, RemoteConfigStore>();
         services.AddScoped<IFeatureFlagStore, FeatureFlagStore>();
         services.AddScoped<IConsentStore, ConsentStore>();
+        services.AddScoped<OnVoyage.Platform.Application.Features.Audit.IAdminAuditStore, AdminAuditStore>();
         services.AddScoped<IAccountStore, AccountStore>();
         services.AddScoped<IOtpStore, OtpStore>();
         services.AddScoped<IRefreshTokenStore, RefreshTokenStore>();

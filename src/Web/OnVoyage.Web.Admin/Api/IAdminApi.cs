@@ -97,5 +97,11 @@ public interface IAdminApi
 
     Task DeletePronunciationAsync(string destination, string term, CancellationToken cancellationToken = default);
 
-    Task<IReadOnlyList<AuditItem>> ListAuditAsync(int limit, CancellationToken cancellationToken = default);
+    /// <summary>The journal Platform keeps from every service's admin writes (SEC-10).</summary>
+    Task<IReadOnlyList<AuditItem>> ListAuditAsync(int limit, string? service = null, CancellationToken cancellationToken = default);
+
+    // Report inbox (T-405)
+    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken = default);
+
+    Task<int> ResolveReportsAsync(Guid storyId, string status, string? note, CancellationToken cancellationToken = default);
 }

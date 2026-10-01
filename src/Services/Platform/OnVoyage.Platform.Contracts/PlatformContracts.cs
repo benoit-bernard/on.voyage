@@ -6,6 +6,11 @@ namespace OnVoyage.Platform.Contracts;
 
 public sealed record ConfigChangedV1(Guid EventId, DateTimeOffset OccurredAt, string Key, string ValueJson, int Version);
 
+/// <summary>Every service that exposes admin writes publishes one per write; Platform keeps the consultable journal (SEC-10).</summary>
+public sealed record AdminActionRecordedV1(Guid EventId, DateTimeOffset OccurredAt, string Service, string Actor, string Action, string Target, int Status, string? Summary);
+
+public sealed record AdminActionDto(Guid EventId, DateTimeOffset At, string Service, string Actor, string Action, string Target, int Status, string? Summary);
+
 public sealed record ConsentChangedV1(Guid EventId, DateTimeOffset OccurredAt, Guid TravelerId, string Kind, bool Granted, string TextVersion);
 
 // Public DTOs.

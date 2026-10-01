@@ -40,6 +40,7 @@ public static class MessagingRoutes
     /// <summary>Catalog consumes place publication events from its own queue (§9.3).</summary>
     public static WolverineOptions RouteFactoryEvents(this WolverineOptions options)
     {
+        options.PublishMessage<OnVoyage.Platform.Contracts.AdminActionRecordedV1>().ToPostgresqlQueue("platform");
         options.PublishMessage<PoiPublishedV1>().ToPostgresqlQueue("catalog");
         options.PublishMessage<PoiUnpublishedV1>().ToPostgresqlQueue("catalog");
         options.PublishMessage<StoryPublishedV1>().ToPostgresqlQueue("catalog");

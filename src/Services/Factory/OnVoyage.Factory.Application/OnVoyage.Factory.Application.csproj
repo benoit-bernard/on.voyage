@@ -4,6 +4,7 @@
     <PackageReference Include="FluentValidation" />
     <ProjectReference Include="../OnVoyage.Factory.Domain/OnVoyage.Factory.Domain.csproj" />
     <ProjectReference Include="../OnVoyage.Factory.Contracts/OnVoyage.Factory.Contracts.csproj" />
+    <ProjectReference Include="../../Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Factory.UnitTests" />

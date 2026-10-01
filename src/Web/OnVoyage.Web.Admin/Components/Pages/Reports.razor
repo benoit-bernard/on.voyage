@@ -1,0 +1,129 @@
+@page "/admin/reports"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+
+<h1>Signalements</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <div class="row">
+        <div>
+            <label for="status">Statut</label>
+            <select id="status" @onchange="OnStatusChanged">
+                <option value="Open" selected="@(_status == "Open")">À traiter</option>
+                <option value="Handled" selected="@(_status == "Handled")">Traités</option>
+                <option value="Dismissed" selected="@(_status == "Dismissed")">Écartés</option>
+                <option value="" selected="@(_status == string.Empty)">Tous</option>
+            </select>
+        </div>
+        <div>
+            <label for="sort">Tri</label>
+            <select id="sort" @bind="_sort">
+                <option value="recent">Plus récents d'abord</option>
+                <option value="count">Plus signalés d'abord</option>
+                <option value="place">Par lieu</option>
+            </select>
+        </div>
+    </div>
+    <p class="muted">Un lecteur peut signaler une erreur dans une histoire publiée ; trois lecteurs différents suspendent l'histoire. Le texte seul est affiché : jamais l'identité du lecteur.</p>
+</section>
+
+@if (_items.Count == 0)
+{
+    <p class="muted">Aucun signalement dans cet état.</p>
+}
+
+@foreach (var item in Sorted)
+{
+    <section class="card report">
+        <h2><a href="/admin/workshop/story/@item.StoryId">@(string.IsNullOrEmpty(item.StoryTitle) ? "(sans titre)" : item.StoryTitle)</a> <span class="muted">· @item.PlaceName · @item.Lang · v@(item.Version) · @Labels.Story(item.StoryStatus)</span></h2>
+        <ul>
+            @foreach (var remark in item.Remarks)
+            {
+                <li class="@(remark.Status == "Open" ? null : "muted")">
+                    @remark.CreatedAt.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) — @remark.Reason
+                    @if (remark.Status != "Open")
+                    {
+                        <span class="tag">@(remark.Status == "Handled" ? "traité" : "écarté")@(remark.Resolution is null ? "" : $" : {remark.Resolution}")</span>
+                    }
+                </li>
+            }
+        </ul>
+        @if (item.OpenReports > 0)
+        {
+            <div class="row">
+                @if (item.StoryStatus == "Published")
+                {
+                    <button type="button" disabled="@Busy" @onclick="() => SuspendThenCorrect(item)">Suspendre et ouvrir une correction</button>
+                }
+                else if (item.StoryStatus == "Suspended")
+                {
+                    <button type="button" class="primary" disabled="@Busy" @onclick="() => Correct(item)">Ouvrir une correction</button>
+                }
+
+                <input aria-label="Note" placeholder="Note (facultative)" @bind="_notes[item.StoryId]" />
+                <button type="button" disabled="@Busy" @onclick="() => Close(item, HandledStatus)">Marquer traités</button>
+                <button type="button" class="ghost" disabled="@Busy" @onclick="() => Close(item, DismissedStatus)">Écarter (pas une erreur)</button>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private const string HandledStatus = "Handled";
+    private const string DismissedStatus = "Dismissed";
+
+    private string _status = "Open";
+    private string _sort = "recent";
+    private IReadOnlyList<ReportInboxItem> _items = [];
+    private readonly Dictionary<Guid, string> _notes = [];
+
+    private IEnumerable<ReportInboxItem> Sorted => _sort switch
+    {
+        "count" => _items.OrderByDescending(item => item.OpenReports).ThenByDescending(item => item.LatestAt),
+        "place" => _items.OrderBy(item => item.PlaceName, StringComparer.CurrentCultureIgnoreCase).ThenByDescending(item => item.LatestAt),
+        _ => _items.OrderByDescending(item => item.LatestAt),
+    };
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _items = await LoadAsync(() => Api.ListReportInboxAsync(_status, 100)) ?? [];
+        foreach (var item in _items)
+        {
+            _notes.TryAdd(item.StoryId, string.Empty);
+        }
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs args)
+    {
+        _status = args.Value?.ToString() ?? string.Empty;
+        await ReloadAsync();
+    }
+
+    private async Task Close(ReportInboxItem item, string status)
+    {
+        await RunAsync(async () => await Api.ResolveReportsAsync(item.StoryId, status, _notes.GetValueOrDefault(item.StoryId), default), status == "Handled" ? "Signalements marqués comme traités." : "Signalements écartés.");
+        await ReloadAsync();
+    }
+
+    private async Task SuspendThenCorrect(ReportInboxItem item)
+    {
+        await RunAsync(() => Api.SuspendStoryAsync(item.StoryId, "signalements de lecteurs"));
+        if (Error is null)
+        {
+            await Correct(item);
+        }
+    }
+
+    private async Task Correct(ReportInboxItem item)
+    {
+        StoryItem? correction = null;
+        await RunAsync(async () => correction = await Api.OpenCorrectionAsync(item.StoryId), "Correction ouverte : les signalements sont marqués traités.");
+        if (correction is not null)
+        {
+            Navigation.NavigateTo($"/admin/workshop/story/{correction.Id}");
+        }
+    }
+}

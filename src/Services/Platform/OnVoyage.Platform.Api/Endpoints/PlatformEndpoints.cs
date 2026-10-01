@@ -1,4 +1,5 @@
 using OnVoyage.Platform.Application;
+using OnVoyage.Platform.Application.Features.Audit;
 using OnVoyage.Platform.Application.Features.Auth;
 using OnVoyage.Platform.Application.Features.Config;
 using OnVoyage.Platform.Application.Features.Consents;
@@ -8,6 +9,26 @@ using OnVoyage.ServiceDefaults.Security;
 using Wolverine;
 
 namespace OnVoyage.Platform.Api.Endpoints;
+
+/// <summary>Every admin write in Platform is journaled (SEC-10): who, what, which target, outcome, and what was asked.</summary>
+internal sealed class AdminAuditFilter(IMessageBus bus) : IEndpointFilter
+{
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var http = context.HttpContext;
+        var write = !HttpMethods.IsGet(http.Request.Method) && !HttpMethods.IsHead(http.Request.Method);
+        var summary = write ? AdminActionSummary.Of(context) : null;
+        var result = await next(context);
+        if (write)
+        {
+            var status = result is IStatusCodeHttpResult { StatusCode: { } code } ? code : http.Response.StatusCode;
+            await bus.InvokeAsync<Result<bool>>(
+                new RecordPlatformAdminActionCommand(http.User.TravelerId()?.ToString() ?? "unknown", $"{http.Request.Method} {http.GetEndpoint()?.DisplayName}", http.Request.Path.Value ?? string.Empty, status, summary), http.RequestAborted);
+        }
+
+        return result;
+    }
+}
 
 internal static class PlatformEndpoints
 {
@@ -30,7 +51,10 @@ internal static class PlatformEndpoints
 
         MapAuth(group);
 
-        var admin = group.MapGroup("/admin").RequireAuthorization(Policies.Admin);
+        var admin = group.MapGroup("/admin").RequireAuthorization(Policies.Admin).AddEndpointFilter<AdminAuditFilter>();
+
+        admin.MapGet("/audit", (int? limit, string? service, string? actor, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<AdminActionDto>>>(new ListAdminAuditQuery(limit ?? 100, service, actor), ct)));
 
         admin.MapGet("/config", (IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<ConfigEntryDto>>>(new ListConfigQuery(), ct)));

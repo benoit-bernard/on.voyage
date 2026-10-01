@@ -10,7 +10,8 @@ public sealed record PronunciationEntry(string Destination, string Term, string 
 
 public interface IAdminStore
 {
-    Task AddAuditAsync(AuditEntry entry, CancellationToken cancellationToken);
+    /// <summary>Stores the entry and the event for Platform's journal in one transaction (outbox).</summary>
+    Task AddAuditAsync(AuditEntry entry, OnVoyage.Platform.Contracts.AdminActionRecordedV1 integrationEvent, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<AuditEntry>> ListAuditAsync(int limit, string? actor, CancellationToken cancellationToken);
 
@@ -45,7 +46,8 @@ public static class AdminHandler
     public static async Task<Result<bool>> Handle(RecordAuditCommand command, IAdminStore store, TimeProvider clock, CancellationToken cancellationToken)
     {
         var detail = command.Detail is { Length: > 500 } ? command.Detail[..500] : command.Detail;
-        await store.AddAuditAsync(new AuditEntry(Guid.CreateVersion7(), clock.GetUtcNow(), command.Actor, command.Action, command.Target, command.Status, detail), cancellationToken);
+        var entry = new AuditEntry(Guid.CreateVersion7(), clock.GetUtcNow(), command.Actor, command.Action, command.Target, command.Status, detail);
+        await store.AddAuditAsync(entry, new OnVoyage.Platform.Contracts.AdminActionRecordedV1(entry.Id, entry.At, "factory", entry.Actor, entry.Action, entry.Target, entry.Status, entry.Detail), cancellationToken);
         return Result.Success(true);
     }
 

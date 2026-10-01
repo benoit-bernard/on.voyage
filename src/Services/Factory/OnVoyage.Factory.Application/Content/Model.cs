@@ -58,7 +58,24 @@ public sealed record StoryRecord(
 
 public sealed record AudioPartRecord(string Part, string Path, string Sha256, int DurationSeconds, long Bytes);
 
-public sealed record StoryReport(Guid Id, Guid StoryId, Guid TravelerId, string Reason, DateTimeOffset CreatedAt);
+public static class ReportStatus
+{
+    public const string Open = "Open";
+    public const string Handled = "Handled";
+    public const string Dismissed = "Dismissed";
+
+    public static bool IsKnown(string status) => status is Open or Handled or Dismissed;
+}
+
+public sealed record StoryReport(Guid Id, Guid StoryId, Guid TravelerId, string Reason, DateTimeOffset CreatedAt, string Status = ReportStatus.Open, DateTimeOffset? HandledAt = null, string? Resolution = null);
+
+/// <summary>A reader's remark as the back office sees it: the text only, never who wrote it.</summary>
+public sealed record ReportRemark(string Reason, DateTimeOffset CreatedAt, string Status, string? Resolution);
+
+/// <summary>All the reports of one story, for the inbox (F-25).</summary>
+public sealed record ReportInboxItem(
+    Guid StoryId, Guid PlaceId, string PlaceName, string StoryTitle, string Lang, string Kind, int Version, string StoryStatus,
+    int OpenReports, DateTimeOffset LatestAt, IReadOnlyList<ReportRemark> Remarks);
 
 // ---- what the language-model ports exchange (the writer never receives source text: see StoryWriteRequest)
 
