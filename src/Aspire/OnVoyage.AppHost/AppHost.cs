@@ -48,6 +48,14 @@ var discovery = builder.AddProject<Projects.OnVoyage_Discovery_Api>("discovery-a
     .WithEnvironment("Auth__JwtSecret", jwtSecret)
     .WithHttpHealthCheck("/health");
 
+// Insights: usage events (with the statistics consent), daily KPIs. Receives ConsentChangedV1 and ConfigChangedV1 from Platform on its own queue.
+var insights = builder.AddProject<Projects.OnVoyage_Insights_Api>("insights-api")
+    .WithReference(database)
+    .WaitFor(database)
+    .WaitFor(platform)
+    .WithEnvironment("Auth__JwtSecret", jwtSecret)
+    .WithHttpHealthCheck("/health");
+
 // Factory: the worker runs the pipeline jobs (osm2pgsql, Wikimedia, later LLM and TTS); the API is the back-office entry point.
 var factoryWorker = builder.AddProject<Projects.OnVoyage_Factory_Worker>("factory-worker")
     .WithReference(database)
@@ -85,6 +93,7 @@ var gateway = builder.AddProject<Projects.OnVoyage_Gateway>("gateway")
     .WithReference(platform)
     .WithReference(factoryApi)
     .WithReference(discovery)
+    .WithReference(insights)
     .WaitFor(catalog)
     .WaitFor(platform)
     .WithEnvironment("Auth__JwtSecret", jwtSecret)

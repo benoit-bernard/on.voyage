@@ -4,6 +4,7 @@
     <ProjectReference Include="../../Services/Catalog/OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
     <ProjectReference Include="../../Services/Discovery/OnVoyage.Discovery.Contracts/OnVoyage.Discovery.Contracts.csproj" />
     <ProjectReference Include="../../Services/Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
+    <ProjectReference Include="../../Services/Insights/OnVoyage.Insights.Contracts/OnVoyage.Insights.Contracts.csproj" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <ProjectReference Include="../../Shared/OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
   </ItemGroup>

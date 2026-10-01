@@ -26,6 +26,11 @@ builder.Host.UseWolverine(options =>
     {
         options.PublishMessage<ConfigChangedV1>().ToPostgresqlQueue(subscriber);
     }
+
+    foreach (var subscriber in builder.Configuration.GetSection("Messaging:ConsentSubscribers").Get<string[]>() ?? ["insights"])
+    {
+        options.PublishMessage<ConsentChangedV1>().ToPostgresqlQueue(subscriber);
+    }
 });
 
 builder.Services.AddPlatformInitializer();
