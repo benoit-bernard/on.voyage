@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using OnVoyage.Factory.Application;
@@ -79,6 +80,8 @@ public static class DependencyInjection
         }
         else if (provider == "disabled")
         {
+            // Without a model, places no rule covers wait for a person (NeedsReview) instead of failing the scoring job.
+            services.Replace(ServiceDescriptor.Scoped<IPlaceModelClassifier, NoModelClassifier>());
             services.AddSingleton<IChatClient, DisabledChatClient>();
             services.AddSingleton<ITextToSpeechProvider, DisabledSpeechProvider>();
         }

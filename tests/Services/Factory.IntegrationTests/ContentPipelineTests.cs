@@ -90,18 +90,18 @@ public sealed class ContentPipelineTests(PostgresFixture postgres) : IAsyncLifet
         // Nothing is voiced, and nothing is published, before a person approved the text and listened to the audio.
         (await _f.Admin.PostAsync($"{Admin}/stories/{story}/publish", null, Ct)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
         await PostAsync($"{Admin}/stories/{story}/audio", expected: HttpStatusCode.Accepted);
-        await Task.Delay(1500, Ct);
+        await InboxDrainedAsync();
         _f.Content.Speech.Requests.ShouldBeEmpty();
 
         await PostAsync($"{Admin}/stories/{story}/approve", new { editorialScore = 0.9 });
         await PostAsync($"{Admin}/stories/{story}/audio", expected: HttpStatusCode.Accepted);
         (await FactoryHarness.EventuallyAsync(async () => await _f.CountAsync("select count(*) from factory.story where status = 'AudioReady'") == 1)).ShouldBeTrue("audio was not generated");
-        _f.Content.Speech.Requests.Count.ShouldBe(5);
+        _f.Content.Speech.Requests.Count.ShouldBe(5, string.Join(" | ", _f.Content.Speech.Requests.Select(r => r.Text[..Math.Min(25, r.Text.Length)])));
 
         // The same job again does not pay for the same speech twice.
         await PostAsync($"{Admin}/stories/{story}/audio", expected: HttpStatusCode.Accepted);
-        await Task.Delay(1500, Ct);
-        _f.Content.Speech.Requests.Count.ShouldBe(5);
+        await InboxDrainedAsync();
+        _f.Content.Speech.Requests.Count.ShouldBe(5, string.Join(" | ", _f.Content.Speech.Requests.Select(r => r.Text[..Math.Min(25, r.Text.Length)])));
 
         var path = await _f.QueryAsync("select path from factory.story_audio_part where part = 'main'", r => r.GetString(0));
         var file = Path.Combine(_f.MediaDirectory, path);
@@ -161,6 +161,10 @@ public sealed class ContentPipelineTests(PostgresFixture postgres) : IAsyncLifet
         using var plain = _f.ApiClient(TestTokens.Mint());
         (await plain.GetAsync($"{Admin}/stories/{story}", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
     }
+
+    /// <summary>Waits until the worker has handled every queued job, so "nothing happened" is a fact and not a race.</summary>
+    private async Task InboxDrainedAsync() =>
+        (await FactoryHarness.EventuallyAsync(async () => await _f.CountAsync("select count(*) from factory.wolverine_incoming_envelopes where status = 'Incoming'") == 0)).ShouldBeTrue("the worker did not drain its queue");
 
     private static async Task<JsonElement> ProbeAsync(string file)
     {
