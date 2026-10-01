@@ -1,0 +1,38 @@
+groups:
+  - name: availability
+    rules:
+      - alert: ServiceDown
+        expr: probe_success{job="blackbox-health"} == 0
+        for: 3m
+        labels: { severity: page }
+        annotations:
+          summary: "{{ $labels.instance }} does not answer its health check"
+          description: "No successful probe for 3 minutes. Runbook: docs/runbooks/observability.md#service-down"
+
+      - alert: MonthlyAvailabilityBelowTarget
+        # NF-05: 99.5 % over 30 days, computed on the gateway probe.
+        expr: avg_over_time(probe_success{job="blackbox-health", instance="http://gateway:8080/health"}[30d]) < 0.995
+        for: 10m
+        labels: { severity: warn }
+        annotations:
+          summary: "Gateway availability over 30 days is below 99.5 %"
+
+  - name: traffic
+    rules:
+      - alert: HighServerErrorRatio
+        expr: |
+          sum by (service_name) (rate(http_server_request_duration_seconds_count{http_response_status_code=~"5.."}[5m]))
+            / sum by (service_name) (rate(http_server_request_duration_seconds_count[5m])) > 0.05
+        for: 10m
+        labels: { severity: warn }
+        annotations:
+          summary: "{{ $labels.service_name }}: more than 5 % of requests end in a 5xx"
+
+      - alert: SlowRequests
+        # NF-01: P95 below 300 ms.
+        expr: |
+          histogram_quantile(0.95, sum by (le, service_name) (rate(http_server_request_duration_seconds_bucket[5m]))) > 0.3
+        for: 15m
+        labels: { severity: warn }
+        annotations:
+          summary: "{{ $labels.service_name }}: P95 latency above 300 ms"

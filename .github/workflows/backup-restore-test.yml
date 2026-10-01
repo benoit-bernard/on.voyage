@@ -1,0 +1,51 @@
+name: backup-restore-test
+
+# NF-06 / T-009: backups are only worth something if they restore. Runs the restore test on a throwaway PostgreSQL every month
+# (the "monthly restore test" of §9.7), and whenever the backup scripts change.
+on:
+  schedule:
+    - cron: '17 4 1 * *'
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - 'deploy/staging/backup/**'
+      - 'deploy/staging/postgres/**'
+      - '.github/workflows/backup-restore-test.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  restore-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_PASSWORD: ci-throwaway
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install age and PostgreSQL 16 tools
+        run: sudo apt-get update && sudo apt-get install -y age postgresql-client-16 postgresql-16
+      - name: Logical backup, encryption, restore into a fresh database, row-count comparison
+        env:
+          PGHOST: localhost
+          PGPORT: '5432'
+          PGUSER: postgres
+          PGPASSWORD: ci-throwaway
+          PATH_PG: /usr/lib/postgresql/16/bin
+        run: |
+          export PATH="$PATH_PG:$PATH"
+          deploy/staging/backup/test-restore.sh
+      - name: WAL archiving and point-in-time recovery drill
+        run: |
+          export PATH="/usr/lib/postgresql/16/bin:$PATH"
+          deploy/staging/backup/test-pitr.sh
