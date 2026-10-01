@@ -164,7 +164,7 @@ public sealed class ContentPipelineTests(PostgresFixture postgres) : IAsyncLifet
 
     /// <summary>Waits until the worker has handled every queued job, so "nothing happened" is a fact and not a race.</summary>
     private async Task InboxDrainedAsync() =>
-        (await FactoryHarness.EventuallyAsync(async () => await _f.CountAsync("select count(*) from factory.wolverine_incoming_envelopes where status = 'Incoming'") == 0)).ShouldBeTrue("the worker did not drain its queue");
+        (await FactoryHarness.EventuallyAsync(async () => await _f.CountAsync("select (select count(*) from wolverine_queues.wolverine_queue_factory) + (select count(*) from factory.wolverine_incoming_envelopes where status = 'Incoming')") == 0)).ShouldBeTrue("the worker did not drain its queue");
 
     private static async Task<JsonElement> ProbeAsync(string file)
     {
