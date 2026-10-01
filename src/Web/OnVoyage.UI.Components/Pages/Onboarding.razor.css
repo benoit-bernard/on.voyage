@@ -1,9 +1,17 @@
-h1 { font-size: 1.4rem; margin: .25rem 0 .5rem; }
-.hint { color: var(--ov-muted); margin: 0 0 1rem; }
+h1 { font-size: 1.4rem; margin: .25rem 0 .75rem; }
+h2 { font-size: 1.15rem; margin: .25rem 0 .75rem; }
+.top { display: flex; justify-content: space-between; align-items: center; }
+.step, .count, .hint { color: var(--ov-muted); font-size: .85rem; }
+.link { border: 0; background: transparent; color: var(--ov-accent); font: inherit; font-weight: 700; cursor: pointer; padding: .5rem; }
+.clip { padding: 1rem; border-radius: 1rem; background: var(--ov-chip); touch-action: pan-y; }
+.play { width: 100%; padding: 1rem; border: 0; border-radius: .9rem; background: var(--ov-surface); color: var(--ov-ink); font: inherit; font-weight: 700; font-size: 1.05rem; cursor: pointer; }
+.rate { display: flex; gap: .75rem; margin-top: 1rem; }
+.rate .btn { flex: 1; font-size: 1.4rem; }
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr)); gap: .6rem; }
 .chip { padding: .8rem; border: 2px solid var(--ov-line); border-radius: .8rem; background: var(--ov-surface); color: var(--ov-ink); font: inherit; text-align: left; cursor: pointer; }
 .chip-like { border-color: var(--ov-accent); background: var(--ov-chip); }
 .chip-dislike { border-style: dashed; color: var(--ov-muted); }
 .actions { display: flex; gap: .6rem; margin-top: 1.25rem; }
+.actions.column { flex-direction: column; }
 .btn { padding: .65rem 1rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
-.btn-soft { background: var(--ov-chip); color: var(--ov-ink); }
+.btn-soft { background: var(--ov-surface); color: var(--ov-ink); }

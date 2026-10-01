@@ -25,6 +25,7 @@ public static class DependencyInjection
         services.TryAddSingleton<ITriggerSettingsProvider, DefaultTriggerSettingsProvider>();
         services.AddScoped<DiscoveryModeController>();
         services.AddScoped<OnVoyage.App.Core.Planning.DestinationService>();
+        services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();
         services.TryAddSingleton<OnVoyage.App.Core.Interactions.IInteractionOutbox, OnVoyage.App.Core.Interactions.DirectInteractionOutbox>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionSender>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionRecorder>();

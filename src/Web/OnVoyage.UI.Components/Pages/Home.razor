@@ -3,6 +3,7 @@
 @inject IProfileStore Profiles
 @inject ILocationProvider Location
 @inject NavigationManager Navigation
+@inject OnboardingService OnboardingFlow
 
 <PageTitle>ON.VOYAGE</PageTitle>
 
@@ -71,6 +72,7 @@ else
         _error = null;
         try
         {
+            await OnboardingFlow.RetryPendingAsync(CancellationToken.None);
             var profile = await Profiles.LoadAsync(CancellationToken.None);
             _onboardingDone = profile.OnboardingDone;
             var position = await Location.GetCurrentAsync(CancellationToken.None);

@@ -1,59 +1,188 @@
 @page "/onboarding"
+@implements IDisposable
+@inject OnboardingService OnboardingFlow
 @inject IProfileStore Profiles
-@inject InteractionRecorder Recorder
+@inject AudioPlaybackController Audio
+@inject ICatalogClient Catalog
 @inject NavigationManager Navigation
 
 <PageTitle>Vos goûts · ON.VOYAGE</PageTitle>
 
-<h1>Qu'est-ce qui vous fait vibrer en voyage ?</h1>
-<p class="hint">Touchez une fois pour « j'aime », deux fois pour « moins pour moi ». Vos choix restent sur votre appareil.</p>
+<div class="top">
+    <span class="step" aria-live="polite">Étape @_step sur 3</span>
+    <button type="button" class="link" @onclick="SkipAsync">Passer</button>
+</div>
 
-<div class="grid" role="group" aria-label="Centres d'intérêt">
-    @foreach (var (code, label) in HomeFeedService.OnboardingCategories)
+@if (_step == 1)
+{
+    <h1>Qu'est-ce qui vous fait vibrer en voyage ?</h1>
+    @if (_loading)
     {
-        var state = _states.GetValueOrDefault(code);
-        <button type="button" class="chip @(state == 1 ? "chip-like" : state == -1 ? "chip-dislike" : "")"
-                aria-pressed="@(state != 0 ? "true" : "false")" @onclick="() => Cycle(code)">
-            @(state == 1 ? "👍 " : state == -1 ? "👎 " : "")@Capitalize(label)
-        </button>
+        <p class="hint" aria-live="polite">Chargement des extraits…</p>
     }
-</div>
+    else if (_clips.Count == 0)
+    {
+        <p class="hint">Les extraits ne sont pas disponibles pour l'instant.</p>
+        <button type="button" class="btn" @onclick="() => _step = 2">Choisir mes centres d'intérêt</button>
+    }
+    else
+    {
+        var clip = _clips[_index];
+        <section class="clip" aria-label="Extrait @(_index + 1) sur @_clips.Count"
+                 @ontouchstart="OnTouchStart" @ontouchend="OnTouchEnd">
+            <p class="count">@(_index + 1) / @_clips.Count</p>
+            <h2>@clip.Title</h2>
+            <button type="button" class="play" @onclick="PlayAsync" aria-label="Écouter l'extrait">
+                @(_tapToListen ? "Touchez pour écouter" : "▶ Écouter")
+            </button>
+            @if (_tapToListen)
+            {
+                <p class="hint" role="status">La lecture automatique est bloquée (mode silencieux ?). Touchez pour écouter.</p>
+            }
 
-<div class="actions">
-    <button class="btn" @onclick="SaveAsync">Terminer</button>
-    <button class="btn btn-soft" @onclick="SkipAsync">Passer</button>
-</div>
+            <div class="rate" role="group" aria-label="Votre avis sur cet extrait">
+                <button type="button" class="btn btn-soft" @onclick="() => RateAsync(ClipVerdict.Disliked)" aria-label="Pas pour moi">👎</button>
+                <button type="button" class="btn" @onclick="() => RateAsync(ClipVerdict.Liked)" aria-label="J'aime">👍</button>
+            </div>
+            <p class="hint">Balayez vers la droite pour aimer, vers la gauche pour passer.</p>
+        </section>
+    }
+}
+else if (_step == 2)
+{
+    <h1>Affiner (facultatif)</h1>
+    <p class="hint">Touchez une fois pour « j'aime », deux fois pour « moins pour moi ».</p>
+    <div class="grid" role="group" aria-label="Centres d'intérêt">
+        @foreach (var (code, label) in HomeFeedService.OnboardingCategories)
+        {
+            var state = _states.GetValueOrDefault(code);
+            <button type="button" class="chip @(state == 1 ? "chip-like" : state == -1 ? "chip-dislike" : "")"
+                    aria-pressed="@(state != 0 ? "true" : "false")" @onclick="() => Cycle(code)">
+                @(state == 1 ? "👍 " : state == -1 ? "👎 " : "")@Capitalize(label)
+            </button>
+        }
+    </div>
+    <div class="actions">
+        <button type="button" class="btn" @onclick="() => _step = 3">Continuer</button>
+    </div>
+}
+else
+{
+    <h1>Où partez-vous ?</h1>
+    <div class="actions column">
+        @if (_destinationName is not null)
+        {
+            <button type="button" class="btn" @onclick="FinishAsync">@_destinationName</button>
+        }
+        <button type="button" class="btn btn-soft" @onclick="FinishAsync">Je prépare un voyage</button>
+    </div>
+    @if (_offline)
+    {
+        <p class="hint" role="status">Vos réponses seront envoyées dès que la connexion reviendra.</p>
+    }
+}
 
 @code {
+    private const double SwipeDistance = 60d;
     private readonly Dictionary<string, int> _states = [];
+    private readonly List<(Guid StoryId, ClipVerdict Verdict)> _answers = [];
+    private IReadOnlyList<OnboardingClipDto> _clips = [];
+    private int _step = 1;
+    private int _index;
+    private bool _loading = true;
+    private bool _tapToListen;
+    private bool _offline;
+    private string? _destinationName;
+    private double _touchStartX;
+
+    protected override async Task OnInitializedAsync()
+    {
+        Audio.Changed += OnAudioChanged;
+        _clips = await OnboardingFlow.LoadClipsAsync("fr", CancellationToken.None);
+        _loading = false;
+        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        _destinationName = (await TryDestinationAsync(profile.Destination))?.Name;
+        if (_clips.Count > 0)
+        {
+            await PlayAsync();
+        }
+    }
+
+    public void Dispose() => Audio.Changed -= OnAudioChanged;
+
+    private void OnAudioChanged() => _ = InvokeAsync(() =>
+    {
+        // A refused autoplay (silent switch, browser policy) leaves an error in the player state: show the explicit button.
+        _tapToListen = Audio.State.Error is not null;
+        StateHasChanged();
+    });
+
+    private async Task<DestinationDto?> TryDestinationAsync(string slug)
+    {
+        try
+        {
+            return await Catalog.GetDestinationAsync(slug, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            return null;
+        }
+    }
+
+    private Task PlayAsync()
+    {
+        _tapToListen = false;
+        var clip = _clips[_index];
+        return Audio.PlayNowAsync(new PlayRequest(clip.StoryId, clip.PoiId, clip.Title, [new AudioSource(clip.AudioUrl, AudioRole.Main)], PlayOrigin.Onboarding, clip.DurationSeconds));
+    }
+
+    private async Task RateAsync(ClipVerdict verdict)
+    {
+        _answers.Add((_clips[_index].StoryId, verdict));
+        await Audio.StopAsync();
+        if (_index + 1 < _clips.Count)
+        {
+            _index++;
+            await PlayAsync();
+        }
+        else
+        {
+            _step = 2;
+        }
+    }
+
+    private void OnTouchStart(TouchEventArgs e) => _touchStartX = e.ChangedTouches.Length > 0 ? e.ChangedTouches[0].ClientX : 0d;
+
+    private async Task OnTouchEnd(TouchEventArgs e)
+    {
+        var delta = (e.ChangedTouches.Length > 0 ? e.ChangedTouches[0].ClientX : 0d) - _touchStartX;
+        if (delta >= SwipeDistance)
+        {
+            await RateAsync(ClipVerdict.Liked);
+        }
+        else if (delta <= -SwipeDistance)
+        {
+            await RateAsync(ClipVerdict.Disliked);
+        }
+    }
 
     private void Cycle(string code) => _states[code] = _states.GetValueOrDefault(code) switch { 0 => 1, 1 => -1, _ => 0 };
 
     private static string Capitalize(string label) => label.StartsWith("l'", StringComparison.Ordinal) ? char.ToUpper(label[2]) + label[3..] : char.ToUpper(label[0]) + label[1..];
 
-    private async Task SaveAsync()
+    private async Task FinishAsync()
     {
-        var profile = await Profiles.LoadAsync(CancellationToken.None);
+        await Audio.StopAsync();
         var liked = _states.Where(pair => pair.Value == 1).Select(pair => pair.Key).ToArray();
         var disliked = _states.Where(pair => pair.Value == -1).Select(pair => pair.Key).ToArray();
-        await Profiles.SaveAsync(ProfileUpdater.ApplyOnboarding(profile, liked, disliked), CancellationToken.None);
-        foreach (var code in liked)
-        {
-            await Recorder.RecordCategoryAsync(code, true);
-        }
-
-        foreach (var code in disliked)
-        {
-            await Recorder.RecordCategoryAsync(code, false);
-        }
-
+        _offline = !await OnboardingFlow.SubmitAsync(_answers, liked, disliked, CancellationToken.None);
         Navigation.NavigateTo("");
     }
 
     private async Task SkipAsync()
     {
-        var profile = await Profiles.LoadAsync(CancellationToken.None);
-        await Profiles.SaveAsync(profile with { OnboardingDone = true }, CancellationToken.None);
+        await Audio.StopAsync();
+        await OnboardingFlow.SkipAsync(CancellationToken.None);
         Navigation.NavigateTo("");
     }
 }

@@ -21,6 +21,9 @@ public enum PlayOrigin
 
     /// <summary>The discovery mode decided (jingle, direction, then the story).</summary>
     Discovery,
+
+    /// <summary>A clip of the onboarding (F-02): no feedback banner, no learning signal other than the 👍/👎 of the screen.</summary>
+    Onboarding,
 }
 
 /// <summary>

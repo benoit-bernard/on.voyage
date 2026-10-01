@@ -19,5 +19,11 @@ public sealed record LocalProfile
 
     public bool OnboardingDone { get; init; }
 
+    /// <summary>The five onboarding clips as last received, so the first screen works without a network (F-02).</summary>
+    public string? OnboardingClipsJson { get; init; }
+
+    /// <summary>Answers not yet accepted by Discovery (offline at the end of the onboarding); sent again later, idempotently.</summary>
+    public string? PendingOnboardingJson { get; init; }
+
     public string Destination { get; init; } = "marseille";
 }

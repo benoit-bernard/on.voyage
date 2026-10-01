@@ -79,7 +79,10 @@ public sealed class HomePageTests : BunitContext
         var profiles = new InMemoryProfileStore();
         Services.AddSingleton<IProfileStore>(profiles);
         this.AddLearning(profiles);
+        Services.AddSingleton(Substitute.For<ICatalogClient>());
         var cut = Render<Onboarding>();
+        cut.WaitForAssertion(() => cut.Find("button.btn").TextContent.ShouldContain("Choisir mes centres d'intérêt")); // no clip available: straight to the categories
+        cut.Find("button.btn").Click();
         var chip = cut.FindAll("button.chip")[0];
 
         chip.GetAttribute("aria-pressed").ShouldBe("false");

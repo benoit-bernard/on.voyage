@@ -132,7 +132,7 @@ public sealed class FeedbackTracker : IDisposable
     private void OnStoryEnded(PlayRequest request, bool completed)
     {
         // Only a story heard to the end asks for a reaction; a skipped one already said what it had to (abandon signal).
-        if (!completed)
+        if (!completed || request.Origin == PlayOrigin.Onboarding)
         {
             return;
         }
@@ -157,6 +157,11 @@ public sealed class FeedbackTracker : IDisposable
 
     private void OnListening(PlayRequest request, ListeningSignal signal)
     {
+        if (request.Origin == PlayOrigin.Onboarding)
+        {
+            return;
+        }
+
         var kind = signal switch
         {
             ListeningSignal.Listened80 => InteractionKinds.Listen80,

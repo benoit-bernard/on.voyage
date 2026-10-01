@@ -2,7 +2,9 @@ using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
 using OnVoyage.App.Core.Audio;
+using NSubstitute;
 using OnVoyage.App.Core.Feedback;
+using OnVoyage.Discovery.Contracts;
 using OnVoyage.App.Core.Interactions;
 using OnVoyage.App.Core.Profile;
 
@@ -20,6 +22,11 @@ internal static class TestServices
         context.Services.AddSingleton<ILocalNotifier, NullLocalNotifier>();
         context.Services.AddSingleton(new InteractionRecorder(profiles, new KeepingOutbox(), clock));
         context.Services.AddSingleton<FeedbackTracker>();
+        var discovery = Substitute.For<OnVoyage.App.Core.Interactions.IDiscoveryClient>();
+        discovery.GetOnboardingClipsAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns(Task.FromResult<IReadOnlyList<OnboardingClipDto>>([]));
+        context.Services.AddSingleton(discovery);
+        context.Services.AddSingleton(new OnVoyage.App.Core.Interactions.InteractionSender(discovery, profiles));
+        context.Services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();
     }
 
     private sealed class KeepingOutbox : IInteractionOutbox
