@@ -1,0 +1,368 @@
+# ON.VOYAGE staging: one EU VPS, Docker Compose, Caddy (automatic HTTPS) in front.
+# Mirrors src/Aspire/OnVoyage.AppHost/AppHost.cs in publish mode (same environment variables, same single PostGIS database).
+#
+#   cp .env.example .env        # fill in the secrets (the deploy workflow writes it from GitHub secrets)
+#   docker compose --env-file .env config -q
+#   docker compose up -d --wait postgres volume-init
+#   docker compose up -d --wait platform-api catalog-api discovery-api factory-worker factory-api   # EF migrations run at start
+#   docker compose up -d --wait
+#
+# Variables come from .env (see .env.example); a missing required one stops `docker compose` with its name.
+name: onvoyage-staging
+
+x-image: &image-defaults
+  restart: unless-stopped
+  networks: [backend]
+  logging:
+    driver: json-file
+    options: { max-size: "10m", max-file: "5" }
+
+# Environment shared by every .NET host.
+x-dotnet-env: &dotnet-env
+  ASPNETCORE_ENVIRONMENT: Production
+  # Aspire's ServiceDefaults exports traces, metrics and logs only when this is set (see observability/ and docs/runbooks/observability.md).
+  OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+  OTEL_RESOURCE_ATTRIBUTES: deployment.environment=staging
+  ConnectionStrings__onvoyage: Host=postgres;Port=5432;Database=${POSTGRES_DB:-onvoyage};Username=${POSTGRES_USER:-onvoyage};Password=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+
+x-jwt: &jwt
+  # HS256 key shared by Platform (signs) and the Gateway and services (validate); at least 32 bytes.
+  Auth__JwtSecret: ${JWT_SECRET:?JWT_SECRET is required (openssl rand -hex 32)}
+
+x-llm: &llm
+  # Factory fails at start when the provider is "openai" and one of these is empty (Factory:Llm:Provider=disabled to run without a model).
+  Factory__Llm__Provider: ${FACTORY_LLM_PROVIDER:-openai}
+  OpenAI__ApiKey: ${OPENAI_API_KEY:-}
+  Factory__Llm__ExtractorModel: ${FACTORY_LLM_EXTRACTOR_MODEL:-}
+  Factory__Llm__WriterModel: ${FACTORY_LLM_WRITER_MODEL:-}
+  Factory__Llm__VerifierModel: ${FACTORY_LLM_VERIFIER_MODEL:-}
+  Factory__Llm__ClassifierModel: ${FACTORY_LLM_CLASSIFIER_MODEL:-}
+
+services:
+  # ------------------------------------------------------------------ data
+  postgres:
+    <<: *image-defaults
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-onvoyage}
+      POSTGRES_USER: ${POSTGRES_USER:-onvoyage}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+    command:
+      - postgres
+      # WAL archiving (NF-06): segments are copied to a volume, then encrypted and shipped by the backup service.
+      - -c
+      - wal_level=replica
+      - -c
+      - archive_mode=on
+      - -c
+      - archive_timeout=300
+      - -c
+      - archive_command=/bin/sh /opt/onvoyage/wal-archive.sh %p %f
+      - -c
+      - max_wal_senders=4
+      # Allows pg_basebackup from the backup container (replication entries of the compose network only).
+      - -c
+      - hba_file=/etc/postgresql-onvoyage/pg_hba.conf
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - wal-incoming:/wal-incoming
+      - ./postgres/wal-archive.sh:/opt/onvoyage/wal-archive.sh:ro
+      - ./postgres/pg_hba.conf:/etc/postgresql-onvoyage/pg_hba.conf:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+    depends_on:
+      volume-init:
+        condition: service_completed_successfully
+    shm_size: 256mb
+
+  # One-shot: gives the postgres user (uid 999 in the postgis image; the backup service runs as 999 too) the WAL hand-over and backup volumes,
+  # and the app user (uid 1654) the media volumes.
+  volume-init:
+    image: busybox:1.37
+    restart: "no"
+    networks: [backend]
+    user: "0:0"
+    command: ["sh", "-c", "chown 999:999 /wal-incoming /backups && chown 1654:1654 /media /data/factory && chmod 0770 /wal-incoming"]
+    volumes:
+      - wal-incoming:/wal-incoming
+      - backups:/backups
+      - media:/media
+      - factory-data:/data/factory
+
+  # --------------------------------------------------------------- services
+  platform-api:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/platform-api:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Services/Platform/OnVoyage.Platform.Api/OnVoyage.Platform.Api.csproj
+        ASSEMBLY: OnVoyage.Platform.Api
+    environment:
+      <<: [*dotnet-env, *jwt]
+      OTEL_SERVICE_NAME: platform-api
+      Platform__Migrate: ${MIGRATE_ON_START:-true}
+      # Sign-in codes leave the platform through Resend only (docs/PRIVACY.md); "log" is refused outside Development.
+      Email__Provider: resend
+      Email__Resend__ApiKey: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+      Email__From: ${EMAIL_FROM:-ON.VOYAGE <connexion@on.voyage>}
+      # This address receives the admin role at sign-in (back-office). Required: staging without an administrator is not usable.
+      Auth__BootstrapAdminEmails__0: ${BOOTSTRAP_ADMIN_EMAIL:?BOOTSTRAP_ADMIN_EMAIL is required}
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  catalog-api:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/catalog-api:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj
+        ASSEMBLY: OnVoyage.Catalog.Api
+    environment:
+      <<: [*dotnet-env, *jwt]
+      OTEL_SERVICE_NAME: catalog-api
+      Catalog__Migrate: ${MIGRATE_ON_START:-true}
+      # Staging runs on test data: the Marseille demo seed is on unless CATALOG_SEED_DEMO_DATA=false.
+      Catalog__SeedDemoData: ${CATALOG_SEED_DEMO_DATA:-true}
+      # Audio written by factory-worker is served under /media (same volume, read-only here).
+      Media__RootPath: /media
+      Media__PublicBaseUrl: https://${STAGING_DOMAIN:?STAGING_DOMAIN is required}/media
+    volumes:
+      - media:/media:ro
+    depends_on:
+      postgres: { condition: service_healthy }
+      volume-init: { condition: service_completed_successfully }
+
+  discovery-api:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/discovery-api:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Services/Discovery/OnVoyage.Discovery.Api/OnVoyage.Discovery.Api.csproj
+        ASSEMBLY: OnVoyage.Discovery.Api
+    environment:
+      <<: [*dotnet-env, *jwt]
+      OTEL_SERVICE_NAME: discovery-api
+      Discovery__Migrate: ${MIGRATE_ON_START:-true}
+      Media__PublicBaseUrl: https://${STAGING_DOMAIN:?STAGING_DOMAIN is required}/media
+    depends_on:
+      postgres: { condition: service_healthy }
+
+  factory-api:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/factory-api:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Services/Factory/OnVoyage.Factory.Api/OnVoyage.Factory.Api.csproj
+        ASSEMBLY: OnVoyage.Factory.Api
+    environment:
+      <<: [*dotnet-env, *jwt, *llm]
+      OTEL_SERVICE_NAME: factory-api
+      Factory__Migrate: ${MIGRATE_ON_START:-true}
+    depends_on:
+      postgres: { condition: service_healthy }
+      factory-worker: { condition: service_healthy }
+
+  # Runs the pipeline jobs (osm2pgsql, Wikimedia, LLM, TTS). Needs osm2pgsql and ffmpeg: built with RUNTIME_PACKAGES.
+  factory-worker:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/factory-worker:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Services/Factory/OnVoyage.Factory.Worker/OnVoyage.Factory.Worker.csproj
+        ASSEMBLY: OnVoyage.Factory.Worker
+        RUNTIME_PACKAGES: curl osm2pgsql ffmpeg
+    environment:
+      <<: [*dotnet-env, *llm]
+      OTEL_SERVICE_NAME: factory-worker
+      Factory__Migrate: ${MIGRATE_ON_START:-true}
+      Factory__MediaDirectory: /media
+      Factory__DataDirectory: /data/factory
+    volumes:
+      - media:/media
+      - factory-data:/data/factory
+    depends_on:
+      postgres: { condition: service_healthy }
+      volume-init: { condition: service_completed_successfully }
+
+  gateway:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/gateway:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj
+        ASSEMBLY: OnVoyage.Gateway
+    environment:
+      <<: [*jwt]
+      ASPNETCORE_ENVIRONMENT: Production
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=staging
+      OTEL_SERVICE_NAME: gateway
+      # Caddy sits in front: take the client address from X-Forwarded-For (rate limiting, SEC-04).
+      Gateway__TrustForwardedHeaders: "true"
+      Gateway__PlatformBaseAddress: http://platform-api:8080
+      Cors__AllowedOrigins__0: https://${STAGING_DOMAIN:?STAGING_DOMAIN is required}
+      # Service discovery for the YARP destinations ("https+http://<name>" in appsettings.json): plain HTTP on the compose network.
+      services__platform-api__http__0: http://platform-api:8080
+      services__catalog-api__http__0: http://catalog-api:8080
+      services__discovery-api__http__0: http://discovery-api:8080
+      services__factory-api__http__0: http://factory-api:8080
+      # services__insights-api__http__0: http://insights-api:8080
+      # services__creators-api__http__0: http://creators-api:8080
+    depends_on:
+      platform-api: { condition: service_healthy }
+      catalog-api: { condition: service_healthy }
+      discovery-api: { condition: service_healthy }
+      factory-api: { condition: service_healthy }
+
+  web-pwa:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/web-pwa:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/pwa.Dockerfile
+    environment:
+      PWA_MAP_TILES_URL: ${PWA_MAP_TILES_URL:-}
+
+  web-admin:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/web-admin:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Web/OnVoyage.Web.Admin/OnVoyage.Web.Admin.csproj
+        ASSEMBLY: OnVoyage.Web.Admin
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=staging
+      OTEL_SERVICE_NAME: web-admin
+      # TLS ends at Caddy: honour X-Forwarded-Proto/-For (secure cookie, redirects).
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      # The admin only talks to the Gateway, with the editor's own token (ADR-0009).
+      Gateway__BaseUrl: http://gateway:8080
+      # Address the editor's browser uses to play audio: the public origin, not the internal name.
+      Admin__MediaBaseUrl: https://${STAGING_DOMAIN:?STAGING_DOMAIN is required}
+    depends_on:
+      gateway: { condition: service_healthy }
+
+  # ------------------------------- services being added by other workstreams (same pattern; uncomment when the image exists)
+  # insights-api:
+  #   <<: *image-defaults
+  #   image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/insights-api:${IMAGE_TAG:-staging}
+  #   build:
+  #     context: ../..
+  #     dockerfile: deploy/docker/service.Dockerfile
+  #     args:
+  #       PROJECT: src/Services/Insights/OnVoyage.Insights.Api/OnVoyage.Insights.Api.csproj
+  #       ASSEMBLY: OnVoyage.Insights.Api
+  #   environment:
+  #     <<: [*dotnet-env, *jwt]
+  #     OTEL_SERVICE_NAME: insights-api
+  #     Insights__Migrate: ${MIGRATE_ON_START:-true}   # check the exact key in the service's DependencyInjection.cs
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #
+  # creators-api:
+  #   <<: *image-defaults
+  #   image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/creators-api:${IMAGE_TAG:-staging}
+  #   build:
+  #     context: ../..
+  #     dockerfile: deploy/docker/service.Dockerfile
+  #     args:
+  #       PROJECT: src/Services/Creators/OnVoyage.Creators.Api/OnVoyage.Creators.Api.csproj
+  #       ASSEMBLY: OnVoyage.Creators.Api
+  #   environment:
+  #     <<: [*dotnet-env, *jwt]
+  #     OTEL_SERVICE_NAME: creators-api
+  #     Creators__Migrate: ${MIGRATE_ON_START:-true}   # check the exact key in the service's DependencyInjection.cs
+  #     # OAuth client secrets of Instagram / YouTube / TikTok and the Data Protection key ring go here (names to be added by Creators).
+  #   depends_on:
+  #     postgres: { condition: service_healthy }
+  #
+  # creators-worker:   # same image recipe as creators-api with OnVoyage.Creators.Worker; also needs OpenAI__ApiKey (geo-association)
+  #
+  # web-public:        # SSR site (F-24). Reads Catalog and Creators over the internal network with a service token; route it in Caddyfile.
+  #   <<: *image-defaults
+  #   image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/web-public:${IMAGE_TAG:-staging}
+  #   build:
+  #     context: ../..
+  #     dockerfile: deploy/docker/service.Dockerfile
+  #     args:
+  #       PROJECT: src/Web/OnVoyage.Web.Public/OnVoyage.Web.Public.csproj
+  #       ASSEMBLY: OnVoyage.Web.Public
+
+  # ------------------------------------------------------------------ edge
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    networks: [backend]
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    environment:
+      STAGING_DOMAIN: ${STAGING_DOMAIN:?STAGING_DOMAIN is required}
+      ACME_EMAIL: ${ACME_EMAIL:?ACME_EMAIL is required}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      gateway: { condition: service_healthy }
+      web-pwa: { condition: service_healthy }
+      web-admin: { condition: service_healthy }
+
+  # ---------------------------------------------------------------- backups (T-009, docs/runbooks/restore.md)
+  backup:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/backup:${IMAGE_TAG:-staging}
+    build:
+      context: ./backup
+    user: "999:999"
+    environment:
+      PGHOST: postgres
+      PGPORT: "5432"
+      PGDATABASE: ${POSTGRES_DB:-onvoyage}
+      PGUSER: ${POSTGRES_USER:-onvoyage}
+      PGPASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      # PUBLIC age key (age1...). The private key is never on the server (see docs/runbooks/restore.md).
+      BACKUP_AGE_RECIPIENT: ${BACKUP_AGE_RECIPIENT:?BACKUP_AGE_RECIPIENT is required}
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+      BACKUP_HOUR_UTC: ${BACKUP_HOUR_UTC:-2}
+      BACKUP_BASEBACKUP_WEEKDAY: ${BACKUP_BASEBACKUP_WEEKDAY:-7}
+    volumes:
+      - backups:/backups
+      - wal-incoming:/wal-incoming
+    depends_on:
+      postgres: { condition: service_healthy }
+
+volumes:
+  postgres-data:
+  wal-incoming:
+  media:
+  factory-data:
+  backups:
+  caddy-data:
+  caddy-config:
+
+networks:
+  backend:
+    # Fixed name so that observability/docker-compose.yml can join the same network.
+    name: onvoyage-staging

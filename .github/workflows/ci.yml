@@ -8,9 +8,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   build-test:
     runs-on: ubuntu-latest
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-dotnet@v4
@@ -24,15 +29,55 @@ jobs:
         run: dotnet build OnVoyage.slnx --no-restore -c Release
       - name: Format
         run: dotnet format OnVoyage.slnx --verify-no-changes --no-restore
-      - name: Test (unit, integration, architecture, bUnit)
+      # Layering rules of §23.4 (also part of the full run below): run first so that a violation fails fast and is easy to find.
+      - name: Architecture tests
+        run: dotnet test --project tests/OnVoyage.ArchitectureTests --no-build -c Release
+      - name: Test (unit, integration with Testcontainers, architecture, bUnit)
         run: dotnet test --solution OnVoyage.slnx --no-build -c Release
-      - name: Vulnerable packages
+      # SEC-12: fail on vulnerable packages of severity High or Critical, direct or transitive. Lower severities are listed, not blocking.
+      - name: Vulnerable packages (fail on High or Critical)
         run: |
           dotnet list OnVoyage.slnx package --vulnerable --include-transitive 2>&1 | tee vuln.txt
-          ! grep -q "has the following vulnerable packages" vuln.txt
+          if grep -Eq '^\s*>.*\s(High|Critical)\s' vuln.txt; then
+            echo "::error::High or Critical vulnerable packages found (see the report above)."
+            exit 1
+          fi
       - name: Publish PWA
         run: dotnet publish src/Web/OnVoyage.Web.Pwa -c Release -o out/pwa
       - uses: actions/upload-artifact@v4
         with:
           name: pwa
           path: out/pwa/wwwroot
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reports
+          path: |
+            vuln.txt
+            **/TestResults/**
+          if-no-files-found: ignore
+
+  # Deployment files: cheap checks that catch a broken compose file or script before the deploy workflow does.
+  deploy-config:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Compose files are valid
+        env:
+          # Placeholders only (not secrets): `docker compose config` needs every required variable to have a value.
+          STAGING_DOMAIN: staging.example.org
+          ACME_EMAIL: ops@example.org
+          POSTGRES_PASSWORD: ci-placeholder
+          JWT_SECRET: ci-placeholder-0123456789abcdef0123456789abcdef
+          BOOTSTRAP_ADMIN_EMAIL: admin@example.org
+          RESEND_API_KEY: ci-placeholder
+          BACKUP_AGE_RECIPIENT: age1ciplaceholder
+          GRAFANA_ADMIN_PASSWORD: ci-placeholder
+        run: |
+          docker compose -f deploy/staging/docker-compose.yml config -q
+          docker compose -f deploy/staging/observability/docker-compose.yml config -q
+      - name: Shell scripts are valid
+        run: |
+          sudo apt-get update && sudo apt-get install -y shellcheck
+          shellcheck --severity=warning deploy/staging/backup/*.sh deploy/staging/postgres/*.sh deploy/docker/*.sh

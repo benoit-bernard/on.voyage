@@ -1,0 +1,22 @@
+{
+	admin off
+	auto_https off
+}
+
+:8080 {
+	root * /srv
+	encode zstd gzip
+	# The service worker must never be cached by the browser, or an update would not reach installed PWAs.
+	@worker path /service-worker.js /service-worker-assets.js
+	header @worker Cache-Control "no-cache"
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Permissions-Policy "geolocation=(self), camera=(), microphone=()"
+	}
+	# Single-page application: unknown paths fall back to index.html (client-side routing).
+	try_files {path} /index.html
+	file_server {
+		precompressed br gzip
+	}
+}

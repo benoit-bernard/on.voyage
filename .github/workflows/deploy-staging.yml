@@ -1,0 +1,212 @@
+name: deploy-staging
+
+# §21: staging is deployed at every merge on main. Manual run: redeploy main, or roll back by giving an existing image tag.
+# Secrets and variables (by name) are documented in docs/DEPLOYMENT.md. Nothing secret is written to the repository or to the logs.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'prompts/**'
+      - 'deploy/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+      - '.github/workflows/deploy-staging.yml'
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Deploy this existing image tag (a commit SHA) without building; empty = build and deploy the selected ref'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  images:
+    name: image ${{ matrix.name }}
+    if: ${{ inputs.image_tag == '' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - { name: platform-api,   dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Platform/OnVoyage.Platform.Api/OnVoyage.Platform.Api.csproj\nASSEMBLY=OnVoyage.Platform.Api" }
+          - { name: catalog-api,    dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj\nASSEMBLY=OnVoyage.Catalog.Api" }
+          - { name: discovery-api,  dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Discovery/OnVoyage.Discovery.Api/OnVoyage.Discovery.Api.csproj\nASSEMBLY=OnVoyage.Discovery.Api" }
+          - { name: factory-api,    dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Factory/OnVoyage.Factory.Api/OnVoyage.Factory.Api.csproj\nASSEMBLY=OnVoyage.Factory.Api" }
+          - { name: factory-worker, dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Factory/OnVoyage.Factory.Worker/OnVoyage.Factory.Worker.csproj\nASSEMBLY=OnVoyage.Factory.Worker\nRUNTIME_PACKAGES=curl osm2pgsql ffmpeg" }
+          - { name: gateway,        dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj\nASSEMBLY=OnVoyage.Gateway" }
+          - { name: web-admin,      dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Web/OnVoyage.Web.Admin/OnVoyage.Web.Admin.csproj\nASSEMBLY=OnVoyage.Web.Admin" }
+          - { name: web-pwa,        dockerfile: deploy/docker/pwa.Dockerfile,     context: ., args: "" }
+          - { name: backup,         dockerfile: deploy/staging/backup/Dockerfile, context: deploy/staging/backup, args: "" }
+          # Services being added by other workstreams: add a line with the same pattern (and the matching block in deploy/staging/docker-compose.yml).
+          # - { name: insights-api,    dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Insights/OnVoyage.Insights.Api/OnVoyage.Insights.Api.csproj\nASSEMBLY=OnVoyage.Insights.Api" }
+          # - { name: creators-api,    dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Creators/OnVoyage.Creators.Api/OnVoyage.Creators.Api.csproj\nASSEMBLY=OnVoyage.Creators.Api" }
+          # - { name: creators-worker, dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Creators/OnVoyage.Creators.Worker/OnVoyage.Creators.Worker.csproj\nASSEMBLY=OnVoyage.Creators.Worker" }
+          # - { name: web-public,      dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Web/OnVoyage.Web.Public/OnVoyage.Web.Public.csproj\nASSEMBLY=OnVoyage.Web.Public" }
+    steps:
+      - uses: actions/checkout@v4
+      - name: Image prefix (registry paths are lower case)
+        id: prefix
+        run: echo "value=${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/onvoyage" >> "$GITHUB_OUTPUT"
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          build-args: ${{ matrix.args }}
+          push: true
+          tags: |
+            ${{ steps.prefix.outputs.value }}/${{ matrix.name }}:${{ github.sha }}
+            ${{ steps.prefix.outputs.value }}/${{ matrix.name }}:staging
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,scope=${{ matrix.name }},mode=max
+
+  deploy:
+    needs: images
+    # Runs when the images were built, or skipped on purpose (redeploy of an existing tag). Never after a failed build.
+    if: ${{ !cancelled() && (needs.images.result == 'success' || needs.images.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    environment:
+      name: staging
+      url: https://${{ vars.STAGING_DOMAIN }}
+    env:
+      IMAGE_TAG: ${{ inputs.image_tag != '' && inputs.image_tag || github.sha }}
+      STAGING_DOMAIN: ${{ vars.STAGING_DOMAIN }}
+      DEPLOY_PATH: ${{ vars.STAGING_DEPLOY_PATH != '' && vars.STAGING_DEPLOY_PATH || '/opt/onvoyage' }}
+      SSH_PORT: ${{ vars.STAGING_SSH_PORT != '' && vars.STAGING_SSH_PORT || '22' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Prepare SSH (host key is pinned, no trust on first use)
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.STAGING_SSH_PRIVATE_KEY }}
+          SSH_KNOWN_HOSTS: ${{ secrets.STAGING_SSH_KNOWN_HOSTS }}
+          SSH_HOST: ${{ secrets.STAGING_SSH_HOST }}
+          SSH_USER: ${{ secrets.STAGING_SSH_USER }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_PRIVATE_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$SSH_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          {
+            echo "Host staging"
+            echo "  HostName ${SSH_HOST}"
+            echo "  User ${SSH_USER}"
+            echo "  Port ${SSH_PORT}"
+            echo "  IdentityFile ~/.ssh/deploy_key"
+            echo "  IdentitiesOnly yes"
+            echo "  StrictHostKeyChecking yes"
+          } > ~/.ssh/config
+
+      - name: Write the environment file (never printed, never committed)
+        env:
+          POSTGRES_PASSWORD: ${{ secrets.STAGING_POSTGRES_PASSWORD }}
+          JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
+          BOOTSTRAP_ADMIN_EMAIL: ${{ secrets.STAGING_BOOTSTRAP_ADMIN_EMAIL }}
+          RESEND_API_KEY: ${{ secrets.STAGING_RESEND_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.STAGING_OPENAI_API_KEY }}
+          GRAFANA_ADMIN_PASSWORD: ${{ secrets.STAGING_GRAFANA_ADMIN_PASSWORD }}
+          ACME_EMAIL: ${{ vars.STAGING_ACME_EMAIL }}
+          EMAIL_FROM: ${{ vars.STAGING_EMAIL_FROM }}
+          FACTORY_LLM_PROVIDER: ${{ vars.STAGING_LLM_PROVIDER }}
+          FACTORY_LLM_EXTRACTOR_MODEL: ${{ vars.STAGING_LLM_EXTRACTOR_MODEL }}
+          FACTORY_LLM_WRITER_MODEL: ${{ vars.STAGING_LLM_WRITER_MODEL }}
+          FACTORY_LLM_VERIFIER_MODEL: ${{ vars.STAGING_LLM_VERIFIER_MODEL }}
+          FACTORY_LLM_CLASSIFIER_MODEL: ${{ vars.STAGING_LLM_CLASSIFIER_MODEL }}
+          BACKUP_AGE_RECIPIENT: ${{ vars.STAGING_BACKUP_AGE_RECIPIENT }}
+          PWA_MAP_TILES_URL: ${{ vars.STAGING_MAP_TILES_URL }}
+          OTEL_EXPORTER_OTLP_ENDPOINT: ${{ vars.STAGING_OTLP_ENDPOINT }}
+        run: |
+          umask 077
+          prefix="${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}/onvoyage"
+          {
+            kv() { printf "%s='%s'\n" "$1" "$2"; }
+            kv STAGING_DOMAIN "$STAGING_DOMAIN"
+            kv ACME_EMAIL "$ACME_EMAIL"
+            kv IMAGE_PREFIX "$prefix"
+            kv IMAGE_TAG "$IMAGE_TAG"
+            kv POSTGRES_PASSWORD "$POSTGRES_PASSWORD"
+            kv JWT_SECRET "$JWT_SECRET"
+            kv BOOTSTRAP_ADMIN_EMAIL "$BOOTSTRAP_ADMIN_EMAIL"
+            kv RESEND_API_KEY "$RESEND_API_KEY"
+            [ -z "$EMAIL_FROM" ] || kv EMAIL_FROM "$EMAIL_FROM"
+            kv FACTORY_LLM_PROVIDER "${FACTORY_LLM_PROVIDER:-openai}"
+            kv OPENAI_API_KEY "$OPENAI_API_KEY"
+            kv FACTORY_LLM_EXTRACTOR_MODEL "$FACTORY_LLM_EXTRACTOR_MODEL"
+            kv FACTORY_LLM_WRITER_MODEL "$FACTORY_LLM_WRITER_MODEL"
+            kv FACTORY_LLM_VERIFIER_MODEL "$FACTORY_LLM_VERIFIER_MODEL"
+            kv FACTORY_LLM_CLASSIFIER_MODEL "$FACTORY_LLM_CLASSIFIER_MODEL"
+            kv BACKUP_AGE_RECIPIENT "$BACKUP_AGE_RECIPIENT"
+            kv GRAFANA_ADMIN_PASSWORD "$GRAFANA_ADMIN_PASSWORD"
+            kv PWA_MAP_TILES_URL "$PWA_MAP_TILES_URL"
+            kv OTEL_EXPORTER_OTLP_ENDPOINT "$OTEL_EXPORTER_OTLP_ENDPOINT"
+          } > "$RUNNER_TEMP/staging.env"
+
+      - name: Upload the deployment files
+        run: |
+          ssh staging "mkdir -p '$DEPLOY_PATH'"
+          tar -czf - -C deploy/staging . | ssh staging "tar -xzf - -C '$DEPLOY_PATH' --no-same-owner"
+          ssh staging "umask 077 && cat > '$DEPLOY_PATH/.env'" < "$RUNNER_TEMP/staging.env"
+          rm -f "$RUNNER_TEMP/staging.env"
+
+      - name: Registry login on the server (short-lived token of this run)
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: printf '%s' "$GHCR_TOKEN" | ssh staging "docker login ${REGISTRY} -u '${{ github.actor }}' --password-stdin"
+
+      - name: Pull images
+        run: ssh staging "cd '$DEPLOY_PATH' && docker compose pull --quiet"
+
+      - name: Data tier and pre-deploy backup
+        run: |
+          ssh staging "cd '$DEPLOY_PATH' && docker compose up -d --wait postgres volume-init"
+          # Safety net before migrating. Absent on the very first deploy: not an error.
+          ssh staging "cd '$DEPLOY_PATH' && (docker compose exec -T backup /opt/onvoyage/backup.sh dump || echo 'no pre-deploy backup (backup service not running yet)')"
+
+      - name: Migrations (the services that own a schema start first, with their Migrate setting)
+        # Platform__Migrate, Catalog__Migrate, Discovery__Migrate and Factory__Migrate default to true (MIGRATE_ON_START). Each host applies its
+        # EF Core migrations before it accepts requests, so a healthy host means a migrated schema. Migrations must stay backward
+        # compatible with the previous version (§21): the old containers are replaced one service at a time.
+        run: ssh staging "cd '$DEPLOY_PATH' && docker compose up -d --wait platform-api catalog-api discovery-api factory-worker factory-api"
+
+      - name: Start everything else
+        run: ssh staging "cd '$DEPLOY_PATH' && docker compose up -d --wait --remove-orphans"
+
+      - name: Observability stack (variable STAGING_OBSERVABILITY=true)
+        if: ${{ vars.STAGING_OBSERVABILITY == 'true' }}
+        run: ssh staging "cd '$DEPLOY_PATH' && docker compose --env-file .env -f observability/docker-compose.yml up -d"
+
+      - name: Smoke test through the gateway
+        env:
+          ADMIN_URL: https://admin.${{ vars.STAGING_DOMAIN }}
+        run: deploy/staging/smoke-test.sh "https://${STAGING_DOMAIN}"
+
+      - name: Clean up on the server
+        if: always()
+        run: |
+          ssh staging "docker logout ${REGISTRY}; docker image prune -f >/dev/null" || true
+          rm -f ~/.ssh/deploy_key "$RUNNER_TEMP/staging.env"
+
+      - name: Logs of unhealthy services
+        if: failure()
+        run: ssh staging "cd '$DEPLOY_PATH' && docker compose ps -a && docker compose logs --tail=60 --no-color platform-api catalog-api discovery-api factory-api factory-worker gateway" || true

@@ -1,0 +1,78 @@
+# Reverse proxy of the staging VPS. Automatic HTTPS (ACME HTTP-01/TLS-ALPN-01: ports 80 and 443 must be open and the DNS records of
+# $STAGING_DOMAIN and admin.$STAGING_DOMAIN must point at the server). Certificates are kept in the caddy-data volume.
+{
+	email {$ACME_EMAIL}
+}
+
+# Access logs are server logs in the sense of docs/PRIVACY.md (30 days, truncated IP). A position travels in the query string of a few
+# GET calls (lat/lon/bbox): the query is dropped, never masked partially, and credentials are removed.
+(privacy_logs) {
+	log {
+		output stdout
+		format filter {
+			wrap json
+			request>uri query {
+				delete lat
+				delete lon
+				delete lng
+				delete bbox
+				delete minLat
+				delete minLng
+				delete maxLat
+				delete maxLng
+			}
+			request>headers>Authorization delete
+			request>headers>Cookie delete
+			request>headers>X-Forwarded-For delete
+			request>remote_ip ip_mask {
+				ipv4 24
+				ipv6 48
+			}
+			request>client_ip ip_mask {
+				ipv4 24
+				ipv6 48
+			}
+			request>remote_port delete
+			resp_headers>Set-Cookie delete
+		}
+	}
+}
+
+(security_headers) {
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+		# Staging must not be indexed.
+		X-Robots-Tag "noindex, nofollow"
+	}
+}
+
+{$STAGING_DOMAIN} {
+	import privacy_logs
+	import security_headers
+	encode zstd gzip
+
+	# API, audio files and the health check go through the Gateway (the only public entry point of the back end, ADR-0006).
+	@gateway path /api/* /media/* /health
+	handle @gateway {
+		reverse_proxy gateway:8080
+	}
+
+	# Everything else is the PWA (same origin: Gateway:BaseAddress is empty).
+	handle {
+		reverse_proxy web-pwa:8080
+	}
+}
+
+# Back-office. WebSockets (Blazor Server) are upgraded by reverse_proxy.
+admin.{$STAGING_DOMAIN} {
+	import privacy_logs
+	import security_headers
+	encode zstd gzip
+	reverse_proxy web-admin:8080
+}
+
+# Future services (uncomment with their compose entry):
+# {$STAGING_DOMAIN}/studio -> web-studio, www.{$STAGING_DOMAIN} -> web-public
