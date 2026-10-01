@@ -26,6 +26,7 @@ public sealed class TriggerEngine(TriggerSettings settings, ITriggerHistory hist
     private (double Latitude, double Longitude, DateTimeOffset Since)? _anchor;
     private DateTimeOffset _cooldownUntil;
     private bool _inCall;
+    private bool _externalPlayback;
 
     public EngineState State { get; private set; } = EngineState.Off;
 
@@ -61,6 +62,9 @@ public sealed class TriggerEngine(TriggerSettings settings, ITriggerHistory hist
     }
 
     public void OnCallStateChanged(bool inCall) => _inCall = inCall;
+
+    /// <summary>The traveler started a story by hand: discovery waits until it is over instead of talking over it.</summary>
+    public void SetExternalPlayback(bool playing) => _externalPlayback = playing;
 
     /// <summary>The announcement finished and the story itself starts.</summary>
     public void OnStoryStarted()
@@ -149,6 +153,11 @@ public sealed class TriggerEngine(TriggerSettings settings, ITriggerHistory hist
             return Outcome(null, visits, SkipReason.InCall);
         }
 
+        if (_externalPlayback)
+        {
+            return Outcome(null, visits, SkipReason.Busy);
+        }
+
         if (_anchor is { } anchor && (fix.Timestamp - anchor.Since).TotalMinutes >= _settings.StationaryStopMinutes)
         {
             return Outcome(null, visits, SkipReason.Immobile);
@@ -179,6 +188,7 @@ public sealed class TriggerEngine(TriggerSettings settings, ITriggerHistory hist
         _pendingMode = null;
         _anchor = null;
         _inCall = false;
+        _externalPlayback = false;
         SignalLost = false;
         SmoothedSpeedMetersPerSecond = 0d;
         Mode = TravelMode.Walk;

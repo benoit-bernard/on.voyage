@@ -13,9 +13,12 @@ public sealed record PoiSummaryDto(
     bool HiddenGem,
     int? DistanceMeters,
     int? AudioSeconds,
-    IReadOnlyDictionary<string, double> Weights);
+    IReadOnlyDictionary<string, double> Weights,
+    Guid? StoryId = null,
+    bool Fragile = false,
+    IReadOnlyDictionary<string, string>? AudioParts = null);
 
-public sealed record StoryDto(Guid Id, string Language, string Title, string Text, int DurationSeconds, string? AudioUrl, bool AiGenerated);
+public sealed record StoryDto(Guid Id, string Language, string Title, string Text, int DurationSeconds, string? AudioUrl, bool AiGenerated, IReadOnlyDictionary<string, string>? AudioParts = null);
 
 /// <summary>A link out (F-19). The app opens it in the system browser or the YouTube app; it never calls YouTube itself, and the thumbnail is our own copy.</summary>
 public sealed record LinkDto(string Kind, string Language, string Title, string Url, string? Channel, string? ThumbnailUrl, string? VideoId);

@@ -6,4 +6,7 @@
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" />
     <ProjectReference Include="../../Shared/OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OnVoyage.App.Core.Tests" />
+  </ItemGroup>
 </Project>

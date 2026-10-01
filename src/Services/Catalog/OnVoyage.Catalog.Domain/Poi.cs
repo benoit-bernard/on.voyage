@@ -16,7 +16,9 @@ public sealed record GeoPoint(double Latitude, double Longitude)
     private static double ToRadians(double degrees) => degrees * Math.PI / 180d;
 }
 
-public sealed record Story(Guid Id, string Language, string Title, string Text, int DurationSeconds, string? AudioUrl, bool AiGenerated, IReadOnlyList<string>? Sources = null);
+public sealed record Story(
+    Guid Id, string Language, string Title, string Text, int DurationSeconds, string? AudioUrl, bool AiGenerated, IReadOnlyList<string>? Sources = null,
+    IReadOnlyDictionary<string, string>? AudioParts = null, string Kind = "standard");
 
 public sealed record ExternalLink(string Kind, string Language, string Title, string Url, string? Channel, string? ThumbnailUrl, string? VideoId);
 
@@ -32,6 +34,7 @@ public sealed record Poi(
     bool HiddenGem,
     IReadOnlyDictionary<string, double> Weights,
     IReadOnlyList<Story> Stories,
-    IReadOnlyList<ExternalLink>? Links = null);
+    IReadOnlyList<ExternalLink>? Links = null,
+    bool Fragile = false);
 
 public sealed record Destination(string Slug, string Name, GeoPoint Center);

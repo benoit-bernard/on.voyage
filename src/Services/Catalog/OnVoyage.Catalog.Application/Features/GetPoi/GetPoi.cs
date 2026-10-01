@@ -18,7 +18,7 @@ public static class GetPoiHandler
         }
 
         var stories = poi.Stories
-            .Select(story => new StoryDto(story.Id, story.Language, story.Title, story.Text, story.DurationSeconds, story.AudioUrl, story.AiGenerated))
+            .Select(story => new StoryDto(story.Id, story.Language, story.Title, story.Text, story.DurationSeconds, story.AudioUrl, story.AiGenerated, story.AudioParts))
             .ToArray();
 
         string[] attributions = [.. Attributions, .. poi.Stories.SelectMany(story => story.Sources ?? []).Distinct(StringComparer.Ordinal)];

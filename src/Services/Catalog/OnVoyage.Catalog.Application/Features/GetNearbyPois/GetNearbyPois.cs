@@ -55,6 +55,12 @@ public static class GetNearbyPoisHandler
         poi.CrowdLevel,
         poi.HiddenGem,
         distance is { } meters ? (int)Math.Round(meters) : null,
-        poi.Stories.Count > 0 ? poi.Stories[0].DurationSeconds : null,
-        poi.Weights);
+        Main(poi)?.DurationSeconds,
+        poi.Weights,
+        Main(poi)?.Id,
+        poi.Fragile,
+        Main(poi)?.AudioParts);
+
+    /// <summary>The standard story is the one told on the road; an anecdote is only the fallback.</summary>
+    private static Story? Main(Poi poi) => poi.Stories.FirstOrDefault(story => story.Kind == "standard") ?? (poi.Stories.Count > 0 ? poi.Stories[0] : null);
 }
