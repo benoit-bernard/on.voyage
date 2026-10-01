@@ -1,6 +1,6 @@
 # ADR-0009 — Back-office Blazor (T-401, T-402, T-403, T-408)
 
-- Statut : accepté. Couvre la coquille, la connexion par code e-mail, les lieux, l'atelier de contenu, la configuration, les flags et les référentiels. Hors périmètre : génération en masse (T-404), boîte des signalements (T-405), KPI (T-406), vidéos (T-407), projection d'audit dans Platform (T-409), suggestions de créateurs (T-410).
+- Statut : accepté. Couvre la coquille, la connexion par code e-mail, les lieux, l'atelier de contenu, la configuration, les flags et les référentiels. Hors périmètre : boîte des signalements (T-405), KPI (T-406), vidéos (T-407), projection d'audit dans Platform (T-409), suggestions de créateurs (T-410).
 
 ## Choix
 - **`OnVoyage.Web.Admin`** : Blazor Web App en rendu **interactif serveur** (F-25). Il n'a ni base ni code métier : toutes les lectures et écritures passent par le **Gateway** avec le jeton de l'éditeur (`IAdminApi`). Les modèles de réponse sont des records locaux, sans référence aux couches Application des services.
@@ -17,3 +17,6 @@ Factory : catégories et poids saisis par l'éditeur (`PUT /places/{id}/interest
 - Les extraits d'onboarding (T-408) dépendent du service Discovery, qui n'existe pas encore : non faits. La taxonomie est en lecture seule (versionnée avec le code).
 - La fusion de doublons se confirme depuis la liste des lieux ; l'annulation d'une fusion reste une action de l'API.
 - Les écrans n'ont pas été vus dans un navigateur : ils sont vérifiés par des tests bUnit, par des tests d'intégration du parcours de connexion et des 403, et par la compilation. Un passage visuel (mise en page, accessibilité au clavier) reste à faire.
+
+## Génération en masse (T-404)
+Écran « Lots » : formulaire (destination, importance minimale, nombre de lieux, langue, type, statuts de lieu), liste des lots avec « N terminés · N échecs · N à relire » mise à jour toutes les 5 secondes tant qu'un lot tourne, détail par lieu (échecs en tête, lien vers l'histoire), « Relancer les échecs ». Voir ADR-0008 pour le fonctionnement des lots.
