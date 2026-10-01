@@ -88,7 +88,18 @@ internal sealed class BatchStore(IDbContextOutbox<FactoryDbContext> outbox, Time
 
     private static GenerationJobRow ToRow(GenerationJob job) => new()
     {
-        Id = job.Id, BatchId = job.BatchId, PlaceId = job.PlaceId, PlaceName = job.PlaceName, Lang = job.Lang, Kind = job.Kind.ToString(), State = job.State.ToString(),
-        Step = job.Step, Attempts = job.Attempts, LastError = job.LastError, StoryId = job.StoryId, Outcome = job.Outcome, UpdatedAt = job.UpdatedAt,
+        Id = job.Id,
+        BatchId = job.BatchId,
+        PlaceId = job.PlaceId,
+        PlaceName = job.PlaceName,
+        Lang = job.Lang,
+        Kind = job.Kind.ToString(),
+        State = job.State.ToString(),
+        Step = job.Step,
+        Attempts = job.Attempts,
+        LastError = job.LastError,
+        StoryId = job.StoryId,
+        Outcome = job.Outcome,
+        UpdatedAt = job.UpdatedAt,
     };
 }
