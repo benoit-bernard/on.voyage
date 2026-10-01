@@ -1,0 +1,52 @@
+@page "/{Lang}/mentions"
+@page "/{Lang}/conditions"
+@page "/{Lang}/confidentialite"
+@page "/{Lang}/sources"
+@inject NavigationManager Navigation
+@inject PublicSettings Settings
+
+<SeoHead Title="@($"{Title} · ON.VOYAGE")" Description="@Title" Path="@Path" />
+
+@switch (Kind)
+{
+    case "conditions":
+        <h1>Conditions d'utilisation</h1>
+        <p>Les textes, les voix de synthèse et les données présentés par ON.VOYAGE sont protégés. Leur reproduction hors usage personnel nécessite une autorisation écrite.</p>
+        <h2 id="fouille-de-textes">Fouille de textes et de données</h2>
+        <p>Conformément à l'article 4 de la directive (UE) 2019/790 et à l'article L. 122-5-3 du Code de la propriété intellectuelle, ON.VOYAGE s'oppose à toute fouille de textes et de données de ses contenus, notamment à des fins d'entraînement de systèmes d'intelligence artificielle, sauf autorisation écrite.</p>
+        <p class="note">Texte à faire valider juridiquement avant la mise en production.</p>
+        break;
+    case "confidentialite":
+        <h1>Confidentialité</h1>
+        <p>Ce site n'utilise ni traceur, ni cookie publicitaire, ni service tiers. L'application ne garde ni n'envoie vos positions : le choix des lieux se fait sur votre téléphone. Le détail des traitements est décrit dans le registre publié avec l'application.</p>
+        break;
+    case "sources":
+        <h1>Sources et licences</h1>
+        <p>Les lieux proviennent d'OpenStreetMap (© contributeurs d'OpenStreetMap, licence ODbL), de Wikidata (CC0) et de Wikipédia (CC BY-SA). Chaque histoire cite ses sources en bas de page.</p>
+        break;
+    default:
+        <h1>Mentions légales</h1>
+        <p>Éditeur : ON.VOYAGE. Contact : voir l'application. Hébergement : serveurs situés dans l'Union européenne.</p>
+        <p class="note">Identité de l'éditeur et de l'hébergeur à compléter avant la mise en production.</p>
+        break;
+}
+
+@code {
+    [Parameter] public string Lang { get; set; } = "";
+
+    private string Kind => Navigation.ToBaseRelativePath(Navigation.Uri).Split('/', '?', '#')[^1] is { Length: > 0 } last && new[] { "mentions", "conditions", "confidentialite", "sources" }.Contains(last)
+        ? last
+        : Navigation.ToBaseRelativePath(Navigation.Uri).Split('?', '#')[0].Split('/')[^1];
+
+    private string Title => Kind switch { "conditions" => "Conditions d'utilisation", "confidentialite" => "Confidentialité", "sources" => "Sources et licences", _ => "Mentions légales" };
+
+    private string Path => $"/{Lang}/{Kind}";
+
+    protected override void OnInitialized()
+    {
+        if (!Settings.Languages.Contains(Lang))
+        {
+            Navigation.NotFound();
+        }
+    }
+}

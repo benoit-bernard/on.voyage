@@ -1,0 +1,37 @@
+@inherits LayoutComponentBase
+@inject PublicSettings Settings
+
+<header class="topbar">
+    <a class="brand" href="/" aria-label="ON.VOYAGE, accueil">ON<span>.</span>VOYAGE</a>
+    <nav aria-label="Navigation principale">
+        @foreach (var slug in Settings.Destinations)
+        {
+            <a href="/fr/@slug">@Capitalize(slug)</a>
+        }
+        <a href="/micro-aventures">Micro-aventures</a>
+    </nav>
+</header>
+
+<aside class="app-banner">
+    <span>Écoutez les histoires des lieux en marchant, avec l'application ON.VOYAGE.</span>
+    <a href="@Settings.AppStoreUrl" rel="noopener">App Store</a>
+    <a href="@Settings.PlayStoreUrl" rel="noopener">Google Play</a>
+</aside>
+
+<main>
+    @Body
+</main>
+
+<footer>
+    <nav aria-label="Informations légales">
+        <a href="/fr/mentions">Mentions légales</a>
+        <a href="/fr/conditions">Conditions d'utilisation</a>
+        <a href="/fr/confidentialite">Confidentialité</a>
+        <a href="/fr/sources">Sources et licences</a>
+    </nav>
+    <p>© OpenStreetMap contributors. Aucun traceur, aucune publicité, aucun service tiers sur ce site.</p>
+</footer>
+
+@code {
+    private static string Capitalize(string slug) => slug.Length == 0 ? slug : char.ToUpperInvariant(slug[0]) + slug[1..];
+}

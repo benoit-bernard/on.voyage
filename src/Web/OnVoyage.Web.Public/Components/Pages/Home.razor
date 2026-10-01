@@ -1,0 +1,55 @@
+@page "/"
+@inject PublicSettings Settings
+@inject ICatalogPublicClient Catalog
+
+<SeoHead Title="ON.VOYAGE — les histoires des lieux, à écouter en marchant"
+         Description="ON.VOYAGE raconte les lieux que vous traversez : des histoires audio courtes, sourcées, pour les marcheurs, cyclistes et voyageurs curieux."
+         Path="/"
+         JsonLd="@JsonLd" />
+
+<h1>Les lieux ont des histoires. Écoutez-les en marchant.</h1>
+<p class="lead">ON.VOYAGE choisit pour vous les lieux qui vous correspondent et les raconte au moment où vous y passez. Vos positions restent sur votre téléphone.</p>
+
+<p class="actions">
+    <a class="btn" href="@Settings.AppStoreUrl" rel="noopener">Télécharger sur l'App Store</a>
+    <a class="btn" href="@Settings.PlayStoreUrl" rel="noopener">Télécharger sur Google Play</a>
+</p>
+
+<section aria-labelledby="destinations">
+    <h2 id="destinations">Destinations</h2>
+    <ul class="cards">
+        @foreach (var destination in _destinations)
+        {
+            <li><a href="/fr/@destination.Slug"><strong>@destination.Name</strong><span>@destination.PoiCount lieux racontés</span></a></li>
+        }
+    </ul>
+</section>
+
+<section>
+    <h2>Micro-aventures</h2>
+    <p>Nos récits d'escapades à pied, en paddle et en canoë : <a href="/micro-aventures">lire le journal</a>.</p>
+</section>
+
+@code {
+    private List<DestinationDto> _destinations = [];
+
+    private object JsonLd => new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "WebSite",
+        ["name"] = "ON.VOYAGE",
+        ["url"] = Settings.Absolute("/"),
+        ["inLanguage"] = "fr",
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        foreach (var slug in Settings.Destinations)
+        {
+            if (await Catalog.GetDestinationAsync(slug, CancellationToken.None) is { } destination)
+            {
+                _destinations.Add(destination);
+            }
+        }
+    }
+}

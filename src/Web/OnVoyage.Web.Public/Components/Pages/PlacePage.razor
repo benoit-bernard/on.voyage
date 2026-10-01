@@ -1,0 +1,106 @@
+@page "/{Lang}/{Destination}/{Slug}"
+@inject PublicSettings Settings
+@inject ICatalogPublicClient Catalog
+@inject NavigationManager Navigation
+
+@if (_poi is not null && _story is not null)
+{
+    <SeoHead Title="@($"{_poi.Name} : histoire et sources · ON.VOYAGE")"
+             Description="@Summary"
+             Path="@($"/{Lang}/{Destination}/{Slug}")"
+             Alternates="@_alternates"
+             OgType="article"
+             JsonLd="@JsonLd" />
+
+    <nav class="crumbs" aria-label="Fil d'Ariane"><a href="/">Accueil</a> › <a href="/@Lang/@Destination">@_destinationName</a> › @_poi.Name</nav>
+    <h1>@_poi.Name</h1>
+    <p class="meta">@Labels.Category(_poi.Category)@(_poi.HiddenGem ? " · Pépite, moins fréquenté" : "")</p>
+
+    <article class="story">
+        <h2>@_story.Title</h2>
+        @foreach (var paragraph in Paragraphs(_story.Text))
+        {
+            <p>@paragraph</p>
+        }
+        @if (_story.AiGenerated)
+        {
+            <p class="note">Ce texte a été rédigé avec l'aide d'une intelligence artificielle à partir des sources ci-dessous, puis contrôlé par nos outils de vérification.</p>
+        }
+    </article>
+
+    <p class="actions"><a class="btn" href="/app/lieu/@Slug">Écouter cette histoire dans l'application</a></p>
+
+    @if (_poi.Attributions.Count > 0)
+    {
+        <section aria-labelledby="sources">
+            <h2 id="sources">Sources et licences</h2>
+            <ul>
+                @foreach (var attribution in _poi.Attributions)
+                {
+                    <li>@attribution</li>
+                }
+            </ul>
+        </section>
+    }
+}
+
+@code {
+    [Parameter] public string Lang { get; set; } = "";
+
+    [Parameter] public string Destination { get; set; } = "";
+
+    [Parameter] public string Slug { get; set; } = "";
+
+    private PoiDetailDto? _poi;
+    private StoryDto? _story;
+    private string _destinationName = "";
+    private IReadOnlyList<(string, string)> _alternates = [];
+
+    private string Summary
+    {
+        get
+        {
+            var flat = System.Text.RegularExpressions.Regex.Replace(_story!.Text, @"\s+", " ").Trim();
+            return flat.Length <= 155 ? flat : flat[..155].TrimEnd() + "…";
+        }
+    }
+
+    private object JsonLd => new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "TouristAttraction",
+        ["name"] = _poi!.Name,
+        ["url"] = Settings.Absolute($"/{Lang}/{Destination}/{Slug}"),
+        ["description"] = Summary,
+        ["inLanguage"] = Lang,
+        ["isAccessibleForFree"] = true,
+        ["geo"] = new Dictionary<string, object> { ["@type"] = "GeoCoordinates", ["latitude"] = _poi.Latitude, ["longitude"] = _poi.Longitude },
+        ["containedInPlace"] = new Dictionary<string, object> { ["@type"] = "TouristDestination", ["name"] = _destinationName, ["url"] = Settings.Absolute($"/{Lang}/{Destination}") },
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Settings.Languages.Contains(Lang) || !Settings.Destinations.Contains(Destination))
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        var destination = await Catalog.GetDestinationAsync(Destination, CancellationToken.None);
+        var poi = await Catalog.GetPlaceAsync(Slug, CancellationToken.None);
+
+        // No audio and no Premium text on the web (F-24): a story without text is simply not shown, and the page then does not exist.
+        var stories = poi?.Stories.Where(s => !string.IsNullOrWhiteSpace(s.Text)).ToArray() ?? [];
+        var story = stories.FirstOrDefault(s => s.Language == Lang);
+        if (destination is null || poi is null || story is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        (_poi, _story, _destinationName) = (poi, story, destination.Name);
+        _alternates = [.. stories.Select(s => s.Language).Distinct().Where(Settings.Languages.Contains).Select(l => (l, $"/{l}/{Destination}/{Slug}"))];
+    }
+
+    private static string[] Paragraphs(string text) => text.Split(["\r\n\r\n", "\n\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+}

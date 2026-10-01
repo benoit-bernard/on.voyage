@@ -97,6 +97,15 @@ if (!builder.ExecutionContext.IsRunMode)
     gateway.WithEnvironment("Gateway__TrustForwardedHeaders", "true");
 }
 
+// Public SEO site (F-24): server-rendered, reads the Catalog directly with an internal token; no audio, no Premium text, no third party.
+builder.AddProject<Projects.OnVoyage_Web_Public>("web-public")
+    .WithReference(catalog)
+    .WaitFor(catalog)
+    .WithEnvironment("Auth__JwtSecret", jwtSecret)
+    .WithEnvironment("Catalog__BaseAddress", "https+http://catalog-api")
+    .WithExternalHttpEndpoints()
+    .WithHttpHealthCheck("/health");
+
 // The PWA reads the gateway address from its own configuration (wwwroot/appsettings.json can't be injected by Aspire),
 // so the development gateway port is fixed in launchSettings and mirrored there.
 builder.AddProject<Projects.OnVoyage_Web_Pwa>("web-pwa")

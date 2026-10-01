@@ -1,0 +1,75 @@
+@page "/micro-aventures"
+@page "/micro-aventures/{Section}"
+@page "/micro-aventures/{Section}/{Name}"
+@inject ContentStore Content
+@inject NavigationManager Navigation
+
+@if (_article is not null)
+{
+    <SeoHead Title="@_article.PageTitle" Description="@_article.Description" Path="@($"/micro-aventures/{_article.Path}")" OgType="article" JsonLd="@ArticleLd" />
+    <nav class="crumbs" aria-label="Fil d'Ariane"><a href="/micro-aventures">Micro-aventures</a> › <a href="/micro-aventures/@(_article.Section == "eau" ? "eau" : "terre")">@(_article.Section == "eau" ? "Sur l'eau" : "Sur terre")</a></nav>
+    <p class="kicker">@_article.Kicker</p>
+    <h1>@_article.Title</h1>
+    <p class="meta">@_article.Meta</p>
+    <article class="prose">@((MarkupString)_article.Body)</article>
+}
+else
+{
+    <SeoHead Title="@ListTitle" Description="Récits de micro-aventures à pied, en paddle et en canoë." Path="@ListPath" />
+    <h1>@ListHeading</h1>
+    <p class="lead">Des escapades courtes et accessibles, racontées par ceux qui les ont faites.</p>
+    <p class="tabs"><a href="/micro-aventures">Tout</a> · <a href="/micro-aventures/eau">Sur l'eau</a> · <a href="/micro-aventures/terre">Sur terre</a></p>
+    <ul class="cards">
+        @foreach (var article in _list)
+        {
+            <li><a href="/micro-aventures/@article.Path"><strong>@article.Title</strong><span>@article.Kicker · @article.Meta</span></a></li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter] public string? Section { get; set; }
+
+    [Parameter] public string? Name { get; set; }
+
+    private Article? _article;
+    private IReadOnlyList<Article> _list = [];
+
+    private string ListPath => Section is null ? "/micro-aventures" : $"/micro-aventures/{Section}";
+
+    private string ListHeading => Section switch { "eau" => "Micro-aventures sur l'eau", "terre" => "Micro-aventures sur terre", _ => "Micro-aventures" };
+
+    private string ListTitle => $"{ListHeading} · ON.VOYAGE";
+
+    private object ArticleLd => new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "Article",
+        ["headline"] = _article!.Title,
+        ["description"] = _article.Description,
+        ["inLanguage"] = "fr",
+        ["author"] = new Dictionary<string, object> { ["@type"] = "Person", ["name"] = "Benoît Bernard" },
+    };
+
+    protected override void OnInitialized()
+    {
+        if (Section is null)
+        {
+            _list = Content.All;
+        }
+        else if (Name is null)
+        {
+            if (Section is not ("eau" or "terre"))
+            {
+                Navigation.NotFound();
+                return;
+            }
+
+            _list = Content.InSection(Section);
+        }
+        else if ((_article = Content.Find($"{Section}/{Name}")) is null)
+        {
+            Navigation.NotFound();
+        }
+    }
+}

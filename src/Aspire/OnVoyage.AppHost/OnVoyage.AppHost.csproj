@@ -14,5 +14,6 @@
     <ProjectReference Include="../../Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj" />
     <ProjectReference Include="../../Web/OnVoyage.Web.Pwa/OnVoyage.Web.Pwa.csproj" />
     <ProjectReference Include="../../Web/OnVoyage.Web.Admin/OnVoyage.Web.Admin.csproj" />
+    <ProjectReference Include="../../Web/OnVoyage.Web.Public/OnVoyage.Web.Public.csproj" />
   </ItemGroup>
 </Project>

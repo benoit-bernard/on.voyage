@@ -44,6 +44,7 @@
     <Project Path="src/Web/OnVoyage.UI.Components/OnVoyage.UI.Components.csproj" />
     <Project Path="src/Web/OnVoyage.Web.Pwa/OnVoyage.Web.Pwa.csproj" />
     <Project Path="src/Web/OnVoyage.Web.Admin/OnVoyage.Web.Admin.csproj" />
+    <Project Path="src/Web/OnVoyage.Web.Public/OnVoyage.Web.Public.csproj" />
   </Folder>
   <Folder Name="/src/Mobile/">
     <Project Path="src/Mobile/OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
@@ -60,6 +61,7 @@
     <Project Path="tests/OnVoyage.Recommendation.Engine.Tests/OnVoyage.Recommendation.Engine.Tests.csproj" />
     <Project Path="tests/OnVoyage.UI.Components.Tests/OnVoyage.UI.Components.Tests.csproj" />
     <Project Path="tests/OnVoyage.Web.Admin.Tests/OnVoyage.Web.Admin.Tests.csproj" />
+    <Project Path="tests/OnVoyage.Web.Public.Tests/OnVoyage.Web.Public.Tests.csproj" />
   </Folder>
   <Folder Name="/tests/Services/">
     <Project Path="tests/Services/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />

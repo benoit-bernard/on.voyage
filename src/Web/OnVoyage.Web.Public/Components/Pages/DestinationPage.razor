@@ -1,0 +1,68 @@
+@page "/{Lang}/{Slug}"
+@inject PublicSettings Settings
+@inject ICatalogPublicClient Catalog
+@inject NavigationManager Navigation
+
+@if (_destination is not null)
+{
+    <SeoHead Title="@($"{_destination.Name} : lieux et histoires à écouter · ON.VOYAGE")"
+             Description="@($"Les {_places.Count} lieux à découvrir à {_destination.Name}, avec leur histoire racontée et leurs sources.")"
+             Path="@($"/{Lang}/{Slug}")"
+             Alternates="@(Settings.Languages.Select(l => (l, $"/{l}/{Slug}")).ToArray())"
+             JsonLd="@JsonLd" />
+
+    <h1>@_destination.Name</h1>
+    <p class="lead">@_places.Count lieux racontés. Écoutez leurs histoires dans l'application, en vous promenant.</p>
+
+    <ul class="cards">
+        @foreach (var place in _places)
+        {
+            <li><a href="/@Lang/@Slug/@place.Slug"><strong>@place.Name</strong><span>@Category(place.Category)</span></a></li>
+        }
+    </ul>
+}
+
+@code {
+    [Parameter] public string Lang { get; set; } = "";
+
+    [Parameter] public string Slug { get; set; } = "";
+
+    private DestinationDto? _destination;
+    private IReadOnlyList<PoiSummaryDto> _places = [];
+
+    private object JsonLd => new Dictionary<string, object>
+    {
+        ["@context"] = "https://schema.org",
+        ["@type"] = "TouristDestination",
+        ["name"] = _destination!.Name,
+        ["url"] = Settings.Absolute($"/{Lang}/{Slug}"),
+        ["geo"] = new Dictionary<string, object> { ["@type"] = "GeoCoordinates", ["latitude"] = _destination.Latitude, ["longitude"] = _destination.Longitude },
+        ["touristType"] = "Marcheurs et voyageurs curieux",
+        ["includesAttraction"] = _places.Take(50).Select(p => new Dictionary<string, object>
+        {
+            ["@type"] = "TouristAttraction",
+            ["name"] = p.Name,
+            ["url"] = Settings.Absolute($"/{Lang}/{Slug}/{p.Slug}"),
+        }).ToArray(),
+    };
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (!Settings.Languages.Contains(Lang) || !Settings.Destinations.Contains(Slug))
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        _destination = await Catalog.GetDestinationAsync(Slug, CancellationToken.None);
+        if (_destination is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        _places = await Catalog.GetPlacesAsync(Slug, CancellationToken.None);
+    }
+
+    private static string Category(string code) => OnVoyage.Web.Public.Seo.Labels.Category(code);
+}

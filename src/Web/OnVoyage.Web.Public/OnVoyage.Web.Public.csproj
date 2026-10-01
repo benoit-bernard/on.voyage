@@ -1,0 +1,14 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <ProjectReference Include="../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
+    <ProjectReference Include="../../Services/Catalog/OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Former blog (T-903) and the shipped list of blocked crawlers (same source as Platform, annexe A). -->
+    <Content Update="Content/**" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="../../Services/Platform/OnVoyage.Platform.Infrastructure/Seed/default-config.json" Link="default-config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="OnVoyage.Web.Public.Tests" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="@Lang">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="tdm-reservation" content="1" />
+    <meta name="tdm-policy" content="@Settings.Absolute(PublicSettings.TdmPolicyPath)" />
+    <meta name="theme-color" content="#0b6b7a" />
+    <link rel="stylesheet" href="css/site.css" />
+    <HeadOutlet />
+</head>
+<body>
+    <Routes />
+</body>
+</html>
+
+@code {
+    [CascadingParameter] private HttpContext? Context { get; set; }
+
+    [Inject] private PublicSettings Settings { get; set; } = default!;
+
+    private string Lang => Context?.Request.Path.Value is { } path && path.StartsWith("/en", StringComparison.Ordinal) && (path.Length == 3 || path[3] == '/') ? "en" : "fr";
+}

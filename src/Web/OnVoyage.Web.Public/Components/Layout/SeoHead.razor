@@ -1,0 +1,33 @@
+@inject PublicSettings Settings
+
+<PageTitle>@Title</PageTitle>
+<HeadContent>
+    <meta name="description" content="@Description" />
+    <link rel="canonical" href="@Settings.Absolute(Path)" />
+    @foreach (var (lang, path) in Alternates)
+    {
+        <link rel="alternate" hreflang="@lang" href="@Settings.Absolute(path)" />
+    }
+    <meta property="og:title" content="@Title" />
+    <meta property="og:description" content="@Description" />
+    <meta property="og:type" content="@OgType" />
+    <meta property="og:url" content="@Settings.Absolute(Path)" />
+    @if (JsonLd is not null)
+    {
+        @((MarkupString)$"<script type=\"application/ld+json\">{JsonSerializer.Serialize(JsonLd)}</script>")
+    }
+</HeadContent>
+
+@code {
+    [Parameter, EditorRequired] public string Title { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Description { get; set; } = "";
+
+    [Parameter, EditorRequired] public string Path { get; set; } = "/";
+
+    [Parameter] public IReadOnlyList<(string Lang, string Path)> Alternates { get; set; } = [];
+
+    [Parameter] public object? JsonLd { get; set; }
+
+    [Parameter] public string OgType { get; set; } = "website";
+}
