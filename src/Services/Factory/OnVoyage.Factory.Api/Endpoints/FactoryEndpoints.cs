@@ -8,6 +8,7 @@ using OnVoyage.Factory.Application.Features.EnrichPlaces;
 using OnVoyage.Factory.Application.Features.ImportPlaces;
 using OnVoyage.Factory.Application.Features.Places;
 using OnVoyage.Factory.Application.Features.ScorePlaces;
+using OnVoyage.Factory.Application.Features.Videos;
 using OnVoyage.Factory.Application.Ports;
 using OnVoyage.Factory.Domain.Content;
 using OnVoyage.ServiceDefaults.Security;
@@ -36,6 +37,8 @@ internal sealed record ApproveStoryRequest(double? EditorialScore);
 internal sealed record BatchRequest(string Destination, int? MinImportance, string[]? PlaceStatuses, string? Lang, StoryKind? Kind, int? Limit);
 
 internal sealed record ResolveReportsRequest(string Status, string? Note);
+
+internal sealed record SelectVideoRequest(string VideoId);
 
 internal sealed record VoiceRequest(string Voice);
 
@@ -125,6 +128,7 @@ internal static class FactoryEndpoints
         MapContent(admin);
         MapReferences(admin);
         MapBatches(admin);
+        MapVideos(admin);
 
         // Travelers report a problem with a story (F-20). The only traveler-facing Factory route; the gateway exposes it separately.
         app.MapPost("/api/factory/v1/stories/{id:guid}/reports", (Guid id, ReportRequest request, ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) =>
@@ -133,6 +137,19 @@ internal static class FactoryEndpoints
                 : Task.FromResult(Results.Unauthorized())).RequireAuthorization(Policies.Traveler);
 
         return app;
+    }
+
+    private static void MapVideos(RouteGroupBuilder admin)
+    {
+        // The only route that calls YouTube; the apps never do (F-19).
+        admin.MapGet("/videos/search", (string q, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<VideoCandidate>>>(new SearchVideosQuery(q), ct), items => items));
+        admin.MapGet("/places/{id:guid}/videos", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<PlaceVideo>>>(new ListPlaceVideosQuery(id), ct), items => items));
+        admin.MapPost("/places/{id:guid}/videos", (Guid id, SelectVideoRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<PlaceVideo>>(new SelectVideoCommand(id, request.VideoId), ct), video => video));
+        admin.MapDelete("/places/{id:guid}/videos/{videoId}", (Guid id, string videoId, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new RemoveVideoCommand(id, videoId), ct), _ => new { removed = true }));
     }
 
     private static void MapBatches(RouteGroupBuilder admin)
@@ -253,6 +270,8 @@ internal static class FactoryEndpoints
     {
         var status = error.Code.EndsWith("not_found", StringComparison.Ordinal) ? StatusCodes.Status404NotFound
             : error.Code is "validation" ? StatusCodes.Status400BadRequest
+            : error.Code is "youtube_not_configured" ? StatusCodes.Status503ServiceUnavailable
+            : error.Code is "youtube_unavailable" ? StatusCodes.Status502BadGateway
             : StatusCodes.Status409Conflict;
         return Results.Problem(title: error.Message, statusCode: status, type: $"https://on.voyage/problems/{error.Code}");
     }

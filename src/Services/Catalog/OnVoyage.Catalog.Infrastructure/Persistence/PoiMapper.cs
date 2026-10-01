@@ -39,8 +39,13 @@ internal static class PoiMapper
             row.Ethics?.CrowdProfile.Peak ?? 1,
             row.HiddenGem,
             weights,
-            stories);
+            stories,
+            [.. row.Links.OrderBy(link => link.Kind, StringComparer.Ordinal).ThenBy(link => link.Lang, StringComparer.Ordinal).ThenBy(link => link.Title, StringComparer.Ordinal)
+                .Select(link => new ExternalLink(link.Kind, link.Lang, link.Title, link.Url, link.Channel, MediaUrl(link.ThumbnailPath, mediaBaseUrl), link.VideoId))]);
     }
+
+    private static string? MediaUrl(string? path, string mediaBaseUrl) =>
+        string.IsNullOrEmpty(path) ? null : $"{mediaBaseUrl.TrimEnd('/')}/{path.TrimStart('/')}";
 
     private static string? AudioUrl(StoryRow story, string mediaBaseUrl) =>
         string.IsNullOrEmpty(story.AudioPath) ? null : story.AudioPath.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? story.AudioPath : $"{mediaBaseUrl.TrimEnd('/')}/{story.AudioPath.TrimStart('/')}";

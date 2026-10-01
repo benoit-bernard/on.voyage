@@ -1,0 +1,115 @@
+@page "/admin/kpis"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+@inject TimeProvider Clock
+
+<h1>Indicateurs</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <div class="row">
+        <div>
+            <label for="from">Du</label>
+            <input id="from" type="date" @bind="_from" />
+        </div>
+        <div>
+            <label for="to">Au</label>
+            <input id="to" type="date" @bind="_to" />
+        </div>
+        <div>
+            <label for="destination">Destination</label>
+            <select id="destination" @bind="_destination">
+                <option value="">Toutes</option>
+                @foreach (var destination in _destinations)
+                {
+                    <option value="@destination.Slug">@destination.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="cohort">Cohorte</label>
+            <select id="cohort" @bind="_cohort">
+                <option value="">Toutes</option>
+                <option value="personalised">« Pour vous »</option>
+                <option value="control">Témoin (20 %)</option>
+            </select>
+        </div>
+        <button type="button" class="primary" disabled="@Busy" @onclick="LoadReport">Afficher</button>
+    </div>
+</section>
+
+@if (_loaded && _report is null)
+{
+    <p class="alert warn" role="status">Le service Insights n'est pas encore branché : aucune valeur à afficher. Les indicateurs et leurs cibles (§26) sont listés ci-dessous.</p>
+}
+
+@foreach (var family in KpiCatalog.All.GroupBy(definition => definition.Family))
+{
+    <section class="card">
+        <h2>@family.Key</h2>
+        <table>
+            <thead><tr><th>Indicateur</th><th>Valeur</th><th>Cible</th><th>État</th></tr></thead>
+            <tbody>
+                @foreach (var definition in family)
+                {
+                    var reading = _report?.Values.GetValueOrDefault(definition.Key);
+                    var status = KpiCatalog.Evaluate(definition, reading);
+                    <tr class="kpi @status.ToString().ToLowerInvariant()">
+                        <td>@definition.Label@if (definition.Hint is not null) { <br /><span class="muted">@definition.Hint</span> }</td>
+                        <td>@(reading?.Value is { } value ? KpiCatalog.Format(definition, value) : "—")@if (reading is { Sample: > 0 }) { <br /><span class="muted">sur @reading.Sample.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))</span> }</td>
+                        <td>@KpiCatalog.FormatTarget(definition)</td>
+                        <td>@StatusLabel(status)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        @if (family.Key == "KPI stratégique" && _report is not null)
+        {
+            var rises = KpiCatalog.DepthRisesWithProfile(_report.Values);
+            <p class="@(rises == true ? "ok-text" : rises == false ? "bad" : "muted")" id="depth-trend">
+                @(rises switch { true => "Le taux de clic croît bien avec la profondeur du profil.", false => "Le taux de clic ne croît pas d'une tranche à l'autre : l'hypothèse n'est pas confirmée.", _ => "Pas encore assez de données pour comparer les tranches." })
+            </p>
+        }
+    </section>
+}
+
+@code {
+    private IReadOnlyList<DestinationItem> _destinations = [];
+    private KpiReport? _report;
+    private bool _loaded;
+    private DateTime _from;
+    private DateTime _to;
+    private string _destination = string.Empty;
+    private string _cohort = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var today = Clock.GetUtcNow().UtcDateTime.Date;
+        _to = today;
+        _from = today.AddDays(-30);
+        _destinations = await LoadAsync(() => Api.GetDestinationsAsync()) ?? [];
+        await LoadReport();
+    }
+
+    private async Task LoadReport()
+    {
+        if (_from > _to)
+        {
+            Error = "La date de début doit précéder la date de fin.";
+            return;
+        }
+
+        Error = null;
+        _report = await LoadAsync(() => Api.GetKpisAsync(DateOnly.FromDateTime(_from), DateOnly.FromDateTime(_to), _destination, _cohort));
+        _loaded = true;
+    }
+
+    private static string StatusLabel(KpiStatus status) => status switch
+    {
+        KpiStatus.Met => "Atteinte",
+        KpiStatus.Missed => "Non atteinte",
+        KpiStatus.SampleTooSmall => "Échantillon trop petit",
+        KpiStatus.Tracked => "Suivi",
+        _ => "Pas de données",
+    };
+}

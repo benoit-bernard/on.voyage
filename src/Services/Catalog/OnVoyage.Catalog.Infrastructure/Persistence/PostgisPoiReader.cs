@@ -55,6 +55,6 @@ internal sealed class PostgisPoiReader(CatalogDbContext db, Microsoft.Extensions
     }
 
     private static Task<List<PoiRow>> LoadAsync(IQueryable<PoiRow> query, CancellationToken cancellationToken) =>
-        query.Include(poi => poi.Texts).Include(poi => poi.Interests).Include(poi => poi.Ethics).Include(poi => poi.Stories)
+        query.Include(poi => poi.Texts).Include(poi => poi.Interests).Include(poi => poi.Ethics).Include(poi => poi.Stories).Include(poi => poi.Links)
             .AsSplitQuery().ToListAsync(cancellationToken);
 }

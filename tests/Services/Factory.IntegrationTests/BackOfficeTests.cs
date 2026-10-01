@@ -16,6 +16,9 @@ public sealed class BackOfficeTests(PostgresFixture postgres) : IAsyncLifetime
     {
         Assert.SkipUnless(FactoryHarness.Osm2pgsqlAvailable, "osm2pgsql is not installed (apt install osm2pgsql).");
         _f = await FactoryHarness.StartAsync(postgres);
+        _f.Wikidata.Entities["Q273003"] = new OnVoyage.Factory.Application.PlaceEnrichment(
+            "Q273003", "Notre-Dame de la Garde", null, "Basilique", null, [], ["Q10387689"], null, 80, "Basilique Notre-Dame de la Garde", null, null, null, DateTimeOffset.UtcNow);
+        _f.Pageviews.ByTitle["Basilique Notre-Dame de la Garde"] = 2_000_000;
         await _f.RunPipelineAsync();
     }
 
@@ -143,5 +146,67 @@ public sealed class BackOfficeTests(PostgresFixture postgres) : IAsyncLifetime
 
         (await _f.Admin.DeleteAsync($"{Admin}/pronunciations/marseille/Canebière", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
         (await _f.Admin.DeleteAsync($"{Admin}/pronunciations/marseille/Canebière", Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+    }
+
+    private async Task<JsonElement> CatalogPlaceAsync() => await _f.Traveler.GetFromJsonAsync<JsonElement>("/api/catalog/v1/pois/notre-dame-de-la-garde", Ct);
+
+    private async Task<bool> CatalogHasAsync(Func<JsonElement, bool> condition)
+    {
+        var response = await _f.Traveler.GetAsync("/api/catalog/v1/pois/notre-dame-de-la-garde", Ct);
+        return response.IsSuccessStatusCode && condition(await response.Content.ReadFromJsonAsync<JsonElement>(Ct));
+    }
+
+    [Fact]
+    public async Task Selected_videos_and_the_wikipedia_article_reach_the_catalog_as_links_with_our_own_thumbnail()
+    {
+        var garde = await IdOfAsync("notre-dame-de-la-garde");
+        (await _f.Admin.PostAsync($"{Admin}/places/{garde}/publish", null, Ct)).EnsureSuccessStatusCode();
+
+        var search = await _f.Admin.GetFromJsonAsync<JsonElement>($"{Admin}/videos/search?q=notre-dame%20de%20la%20garde", Ct);
+        search.GetArrayLength().ShouldBe(3);
+        _f.Content.Videos.Searches.ShouldBe(["notre-dame de la garde"]);
+
+        var picked = await _f.Admin.PostAsJsonAsync($"{Admin}/places/{garde}/videos", new { videoId = "abcdefghijk" }, Ct);
+        picked.StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await _f.Admin.PostAsJsonAsync($"{Admin}/places/{garde}/videos", new { videoId = "ZYXWVUTSRQP" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        (await FactoryHarness.EventuallyAsync(async () => await CatalogHasAsync(poi => poi.GetProperty("links").GetArrayLength() == 3))).ShouldBeTrue("the links never reached the catalog");
+        var links = (await CatalogPlaceAsync()).GetProperty("links").EnumerateArray().ToList();
+        links.Select(link => link.GetProperty("kind").GetString()).Order().ShouldBe(["wikipedia", "youtube", "youtube"]);
+        links.Single(link => link.GetProperty("kind").GetString() == "wikipedia").GetProperty("url").GetString().ShouldBe("https://fr.wikipedia.org/wiki/Basilique_Notre-Dame_de_la_Garde");
+        var video = links.Single(link => link.GetProperty("videoId").ValueKind == JsonValueKind.String && link.GetProperty("videoId").GetString() == "abcdefghijk");
+        video.GetProperty("url").GetString().ShouldBe("https://www.youtube.com/watch?v=abcdefghijk");
+        video.GetProperty("channel").GetString().ShouldBe("Marseille Tourisme");
+        var thumbnail = video.GetProperty("thumbnailUrl").GetString()!;
+        thumbnail.ShouldContain("/media/thumbs/");
+        thumbnail.ShouldNotContain("ytimg");
+        File.Exists(Path.Combine(_f.MediaDirectory, "thumbs", garde.ToString(), "abcdefghijk.jpg")).ShouldBeTrue("the thumbnail is copied to our storage");
+
+        // A third video is refused; removing one republishes without it.
+        (await _f.Admin.PostAsJsonAsync($"{Admin}/places/{garde}/videos", new { videoId = "QQQQQQQQQQQ" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
+        (await _f.Admin.DeleteAsync($"{Admin}/places/{garde}/videos/abcdefghijk", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await FactoryHarness.EventuallyAsync(async () => await CatalogHasAsync(poi => poi.GetProperty("links").GetArrayLength() == 2))).ShouldBeTrue("the removed video stayed visible");
+        (await _f.Admin.DeleteAsync($"{Admin}/places/{garde}/videos/abcdefghijk", Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await _f.Admin.GetFromJsonAsync<JsonElement>($"{Admin}/places/{garde}/videos", Ct)).GetArrayLength().ShouldBe(1);
+    }
+
+    [Fact]
+    public async Task Video_routes_are_for_administrators_and_report_a_missing_key_or_a_forged_id_clearly()
+    {
+        var garde = await IdOfAsync("notre-dame-de-la-garde");
+        using var traveler = _f.ApiClient(TestTokens.Mint());
+        (await traveler.GetAsync($"{Admin}/videos/search?q=garde", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await traveler.PostAsJsonAsync($"{Admin}/places/{garde}/videos", new { videoId = "abcdefghijk" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        (await _f.Admin.PostAsJsonAsync($"{Admin}/places/{garde}/videos", new { videoId = "../../etc/passwd" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        (await _f.Admin.GetAsync($"{Admin}/videos/search?q=a", Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+
+        _f.Content.Videos.IsConfigured = false;
+        (await _f.Admin.GetAsync($"{Admin}/videos/search?q=garde", Ct)).StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        (await _f.Admin.PostAsJsonAsync($"{Admin}/places/{garde}/videos", new { videoId = "abcdefghijk" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);
+        _f.Content.Videos.Known.Remove("abcdefghijk");
+        _f.Content.Videos.IsConfigured = true;
+        (await _f.Admin.PostAsJsonAsync($"{Admin}/places/{garde}/videos", new { videoId = "abcdefghijk" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await _f.CountAsync("select count(*) from factory.place_video")).ShouldBe(0);
     }
 }

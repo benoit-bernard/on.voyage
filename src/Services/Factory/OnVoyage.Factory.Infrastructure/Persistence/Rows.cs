@@ -259,3 +259,14 @@ internal sealed class GenerationJobRow
     public string? Outcome { get; set; }
     public DateTimeOffset UpdatedAt { get; set; }
 }
+
+internal sealed class PlaceVideoRow
+{
+    public Guid PlaceId { get; set; }
+    public string VideoId { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string Channel { get; set; } = string.Empty;
+    public string ThumbnailPath { get; set; } = string.Empty;
+    public string Url { get; set; } = string.Empty;
+    public DateTimeOffset SelectedAt { get; set; }
+}

@@ -1,3 +1,4 @@
+using OnVoyage.Factory.Application.Features.Videos;
 using OnVoyage.Factory.Application.Ports;
 using OnVoyage.Factory.Contracts;
 using OnVoyage.Taxonomy;
@@ -36,7 +37,7 @@ public static class PublishPlaceHandler
     /// one that was never scored: the catalog's recommendations depend on the interest vector.
     /// </summary>
     public static async Task<Result<int>> Handle(
-        PublishPlaceCommand command, IPlaceStore places, IDestinationCatalog destinations, TimeProvider clock, CancellationToken cancellationToken)
+        PublishPlaceCommand command, IPlaceStore places, IDestinationCatalog destinations, IVideoStore videos, TimeProvider clock, CancellationToken cancellationToken)
     {
         var place = await places.FindAsync(command.PlaceId, cancellationToken);
         if (place is null)
@@ -83,11 +84,33 @@ public static class PublishPlaceHandler
             [.. interests.Select(item => new PoiInterestV1(item.Code, (float)item.Weight))],
             new PoiCrowdProfileV1(detail.Offpeak, detail.Shoulder, detail.Peak),
             detail.Fragile,
-            detail.AccessRegulated);
+            detail.AccessRegulated,
+            await LinksAsync(place, videos, cancellationToken));
 
         await places.PublishAsync(place.Id, version, published, cancellationToken);
         return Result.Success(version);
     }
+
+    /// <summary>Links out (F-19): Wikipedia articles from the enrichment, then the videos an editor selected.</summary>
+    private static async Task<IReadOnlyList<PoiLinkV1>> LinksAsync(PlaceRecord place, IVideoStore videos, CancellationToken cancellationToken)
+    {
+        List<PoiLinkV1> links = [];
+        if (place.Enrichment?.WikipediaFr is { Length: > 0 } fr)
+        {
+            links.Add(new PoiLinkV1("wikipedia", "fr", WikipediaUrl("fr", fr), fr));
+        }
+
+        if (place.Enrichment?.WikipediaEn is { Length: > 0 } en)
+        {
+            links.Add(new PoiLinkV1("wikipedia", "en", WikipediaUrl("en", en), en));
+        }
+
+        links.AddRange((await videos.ListAsync(place.Id, cancellationToken)).OrderBy(video => video.SelectedAt)
+            .Select(video => new PoiLinkV1("youtube", "fr", video.Url, video.Title, video.Channel, video.ThumbnailPath, video.VideoId)));
+        return links;
+    }
+
+    private static string WikipediaUrl(string language, string title) => $"https://{language}.wikipedia.org/wiki/{Uri.EscapeDataString(title.Replace(' ', '_'))}";
 }
 
 public static class UnpublishPlaceHandler

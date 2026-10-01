@@ -37,6 +37,9 @@ public static class DependencyInjection
 
         services.AddHttpClient<IOsmImporter, OsmImporter>(client => client.Timeout = TimeSpan.FromHours(2));
         services.AddHttpClient<WikimediaRequester>(client => client.Timeout = TimeSpan.FromSeconds(90));
+        services.AddScoped<OnVoyage.Factory.Application.Features.Videos.IVideoStore, VideoStore>();
+        services.AddHttpClient<OnVoyage.Factory.Application.Features.Videos.IVideoSearch, YouTubeClient>(client => client.Timeout = TimeSpan.FromSeconds(20))
+            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         services.AddScoped<IWikidataClient, WikidataSparqlClient>();
         services.AddScoped<IPageviewsClient, WikimediaPageviewsClient>();
 

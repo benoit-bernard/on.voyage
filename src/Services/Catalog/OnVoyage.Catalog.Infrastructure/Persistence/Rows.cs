@@ -45,6 +45,7 @@ internal sealed class PoiRow
     public List<PoiInterestRow> Interests { get; set; } = [];
     public PoiEthicsRow? Ethics { get; set; }
     public List<StoryRow> Stories { get; set; } = [];
+    public List<ExternalLinkRow> Links { get; set; } = [];
 }
 
 internal sealed class PoiTextRow
@@ -108,3 +109,16 @@ internal sealed class ConfigSnapshotRow
 internal sealed record StorySourceJson(string Title, string? Publisher, string Url, string License);
 
 internal sealed record StoryAudioPartJson(string Part, string Path, string Sha256, int DurationSeconds);
+
+internal sealed class ExternalLinkRow
+{
+    public Guid Id { get; set; }
+    public Guid PoiId { get; set; }
+    public string Kind { get; set; } = string.Empty;
+    public string Lang { get; set; } = "fr";
+    public string Url { get; set; } = string.Empty;
+    public string Title { get; set; } = string.Empty;
+    public string? Channel { get; set; }
+    public string? ThumbnailPath { get; set; }
+    public string? VideoId { get; set; }
+}

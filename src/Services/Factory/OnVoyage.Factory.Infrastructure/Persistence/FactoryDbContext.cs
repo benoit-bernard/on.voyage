@@ -23,6 +23,8 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
 
     public DbSet<GenerationJobRow> GenerationJobs => Set<GenerationJobRow>();
 
+    public DbSet<PlaceVideoRow> PlaceVideos => Set<PlaceVideoRow>();
+
     public DbSet<AuditLogRow> AuditLog => Set<AuditLogRow>();
 
     public DbSet<LlmCallRow> LlmCalls => Set<LlmCallRow>();
@@ -142,6 +144,12 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
             entity.ToTable("generation_job", table => table.HasCheckConstraint("ck_generation_job_state", "state in ('Pending', 'Running', 'Succeeded', 'Failed')"));
             entity.HasKey(row => row.Id);
             entity.HasIndex(row => new { row.BatchId, row.State });
+        });
+
+        modelBuilder.Entity<PlaceVideoRow>(entity =>
+        {
+            entity.ToTable("place_video");
+            entity.HasKey(row => new { row.PlaceId, row.VideoId });
         });
 
         modelBuilder.Entity<AuditLogRow>(entity =>

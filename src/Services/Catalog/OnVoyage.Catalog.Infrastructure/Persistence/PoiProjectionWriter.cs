@@ -8,7 +8,7 @@ internal sealed class PoiProjectionWriter(CatalogDbContext db, TimeProvider cloc
 {
     public async Task<bool> ApplyPublishedAsync(PoiPublishedV1 published, CancellationToken cancellationToken)
     {
-        var row = await db.Pois.Include(poi => poi.Texts).Include(poi => poi.Interests).Include(poi => poi.Ethics)
+        var row = await db.Pois.Include(poi => poi.Texts).Include(poi => poi.Interests).Include(poi => poi.Ethics).Include(poi => poi.Links)
             .FirstOrDefaultAsync(poi => poi.Id == published.PoiId, cancellationToken);
         if (row is not null && row.Version >= published.Version)
         {
@@ -67,6 +67,31 @@ internal sealed class PoiProjectionWriter(CatalogDbContext db, TimeProvider cloc
             else
             {
                 existing.Weight = interest.Weight;
+            }
+        }
+
+        // Links are replaced as a whole when the event carries them (an older event without the field leaves them alone).
+        if (published.Links is { } links)
+        {
+            foreach (var stale in row.Links.ToList())
+            {
+                db.ExternalLinks.Remove(stale);
+            }
+
+            foreach (var link in links)
+            {
+                db.ExternalLinks.Add(new ExternalLinkRow
+                {
+                    Id = Guid.CreateVersion7(),
+                    PoiId = row.Id,
+                    Kind = link.Kind,
+                    Lang = link.Lang,
+                    Url = link.Url,
+                    Title = link.Title,
+                    Channel = link.Channel,
+                    ThumbnailPath = link.ThumbnailPath,
+                    VideoId = link.VideoId,
+                });
             }
         }
 

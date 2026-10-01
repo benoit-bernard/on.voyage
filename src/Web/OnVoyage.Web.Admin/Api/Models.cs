@@ -47,6 +47,10 @@ public sealed record StoryReportItem(Guid Id, Guid StoryId, Guid TravelerId, str
 
 public sealed record StoryDetailItem(StoryItem Story, IReadOnlyList<AudioPartItem> Parts, IReadOnlyList<StoryReportItem> Reports, IReadOnlyList<FactItem> Facts);
 
+public sealed record VideoCandidateItem(string VideoId, string Title, string Channel, string ThumbnailUrl, DateTimeOffset? PublishedAt);
+
+public sealed record PlaceVideoItem(string VideoId, string Title, string Channel, string ThumbnailPath, string Url, DateTimeOffset SelectedAt);
+
 public sealed record BatchCriteriaItem(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit);
 
 public sealed record BatchHeaderItem(Guid Id, DateTimeOffset CreatedAt, string CreatedBy, BatchCriteriaItem Criteria, int Total);

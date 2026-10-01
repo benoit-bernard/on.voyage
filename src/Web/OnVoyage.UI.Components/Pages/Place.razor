@@ -43,6 +43,28 @@ else
         </article>
     }
 
+    @if (_poi.Links is { Count: > 0 } links)
+    {
+        <section class="learn-more" aria-labelledby="learn-more-title">
+            <h2 id="learn-more-title">En savoir plus</h2>
+            <ul>
+                @foreach (var link in links)
+                {
+                    <li>
+                        @* A plain link out: no embedded player, so YouTube sees nothing until the traveler chooses to open it. *@
+                        <a href="@link.Url" target="_blank" rel="noopener noreferrer">
+                            @if (link.ThumbnailUrl is not null)
+                            {
+                                <img src="@link.ThumbnailUrl" alt="" width="96" loading="lazy" />
+                            }
+                            <span>@LinkLabel(link)</span>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </section>
+    }
+
     <footer class="sources">Sources : @string.Join(" · ", _poi.Attributions)</footer>
 }
 
@@ -71,6 +93,13 @@ else
         _saved = profile.Saved.Contains(detail.Id);
         _poi = detail;
     }
+
+    private static string LinkLabel(LinkDto link) => link.Kind switch
+    {
+        "youtube" => $"Vidéo : {link.Title}{(string.IsNullOrEmpty(link.Channel) ? string.Empty : $" ({link.Channel})")}",
+        "wikipedia" => $"Wikipédia : {link.Title}",
+        _ => link.Title,
+    };
 
     private async Task ToggleSavedAsync()
     {

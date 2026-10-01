@@ -14,6 +14,7 @@ internal sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> option
     public DbSet<PoiInterestRow> PoiInterests => Set<PoiInterestRow>();
     public DbSet<PoiEthicsRow> PoiEthics => Set<PoiEthicsRow>();
     public DbSet<StoryRow> Stories => Set<StoryRow>();
+    public DbSet<ExternalLinkRow> ExternalLinks => Set<ExternalLinkRow>();
     public DbSet<ConfigSnapshotRow> ConfigSnapshot => Set<ConfigSnapshotRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -85,6 +86,14 @@ internal sealed class CatalogDbContext(DbContextOptions<CatalogDbContext> option
                 owned.Property(profile => profile.Shoulder).HasJsonPropertyName("shoulder");
                 owned.Property(profile => profile.Peak).HasJsonPropertyName("peak");
             });
+        });
+
+        modelBuilder.Entity<ExternalLinkRow>(entity =>
+        {
+            entity.ToTable("external_link", table => table.HasCheckConstraint("ck_external_link_kind", "kind in ('wikipedia', 'youtube', 'official')"));
+            entity.HasKey(row => row.Id);
+            entity.HasOne<PoiRow>().WithMany(row => row.Links).HasForeignKey(row => row.PoiId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(row => row.PoiId);
         });
 
         modelBuilder.Entity<StoryRow>(entity =>

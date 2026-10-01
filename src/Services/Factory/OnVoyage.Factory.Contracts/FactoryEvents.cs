@@ -28,7 +28,11 @@ public sealed record PoiPublishedV1(
     IReadOnlyList<PoiInterestV1> Interests,
     PoiCrowdProfileV1 Crowd,
     bool Fragile,
-    bool AccessRegulated);
+    bool AccessRegulated,
+    IReadOnlyList<PoiLinkV1>? Links = null);
+
+/// <summary>A link out (F-19): an encyclopedia article, an official site or a video an editor picked. Thumbnails live in our own storage.</summary>
+public sealed record PoiLinkV1(string Kind, string Lang, string Url, string Title, string? Channel = null, string? ThumbnailPath = null, string? VideoId = null);
 
 /// <summary>The place must disappear from the catalog.</summary>
 public sealed record PoiUnpublishedV1(Guid EventId, DateTimeOffset OccurredAt, Guid PoiId, int Version, string Reason);

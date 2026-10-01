@@ -71,6 +71,15 @@ public interface IAdminApi
 
     Task<StoryItem> OpenCorrectionAsync(Guid id, CancellationToken cancellationToken = default);
 
+    // Videos (T-407): the search runs on the server, with the server's key.
+    Task<IReadOnlyList<VideoCandidateItem>> SearchVideosAsync(string query, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PlaceVideoItem>> ListVideosAsync(Guid placeId, CancellationToken cancellationToken = default);
+
+    Task SelectVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default);
+
+    Task RemoveVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default);
+
     // Mass generation (T-404)
     Task<Guid> CreateBatchAsync(NewBatch batch, CancellationToken cancellationToken = default);
 
@@ -79,6 +88,10 @@ public interface IAdminApi
     Task<BatchDetailItem> GetBatchAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default);
+
+    // KPIs (T-406)
+    /// <summary>Null when the Insights service is not deployed or does not answer: the dashboard then says so instead of failing.</summary>
+    Task<KpiReport?> GetKpisAsync(DateOnly from, DateOnly to, string? destination, string? cohort, CancellationToken cancellationToken = default);
 
     // Configuration and references (T-408)
     Task<IReadOnlyList<ConfigEntryDto>> ListConfigAsync(CancellationToken cancellationToken = default);

@@ -138,6 +138,18 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
 
     public Task<StoryItem> OpenCorrectionAsync(Guid id, CancellationToken cancellationToken = default) => WriteAsync<StoryItem>(HttpMethod.Post, $"{Factory}/stories/{id}/correction", new { }, cancellationToken);
 
+    public Task<IReadOnlyList<VideoCandidateItem>> SearchVideosAsync(string query, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<VideoCandidateItem>>($"{Factory}/videos/search?q={Uri.EscapeDataString(query)}", cancellationToken);
+
+    public Task<IReadOnlyList<PlaceVideoItem>> ListVideosAsync(Guid placeId, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<PlaceVideoItem>>($"{Factory}/places/{placeId}/videos", cancellationToken);
+
+    public Task SelectVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default) =>
+        WriteAsync(HttpMethod.Post, $"{Factory}/places/{placeId}/videos", new { videoId }, cancellationToken);
+
+    public Task RemoveVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default) =>
+        WriteAsync(HttpMethod.Delete, $"{Factory}/places/{placeId}/videos/{Uri.EscapeDataString(videoId)}", null, cancellationToken);
+
     public async Task<Guid> CreateBatchAsync(NewBatch batch, CancellationToken cancellationToken = default) =>
         (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches", new { batch.Destination, batch.MinImportance, batch.PlaceStatuses, batch.Lang, batch.Kind, batch.Limit }, cancellationToken)).GetProperty("id").GetGuid();
 
@@ -148,6 +160,19 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
 
     public async Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default) =>
         (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches/{id}/retry", null, cancellationToken)).GetProperty("requeued").GetInt32();
+
+    public async Task<KpiReport?> GetKpisAsync(DateOnly from, DateOnly to, string? destination, string? cohort, CancellationToken cancellationToken = default)
+    {
+        var query = $"from={from:yyyy-MM-dd}&to={to:yyyy-MM-dd}{(string.IsNullOrEmpty(destination) ? string.Empty : $"&destination={Uri.EscapeDataString(destination)}")}{(string.IsNullOrEmpty(cohort) ? string.Empty : $"&cohort={Uri.EscapeDataString(cohort)}")}";
+        try
+        {
+            return await GetAsync<KpiReport>($"api/insights/v1/kpis?{query}", cancellationToken);
+        }
+        catch (AdminApiException exception) when (exception.Status is 404 or 502 or 503 or 504)
+        {
+            return null; // no Insights behind the gateway yet
+        }
+    }
 
     public Task<IReadOnlyList<ConfigEntryDto>> ListConfigAsync(CancellationToken cancellationToken = default) => GetAsync<IReadOnlyList<ConfigEntryDto>>($"{Platform}/config", cancellationToken);
 

@@ -232,4 +232,61 @@ public sealed class PageTests : BunitContext
 
         _api.Received(1).SetPronunciationAsync("marseille", "Canebière", "Canebiaire", Arg.Any<CancellationToken>());
     }
+
+    private (PlaceItem Place, IRenderedComponent<PlaceDetail> Cut) ShowPlaceWithVideos(IReadOnlyList<PlaceVideoItem> selected)
+    {
+        var place = Place("Notre-Dame de la Garde", "Published");
+        _api.GetPlaceAsync(place.Id, Arg.Any<CancellationToken>()).Returns(new PlaceDetailItem(place, [], new EthicsItem(false, false), new CrowdItem(1, 2, 3), null, false));
+        _api.ListVideosAsync(place.Id, Arg.Any<CancellationToken>()).Returns(selected);
+        var cut = Render<PlaceDetail>(parameters => parameters.Add(p => p.Id, place.Id));
+        cut.WaitForAssertion(() => cut.Markup.ShouldContain("Vidéos (0 à 2)"));
+        return (place, cut);
+    }
+
+    private static VideoCandidateItem Candidate(string id, string title) => new(id, title, "Chaîne", $"https://i.ytimg.com/vi/{id}/mqdefault.jpg", new DateTimeOffset(2024, 5, 1, 0, 0, 0, TimeSpan.Zero));
+
+    private static PlaceVideoItem Selected(string id, string title) => new(id, title, "Chaîne", $"thumbs/x/{id}.jpg", $"https://www.youtube.com/watch?v={id}", DateTimeOffset.UtcNow);
+
+    [Fact]
+    public void An_editor_searches_on_the_server_and_picks_a_video()
+    {
+        var (place, cut) = ShowPlaceWithVideos([]);
+        _api.SearchVideosAsync("garde Marseille", Arg.Any<CancellationToken>()).Returns([Candidate("abcdefghijk", "La Bonne Mère"), Candidate("ZYXWVUTSRQP", "Vue du ciel")]);
+
+        cut.Find("input[aria-label='Recherche de vidéos']").Input("garde Marseille");
+        cut.FindAll("button").First(button => button.TextContent == "Chercher sur YouTube").Click();
+        cut.WaitForAssertion(() => cut.FindAll(".candidates li").Count.ShouldBe(2));
+        cut.FindAll(".candidates button")[0].Click();
+
+        _api.Received(1).SelectVideoAsync(place.Id, "abcdefghijk", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void Two_selected_videos_close_the_choice_and_each_can_be_removed()
+    {
+        var (place, cut) = ShowPlaceWithVideos([Selected("abcdefghijk", "Première"), Selected("ZYXWVUTSRQP", "Seconde")]);
+        _api.SearchVideosAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns([Candidate("QQQQQQQQQQQ", "Troisième")]);
+
+        cut.Find("input[aria-label='Recherche de vidéos']").Input("garde");
+        cut.FindAll("button").First(button => button.TextContent == "Chercher sur YouTube").Click();
+
+        cut.WaitForAssertion(() => cut.FindAll(".candidates button").Count.ShouldBe(1));
+        cut.Find(".candidates button").HasAttribute("disabled").ShouldBeTrue("a place has at most two videos");
+        cut.FindAll(".videos a").ShouldAllBe(link => link.GetAttribute("rel") == "noopener noreferrer");
+        cut.FindAll(".videos button")[0].Click();
+        _api.Received(1).RemoveVideoAsync(place.Id, "abcdefghijk", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public void A_search_the_server_cannot_do_shows_why_instead_of_an_empty_list()
+    {
+        var (_, cut) = ShowPlaceWithVideos([]);
+        _api.SearchVideosAsync(Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns<Task<IReadOnlyList<VideoCandidateItem>>>(_ => throw new AdminApiException("No YouTube key is configured on the server (YouTube:ApiKey).", 503));
+
+        cut.Find("input[aria-label='Recherche de vidéos']").Input("garde");
+        cut.FindAll("button").First(button => button.TextContent == "Chercher sur YouTube").Click();
+
+        cut.WaitForAssertion(() => cut.Find("[role=alert]").TextContent.ShouldContain("YouTube:ApiKey"));
+        cut.FindAll(".candidates li").ShouldBeEmpty();
+    }
 }

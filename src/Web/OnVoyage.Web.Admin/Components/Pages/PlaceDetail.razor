@@ -94,6 +94,45 @@ else
         <p class="muted">Les catégories de niveau 1 sont déduites (le poids le plus fort de leurs sous-catégories). Les poids saisis ici ne sont plus modifiés par un nouveau calcul.</p>
     </section>
 
+    <section class="card" id="videos">
+        <h2>Vidéos (0 à 2)</h2>
+        <p class="muted">La recherche se fait sur le serveur ; l'app n'appelle jamais YouTube. La vignette est copiée chez nous et le lecteur ne voit qu'un lien vers YouTube (pas d'intégration).</p>
+        @if (_videos.Count == 0)
+        {
+            <p class="muted">Aucune vidéo sélectionnée.</p>
+        }
+        else
+        {
+            <ul class="videos">
+                @foreach (var video in _videos)
+                {
+                    <li>
+                        <a href="@video.Url" target="_blank" rel="noopener noreferrer">@video.Title</a> <span class="muted">· @video.Channel</span>
+                        <button type="button" class="ghost" disabled="@Busy" @onclick="() => RemoveVideo(video.VideoId)">Retirer</button>
+                    </li>
+                }
+            </ul>
+        }
+
+        <div class="row">
+            <input aria-label="Recherche de vidéos" placeholder="Recherche (ex. @place.Name Marseille)" @bind="_videoQuery" @bind:event="oninput" @onkeydown="SearchOnEnter" />
+            <button type="button" disabled="@(Busy || _videoQuery.Trim().Length < 2)" @onclick="SearchVideos">Chercher sur YouTube</button>
+        </div>
+        @if (_candidates.Count > 0)
+        {
+            <ul class="candidates">
+                @foreach (var candidate in _candidates)
+                {
+                    <li>
+                        <img src="@candidate.ThumbnailUrl" alt="" width="120" loading="lazy" referrerpolicy="no-referrer" />
+                        <span><strong>@candidate.Title</strong><br /><span class="muted">@candidate.Channel@(candidate.PublishedAt is { } published ? $" · {published:yyyy}" : "")</span></span>
+                        <button type="button" disabled="@(Busy || _videos.Count >= 2 || _videos.Any(video => video.VideoId == candidate.VideoId))" @onclick="() => SelectVideo(candidate.VideoId)">Choisir</button>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
     <section class="card">
         <h2>Affluence et scores</h2>
         <p>Hors saison @_detail.Crowd.Offpeak · mi-saison @_detail.Crowd.Shoulder · haute saison @_detail.Crowd.Peak (échelle 1–5)</p>
@@ -111,6 +150,9 @@ else
     private bool _fragile;
     private bool _regulated;
     private string _toAdd = string.Empty;
+    private string _videoQuery = string.Empty;
+    private IReadOnlyList<PlaceVideoItem> _videos = [];
+    private IReadOnlyList<VideoCandidateItem> _candidates = [];
     private readonly Dictionary<string, double> _weights = new(StringComparer.Ordinal);
 
     protected override Task OnParametersSetAsync() => ReloadAsync();
@@ -127,6 +169,7 @@ else
         _saturated = _detail.Saturated;
         _fragile = _detail.Ethics.Fragile;
         _regulated = _detail.Ethics.AccessRegulated;
+        _videos = await LoadAsync(() => Api.ListVideosAsync(Id)) ?? [];
         _weights.Clear();
         foreach (var interest in _detail.Interests.Where(interest => interest.Code.Contains('.', StringComparison.Ordinal)))
         {
@@ -159,6 +202,23 @@ else
             _weights[code] = Math.Clamp(value, 0.05, 1);
         }
     }
+
+    private async Task SearchVideos()
+    {
+        await RunAsync(async () => _candidates = await Api.SearchVideosAsync(_videoQuery.Trim()));
+    }
+
+    private async Task SearchOnEnter(KeyboardEventArgs args)
+    {
+        if (args.Key == "Enter" && _videoQuery.Trim().Length >= 2)
+        {
+            await SearchVideos();
+        }
+    }
+
+    private Task SelectVideo(string videoId) => Act(() => Api.SelectVideoAsync(Id, videoId), "Vidéo ajoutée (le lieu publié est republié avec son lien).");
+
+    private Task RemoveVideo(string videoId) => Act(() => Api.RemoveVideoAsync(Id, videoId), "Vidéo retirée.");
 
     private void AddInterest()
     {

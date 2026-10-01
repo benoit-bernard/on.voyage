@@ -19,3 +19,6 @@ Non encore implémenté : événements d'usage, export et suppression (F-01, F-2
 
 ## Factory et fournisseurs de modèles
 Les textes envoyés à OpenAI (extraction, rédaction, vérification, voix) sont des données publiques (articles Wikipédia, faits dérivés). Aucune donnée de voyageur, position ou identifiant n'y est jointe. Le signalement d'une histoire ne stocke que l'identifiant du voyageur et le motif (500 caractères), pour limiter les abus.
+
+## Liens vers YouTube et Wikipédia
+La fiche d'un lieu propose des liens sortants (Wikipédia, deux vidéos au plus). Ce sont de simples liens : aucun lecteur intégré, aucun script ni image de YouTube dans l'app (la vignette est une copie hébergée chez nous). YouTube ne reçoit rien tant que le voyageur n'ouvre pas le lien ; la recherche et le choix des vidéos se font côté serveur, par un administrateur.

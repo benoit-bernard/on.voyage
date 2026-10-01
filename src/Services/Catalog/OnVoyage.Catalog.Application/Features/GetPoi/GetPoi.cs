@@ -24,6 +24,7 @@ public static class GetPoiHandler
         string[] attributions = [.. Attributions, .. poi.Stories.SelectMany(story => story.Sources ?? []).Distinct(StringComparer.Ordinal)];
         return Result.Success(new PoiDetailDto(
             poi.Id, poi.Slug, poi.Name, poi.Category, poi.Location.Latitude, poi.Location.Longitude,
-            poi.Importance, poi.CrowdLevel, poi.HiddenGem, stories, attributions));
+            poi.Importance, poi.CrowdLevel, poi.HiddenGem, stories, attributions,
+            [.. (poi.Links ?? []).Select(link => new LinkDto(link.Kind, link.Language, link.Title, link.Url, link.Channel, link.ThumbnailUrl, link.VideoId))]));
     }
 }

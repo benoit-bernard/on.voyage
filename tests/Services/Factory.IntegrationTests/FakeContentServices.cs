@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OnVoyage.Factory.Application.Content;
+using OnVoyage.Factory.Application.Features.Videos;
 
 namespace Factory.IntegrationTests;
 
@@ -31,6 +32,8 @@ internal sealed class FakeContentServices
 
     public FakeSpeech Speech { get; } = new();
 
+    public FakeVideoSearch Videos { get; } = new();
+
     public void Register(IServiceCollection services)
     {
         services.RemoveAll<IWikipediaTextClient>();
@@ -43,6 +46,8 @@ internal sealed class FakeContentServices
         services.AddSingleton<IStoryVerifier>(Verifier);
         services.RemoveAll<ITextToSpeechProvider>();
         services.AddSingleton<ITextToSpeechProvider>(Speech);
+        services.RemoveAll<IVideoSearch>();
+        services.AddSingleton<IVideoSearch>(Videos);
     }
 }
 
@@ -150,4 +155,28 @@ internal sealed class FakeSpeech : ITextToSpeechProvider
 
         return stream.ToArray();
     }
+}
+
+internal sealed class FakeVideoSearch : IVideoSearch
+{
+    public bool IsConfigured { get; set; } = true;
+
+    public List<string> Searches { get; } = [];
+
+    public Dictionary<string, VideoCandidate> Known { get; } = new(StringComparer.Ordinal)
+    {
+        ["abcdefghijk"] = new("abcdefghijk", "La Bonne Mère racontée", "Marseille Tourisme", "https://i.ytimg.com/vi/abcdefghijk/mqdefault.jpg", new DateTimeOffset(2024, 5, 1, 0, 0, 0, TimeSpan.Zero)),
+        ["ZYXWVUTSRQP"] = new("ZYXWVUTSRQP", "Vue depuis la colline", "Provence Drone", "https://i.ytimg.com/vi/ZYXWVUTSRQP/mqdefault.jpg", null),
+        ["QQQQQQQQQQQ"] = new("QQQQQQQQQQQ", "Une troisième vidéo", "Autre", "https://i.ytimg.com/vi/QQQQQQQQQQQ/mqdefault.jpg", null),
+    };
+
+    public Task<IReadOnlyList<VideoCandidate>> SearchAsync(string query, int maxResults, CancellationToken cancellationToken)
+    {
+        Searches.Add(query);
+        return Task.FromResult<IReadOnlyList<VideoCandidate>>([.. Known.Values]);
+    }
+
+    public Task<VideoCandidate?> GetAsync(string videoId, CancellationToken cancellationToken) => Task.FromResult(Known.GetValueOrDefault(videoId));
+
+    public Task<byte[]?> DownloadThumbnailAsync(string url, CancellationToken cancellationToken) => Task.FromResult<byte[]?>([0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10]);
 }

@@ -9,3 +9,4 @@ h2 { font-size: 1.1rem; margin: 1.25rem 0 .25rem; }
 article p { line-height: 1.6; }
 .note, .sources, .empty { color: var(--ov-muted); font-size: .8rem; }
 .sources { margin-top: 1.5rem; }
+.learn-more ul { list-style: none; padding: 0; margin: 0; } .learn-more li { margin: .4rem 0; } .learn-more a { display: flex; gap: .6rem; align-items: center; color: var(--ov-accent); } .learn-more img { border-radius: .4rem; }
