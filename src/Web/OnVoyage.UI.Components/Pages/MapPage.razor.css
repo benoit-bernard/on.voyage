@@ -1,0 +1,8 @@
+.filters { display: flex; gap: .4rem; overflow-x: auto; padding-bottom: .5rem; }
+.chip { flex: none; padding: .4rem .8rem; border: 1px solid var(--ov-line); border-radius: 2rem; background: var(--ov-surface); color: var(--ov-ink); font: inherit; font-size: .85rem; cursor: pointer; }
+.chip[aria-pressed="true"] { background: var(--ov-accent); color: var(--ov-on-accent); border-color: var(--ov-accent); }
+.map-area { height: min(60vh, 32rem); }
+.preview { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .75rem; padding: .8rem 1rem; border-radius: .9rem; background: var(--ov-surface); border: 1px solid var(--ov-line); }
+.preview h2 { margin: 0; font-size: 1.05rem; }
+.preview p { margin: .15rem 0; color: var(--ov-muted); font-size: .85rem; }
+.play { width: 3rem; height: 3rem; border: 0; border-radius: 50%; background: var(--ov-accent); color: var(--ov-on-accent); font-size: 1.2rem; cursor: pointer; }

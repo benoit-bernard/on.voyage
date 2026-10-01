@@ -30,6 +30,10 @@ Au premier lancement l'app crée une session anonyme sans rien demander. L'écra
 
 Publier avec `dotnet publish src/Web/OnVoyage.Web.Pwa -c Release`, fixer `Gateway:BaseAddress` dans `wwwroot/appsettings.json` (vide = même origine) et autoriser l'origine de la PWA dans `Cors:AllowedOrigins` du Gateway.
 
+## Carte, découverte, audio et données locales
+
+Voir ADR-0010. Pour la carte : renseigner `Map:TilesUrl` (fichier `.pmtiles` servi avec requêtes Range) et ajouter les polices dans `src/Web/OnVoyage.UI.Components/wwwroot/fonts/`. Le mode découverte demande la permission de position uniquement quand on appuie sur le bouton ; dans la PWA il ne fonctionne que page ouverte (le navigateur coupe la position écran verrouillé).
+
 ## Reste à faire pour le MVP-0 mobile
 
-Lecture audio en arrière-plan (`CommunityToolkit.Maui.MediaElement`, service `mediaPlayback` Android, mode `audio` iOS déjà déclaré), carte MapLibre/PMTiles, signature des builds (H-003), SQLite.
+Essai sur appareil (audio écran verrouillé, GPS réel), traces GPX réelles de H-001, fichier PMTiles et polices de la carte, signature des builds (H-003), endpoint d'événements de la plateforme pour vider la file d'envoi.

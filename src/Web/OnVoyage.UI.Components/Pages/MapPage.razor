@@ -1,0 +1,120 @@
+@page "/carte"
+@inject ICatalogClient Catalog
+@inject IProfileStore Profiles
+@inject ILocationProvider Location
+@inject AudioPlaybackController Audio
+@inject MapSettings Settings
+
+<PageTitle>Carte · ON.VOYAGE</PageTitle>
+
+<h1>Carte</h1>
+
+@if (Settings.TilesUrl is null)
+{
+    <p class="empty" role="status">La carte n'est pas encore configurée pour cette version.</p>
+}
+else if (_error is not null)
+{
+    <p class="empty" role="alert">@_error</p>
+    <button class="btn" @onclick="LoadAsync">Réessayer</button>
+}
+else
+{
+    <div class="filters" role="group" aria-label="Filtres de la carte">
+        @foreach (var category in _categories)
+        {
+            <button type="button" class="chip" aria-pressed="@Pressed(_filters.Categories.Contains(category))" @onclick="() => ToggleCategory(category)">@category</button>
+        }
+        <button type="button" class="chip" aria-pressed="@Pressed(_filters.LessCrowded)" @onclick="() => Update(_filters with { LessCrowded = !_filters.LessCrowded })">Moins fréquentés</button>
+        <button type="button" class="chip" aria-pressed="@Pressed(_filters.WithAudio)" @onclick="() => Update(_filters with { WithAudio = !_filters.WithAudio })">Avec audio</button>
+        <button type="button" class="chip" aria-pressed="@Pressed(_filters.SavedOnly)" @onclick="() => Update(_filters with { SavedOnly = !_filters.SavedOnly })">Sauvegardés</button>
+    </div>
+
+    <div class="map-area">
+        <MapView Settings="Settings" Features="_features" UserLocation="_me" PoiTapped="OnTapped" />
+    </div>
+
+    @if (_selected is not null)
+    {
+        <section class="preview" aria-label="@_selected.Name">
+            <div class="preview-text">
+                <h2>@_selected.Name</h2>
+                <p>@_selected.Category@(_selected.AudioSeconds is { } seconds ? $" · {seconds / 60}:{seconds % 60:00}" : "")</p>
+                <a href="lieu/@_selected.Slug">Voir la fiche</a>
+            </div>
+            @if (CanPlay(_selected))
+            {
+                <button type="button" class="play" aria-label="Écouter @_selected.Name" @onclick="PlaySelectedAsync">▶</button>
+            }
+        </section>
+    }
+
+    <DiscoveryToggle />
+}
+
+@code {
+    private IReadOnlyList<PoiSummaryDto> _pois = [];
+    private IReadOnlyList<string> _categories = [];
+    private IReadOnlySet<Guid> _saved = new HashSet<Guid>();
+    private MapFilters _filters = new();
+    private MapGeoJson _features = new("FeatureCollection", []);
+    private PoiSummaryDto? _selected;
+    private (double Latitude, double Longitude, double Accuracy)? _me;
+    private string? _error;
+
+    protected override Task OnInitializedAsync() => Settings.TilesUrl is null ? Task.CompletedTask : LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        _error = null;
+        try
+        {
+            var profile = await Profiles.LoadAsync(CancellationToken.None);
+            var position = await Location.GetCurrentAsync(CancellationToken.None);
+            _pois = await Catalog.GetPoisAsync(profile.Destination, position?.Latitude, position?.Longitude, CancellationToken.None);
+            _saved = profile.Saved;
+            _categories = [.. _pois.Select(poi => poi.Category).Distinct().Order(StringComparer.Ordinal)];
+            _me = position is { } p ? (p.Latitude, p.Longitude, 30d) : null;
+            Rebuild();
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Impossible de charger les lieux. Vérifiez votre connexion.";
+        }
+    }
+
+    private void ToggleCategory(string category)
+    {
+        var next = new HashSet<string>(_filters.Categories);
+        if (!next.Remove(category))
+        {
+            next.Add(category);
+        }
+
+        Update(_filters with { Categories = next });
+    }
+
+    private void Update(MapFilters filters)
+    {
+        _filters = filters;
+        Rebuild();
+    }
+
+    private static string Pressed(bool on) => on ? "true" : "false";
+
+    private void Rebuild() => _features = MapFeatures.Build(_pois, _filters, _saved);
+
+    private void OnTapped(Guid id)
+    {
+        _selected = _pois.FirstOrDefault(poi => poi.Id == id);
+        StateHasChanged();
+    }
+
+    private static bool CanPlay(PoiSummaryDto poi) => poi.StoryId is not null && poi.AudioParts is { } parts && parts.ContainsKey("main");
+
+    private Task PlaySelectedAsync()
+    {
+        var poi = _selected!;
+        return Audio.PlayNowAsync(new PlayRequest(poi.StoryId!.Value, poi.Id, poi.Name, [new AudioSource(poi.AudioParts!["main"], AudioRole.Main)], PlayOrigin.Manual, poi.AudioSeconds));
+    }
+}

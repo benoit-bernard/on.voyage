@@ -24,6 +24,7 @@ public static class DependencyInjection
         services.TryAddSingleton<ICallMonitor, NoCallMonitor>();
         services.TryAddSingleton<ITriggerSettingsProvider, DefaultTriggerSettingsProvider>();
         services.AddScoped<DiscoveryModeController>();
+        services.TryAddSingleton(new OnVoyage.App.Core.Map.MapSettings());
         return services;
     }
 }

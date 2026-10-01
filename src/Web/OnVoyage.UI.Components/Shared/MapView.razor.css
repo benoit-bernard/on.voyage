@@ -1,0 +1,4 @@
+.map-wrap { position: relative; height: 100%; min-height: 20rem; border-radius: .9rem; overflow: hidden; background: var(--ov-chip); }
+.map { position: absolute; inset: 0; }
+/* The attribution is part of the page, not of the map library: no control can hide it. */
+.attribution-fixed { position: absolute; right: 0; bottom: 0; z-index: 2; margin: 0; padding: .15rem .45rem; font-size: .7rem; color: var(--ov-ink); background: color-mix(in srgb, var(--ov-surface) 85%, transparent); border-top-left-radius: .4rem; }
