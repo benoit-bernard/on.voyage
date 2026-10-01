@@ -15,7 +15,7 @@
 
 ## Conséquences et écarts
 - **Resend est un nouveau sous-traitant** hors liste du §16.4 (qui prévoyait un SMTP européen) : il reçoit l'adresse e-mail et le code. Décision explicite du propriétaire produit ; `docs/PRIVACY.md` et `docs/questions/Q-2026-10-01-resend.md` listent ce qu'il faut encore faire (DPA, région UE).
-- Le Gateway valide le jeton et refuse les routes protégées ; la **limitation de débit par IP, le blocage des User-Agents et l'expurgation des traces du Gateway (reste de T-003) ne sont pas faits** — la création de sessions anonymes n'est donc pas encore limitée.
+- Le Gateway valide le jeton et refuse les routes protégées ; la limitation de débit, le blocage des User-Agents et l'expurgation des traces sont traités dans l'ADR-0006.
 - Pas de suppression de compte ni d'export (T-507) ; la purge des comptes anonymes inactifs (24 mois) reste à faire. `account.last_active_at` est déjà tenu à jour au rafraîchissement.
 - Pas de rôle `creator` attribué (arrive avec `CreatorTermsAcceptedV1`).
 - Les entrées `X-Admin-Key` / `X-Traveler-Id` du T-007 sont supprimées.

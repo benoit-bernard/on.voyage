@@ -49,6 +49,12 @@ var gateway = builder.AddProject<Projects.OnVoyage_Gateway>("gateway")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health");
 
+if (!builder.ExecutionContext.IsRunMode)
+{
+    // Published deployments put Caddy/Traefik in front of the Gateway: take the client address from X-Forwarded-For (rate limiting).
+    gateway.WithEnvironment("Gateway__TrustForwardedHeaders", "true");
+}
+
 // The PWA reads the gateway address from its own configuration (wwwroot/appsettings.json can't be injected by Aspire),
 // so the development gateway port is fixed in launchSettings and mirrored there.
 builder.AddProject<Projects.OnVoyage_Web_Pwa>("web-pwa")

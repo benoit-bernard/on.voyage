@@ -37,6 +37,7 @@
     <Project Path="tests/OnVoyage.App.Core.Tests/OnVoyage.App.Core.Tests.csproj" />
     <Project Path="tests/OnVoyage.App.Infrastructure.Tests/OnVoyage.App.Infrastructure.Tests.csproj" />
     <Project Path="tests/OnVoyage.ArchitectureTests/OnVoyage.ArchitectureTests.csproj" />
+    <Project Path="tests/OnVoyage.Gateway.Tests/OnVoyage.Gateway.Tests.csproj" />
     <Project Path="tests/OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />
     <Project Path="tests/OnVoyage.Recommendation.Engine.Tests/OnVoyage.Recommendation.Engine.Tests.csproj" />
     <Project Path="tests/OnVoyage.UI.Components.Tests/OnVoyage.UI.Components.Tests.csproj" />

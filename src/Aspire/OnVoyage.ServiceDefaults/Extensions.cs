@@ -18,6 +18,7 @@ public static class Extensions
     public static TBuilder AddServiceDefaults<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {
         builder.ConfigureOpenTelemetry();
+        builder.ConfigurePrivacyLogging();
         builder.Services.AddHealthChecks().AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
         builder.Services.AddServiceDiscovery();
         builder.Services.ConfigureHttpClientDefaults(http =>
@@ -28,6 +29,30 @@ public static class Extensions
 
         return builder;
     }
+
+    /// <summary>
+    /// A position travels in the query string of a few GET calls and must never be logged (§17.1). The framework categories below
+    /// print the full request URL (query included) at Information, so they are capped at Warning here, in code, where a configuration
+    /// file cannot quietly raise them again.
+    /// </summary>
+    public static TBuilder ConfigurePrivacyLogging<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
+    {
+        foreach (var category in UrlLoggingCategories)
+        {
+            builder.Logging.AddFilter(category, LogLevel.Warning);
+        }
+
+        return builder;
+    }
+
+    /// <summary>Logger categories known to write request URLs with their query string.</summary>
+    public static IReadOnlyList<string> UrlLoggingCategories { get; } =
+    [
+        "Microsoft.AspNetCore.Hosting.Diagnostics",
+        "Yarp.ReverseProxy.Forwarder.HttpForwarder",
+        "System.Net.Http.HttpClient",
+        "Microsoft.AspNetCore.HttpLogging",
+    ];
 
     public static TBuilder ConfigureOpenTelemetry<TBuilder>(this TBuilder builder) where TBuilder : IHostApplicationBuilder
     {

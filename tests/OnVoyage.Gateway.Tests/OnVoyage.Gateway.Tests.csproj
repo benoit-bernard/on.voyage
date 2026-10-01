@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <ProjectReference Include="../OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />
+    <ProjectReference Include="../../src/Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="../../src/Services/Platform/OnVoyage.Platform.Infrastructure/Seed/default-config.json" Link="default-config.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
