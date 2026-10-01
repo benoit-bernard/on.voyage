@@ -28,6 +28,13 @@
     <Project Path="src/Services/Catalog/OnVoyage.Catalog.Domain/OnVoyage.Catalog.Domain.csproj" />
     <Project Path="src/Services/Catalog/OnVoyage.Catalog.Infrastructure/OnVoyage.Catalog.Infrastructure.csproj" />
   </Folder>
+  <Folder Name="/src/Services/Discovery/">
+    <Project Path="src/Services/Discovery/OnVoyage.Discovery.Api/OnVoyage.Discovery.Api.csproj" />
+    <Project Path="src/Services/Discovery/OnVoyage.Discovery.Application/OnVoyage.Discovery.Application.csproj" />
+    <Project Path="src/Services/Discovery/OnVoyage.Discovery.Contracts/OnVoyage.Discovery.Contracts.csproj" />
+    <Project Path="src/Services/Discovery/OnVoyage.Discovery.Domain/OnVoyage.Discovery.Domain.csproj" />
+    <Project Path="src/Services/Discovery/OnVoyage.Discovery.Infrastructure/OnVoyage.Discovery.Infrastructure.csproj" />
+  </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/OnVoyage.Messaging/OnVoyage.Messaging.csproj" />
     <Project Path="src/Shared/OnVoyage.Recommendation.Engine/OnVoyage.Recommendation.Engine.csproj" />
@@ -57,6 +64,8 @@
   <Folder Name="/tests/Services/">
     <Project Path="tests/Services/Catalog.IntegrationTests/Catalog.IntegrationTests.csproj" />
     <Project Path="tests/Services/Catalog.UnitTests/Catalog.UnitTests.csproj" />
+    <Project Path="tests/Services/Discovery.IntegrationTests/Discovery.IntegrationTests.csproj" />
+    <Project Path="tests/Services/Discovery.UnitTests/Discovery.UnitTests.csproj" />
     <Project Path="tests/Services/Factory.UnitTests/Factory.UnitTests.csproj" />
     <Project Path="tests/Services/Platform.IntegrationTests/Platform.IntegrationTests.csproj" />
     <Project Path="tests/Services/Platform.UnitTests/Platform.UnitTests.csproj" />

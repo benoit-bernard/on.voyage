@@ -46,6 +46,13 @@ public static class MessagingRoutes
         options.PublishMessage<StoryPublishedV1>().ToPostgresqlQueue("catalog");
         options.PublishMessage<StoryUnpublishedV1>().ToPostgresqlQueue("catalog");
         options.PublishMessage<StoryArchivedV1>().ToPostgresqlQueue("catalog");
+
+        // Discovery projects places (for the learning rule) and the onboarding clips. One event reaches both queues.
+        options.PublishMessage<PoiPublishedV1>().ToPostgresqlQueue("discovery");
+        options.PublishMessage<PoiUnpublishedV1>().ToPostgresqlQueue("discovery");
+        options.PublishMessage<StoryPublishedV1>().ToPostgresqlQueue("discovery");
+        options.PublishMessage<StoryUnpublishedV1>().ToPostgresqlQueue("discovery");
+        options.PublishMessage<StoryArchivedV1>().ToPostgresqlQueue("discovery");
         return options;
     }
 }

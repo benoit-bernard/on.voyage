@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
+    <ProjectReference Include="../../OnVoyage.TestInfrastructure/OnVoyage.TestInfrastructure.csproj" />
+    <ProjectReference Include="../../../src/Services/Discovery/OnVoyage.Discovery.Api/OnVoyage.Discovery.Api.csproj" />
+    <ProjectReference Include="../../../src/Services/Discovery/OnVoyage.Discovery.Infrastructure/OnVoyage.Discovery.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>
