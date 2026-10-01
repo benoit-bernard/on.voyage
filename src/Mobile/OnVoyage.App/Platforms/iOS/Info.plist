@@ -8,7 +8,7 @@
   <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
   <key>UISupportedInterfaceOrientations~ipad</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
   <key>XSAppIconAssets</key><string>Assets.xcassets/appicon.appiconset</string>
-  <key>NSLocationWhenInUseUsageDescription</key><string>ON.VOYAGE utilise votre position, sur l'appareil uniquement, pour proposer des lieux autour de vous.</string>
+  <key>NSLocationWhenInUseUsageDescription</key><string>ON.VOYAGE utilise votre position pour proposer et raconter les lieux autour de vous. Elle sert à choisir les lieux sur votre téléphone ; elle n'est ni enregistrée ni associée à votre compte.</string>
   <key>UIBackgroundModes</key><array><string>audio</string></array>
   <key>ITSAppUsesNonExemptEncryption</key><false/>
 </dict>

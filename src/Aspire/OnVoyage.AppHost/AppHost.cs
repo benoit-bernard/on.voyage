@@ -72,11 +72,15 @@ if (builder.ExecutionContext.IsRunMode)
 }
 else
 {
+    // Both Factory hosts register the model clients at start-up and refuse to run without them.
     var openAiKey = builder.AddParameter("openai-api-key", secret: true);
     factoryWorker.WithEnvironment("OpenAI__ApiKey", openAiKey);
+    factoryApi.WithEnvironment("OpenAI__ApiKey", openAiKey);
     foreach (var role in new[] { "Extractor", "Writer", "Verifier", "Classifier" })
     {
-        factoryWorker.WithEnvironment($"Factory__Llm__{role}Model", builder.AddParameter($"llm-{role.ToLowerInvariant()}-model"));
+        var model = builder.AddParameter($"llm-{role.ToLowerInvariant()}-model");
+        factoryWorker.WithEnvironment($"Factory__Llm__{role}Model", model);
+        factoryApi.WithEnvironment($"Factory__Llm__{role}Model", model);
     }
 }
 
