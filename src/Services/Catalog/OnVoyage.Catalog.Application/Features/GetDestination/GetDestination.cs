@@ -15,7 +15,7 @@ public static class GetDestinationHandler
             return Result.Failure<DestinationDto>("destination_not_found", "Destination not found.");
         }
 
-        var pois = await reader.ListPublishedAsync(destination.Slug, cancellationToken);
-        return Result.Success(new DestinationDto(destination.Slug, destination.Name, destination.Center.Latitude, destination.Center.Longitude, pois.Count));
+        var count = await reader.CountPublishedAsync(destination.Slug, cancellationToken);
+        return Result.Success(new DestinationDto(destination.Slug, destination.Name, destination.Center.Latitude, destination.Center.Longitude, count));
     }
 }

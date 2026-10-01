@@ -18,3 +18,7 @@ dotnet_sort_system_directives_first = true
 csharp_style_var_for_built_in_types = true:suggestion
 csharp_prefer_braces = true:suggestion
 dotnet_diagnostic.IDE0161.severity = warning
+
+[**/Migrations/*.cs]
+generated_code = true
+dotnet_analyzer_diagnostic.severity = none

@@ -36,17 +36,9 @@ public static class GetNearbyPoisHandler
             return Result.Failure<IReadOnlyList<PoiSummaryDto>>("validation", validation.Errors[0].ErrorMessage);
         }
 
-        var pois = await reader.ListPublishedAsync(query.Destination, cancellationToken);
         var origin = query is { Latitude: { } lat, Longitude: { } lon } ? new GeoPoint(lat, lon) : null;
-
-        var summaries = pois
-            .Select(poi => (Poi: poi, Distance: origin is null ? (double?)null : origin.DistanceTo(poi.Location)))
-            .Where(item => item.Distance is null || item.Distance <= query.RadiusMeters)
-            .OrderBy(item => item.Distance ?? 0d)
-            .ThenBy(item => item.Poi.Name, StringComparer.Ordinal)
-            .Take(query.Limit)
-            .Select(item => Map(item.Poi, item.Distance))
-            .ToArray();
+        var places = await reader.ListPublishedAsync(query.Destination, origin, query.RadiusMeters, query.Limit, cancellationToken);
+        var summaries = places.Select(place => Map(place.Poi, place.DistanceMeters)).ToArray();
 
         return Result.Success<IReadOnlyList<PoiSummaryDto>>(summaries);
     }

@@ -86,6 +86,18 @@ public sealed class ArchitectureTests
     }
 
     [Fact]
+    public void Database_packages_live_in_infrastructure_only()
+    {
+        foreach (var project in Projects().Where(p => Service(Path.GetFileNameWithoutExtension(p)) is not null && Layer(Path.GetFileNameWithoutExtension(p)) != "Infrastructure"))
+        {
+            // The Api keeps the EF Core Design package (PrivateAssets=all) for `dotnet ef` only.
+            Packages(project)
+                .Where(package => package.StartsWith("Npgsql", StringComparison.Ordinal) || package.StartsWith("Microsoft.EntityFrameworkCore", StringComparison.Ordinal))
+                .ShouldAllBe(package => package == "Microsoft.EntityFrameworkCore.Design", project);
+        }
+    }
+
+    [Fact]
     public void Gateway_is_a_pure_proxy_without_domain_references()
     {
         var gateway = Projects().Single(p => Path.GetFileNameWithoutExtension(p) == "OnVoyage.Gateway");

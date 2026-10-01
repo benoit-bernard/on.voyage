@@ -5,18 +5,79 @@ using OnVoyage.Catalog.Contracts;
 
 namespace Catalog.IntegrationTests;
 
-public sealed class CatalogApiTests(WebApplicationFactory<Program> factory) : IClassFixture<WebApplicationFactory<Program>>
+[Collection(PostgresTestGroup.Name)]
+public sealed class CatalogApiTests(PostgresFixture postgres) : IAsyncLifetime
 {
-    private readonly HttpClient _client = factory.CreateClient();
+    private WebApplicationFactory<Program> _factory = null!;
+    private HttpClient _client = null!;
+
+    public async ValueTask InitializeAsync()
+    {
+        var connection = await postgres.CreateDatabaseAsync();
+        _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("ConnectionStrings:catalogdb", connection);
+            builder.UseSetting("Catalog:SeedDemoData", "true");
+        });
+        _client = _factory.CreateClient();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        _client.Dispose();
+        await _factory.DisposeAsync();
+    }
 
     [Fact]
-    public async Task Pois_endpoint_returns_places_through_the_wolverine_bus()
+    public async Task Destination_counts_published_places()
     {
-        var places = await _client.GetFromJsonAsync<List<PoiSummaryDto>>("/api/catalog/v1/destinations/marseille/pois?lat=43.2951&lon=5.374&limit=3", TestContext.Current.CancellationToken);
+        var destination = await _client.GetFromJsonAsync<DestinationDto>("/api/catalog/v1/destinations/marseille", TestContext.Current.CancellationToken);
+
+        destination!.PoiCount.ShouldBe(15);
+    }
+
+    [Fact]
+    public async Task Pois_are_ordered_by_distance_and_limited_by_postgis()
+    {
+        // Vieux-Port
+        var places = await _client.GetFromJsonAsync<List<PoiSummaryDto>>(
+            "/api/catalog/v1/destinations/marseille/pois?lat=43.2951&lon=5.374&radius=2000&limit=5", TestContext.Current.CancellationToken);
 
         places.ShouldNotBeNull();
-        places.Count.ShouldBe(3);
-        places[0].DistanceMeters.ShouldNotBeNull();
+        places.Count.ShouldBe(5);
+        places[0].Slug.ShouldBe("vieux-port");
+        places.Select(p => p.DistanceMeters!.Value).ShouldBe(places.Select(p => p.DistanceMeters!.Value).Order());
+        places.ShouldAllBe(p => p.DistanceMeters <= 2000);
+    }
+
+    [Fact]
+    public async Task Radius_excludes_far_places()
+    {
+        var places = await _client.GetFromJsonAsync<List<PoiSummaryDto>>(
+            "/api/catalog/v1/destinations/marseille/pois?lat=43.2951&lon=5.374&radius=100", TestContext.Current.CancellationToken);
+
+        places!.Select(p => p.Slug).ShouldBe(["vieux-port"]);
+    }
+
+    [Fact]
+    public async Task Pois_without_position_return_everything_without_distance()
+    {
+        var places = await _client.GetFromJsonAsync<List<PoiSummaryDto>>("/api/catalog/v1/destinations/marseille/pois", TestContext.Current.CancellationToken);
+
+        places!.Count.ShouldBe(15);
+        places.ShouldAllBe(p => p.DistanceMeters == null);
+        places.First(p => p.Slug == "vallon-des-auffes").HiddenGem.ShouldBeTrue();
+        places.First(p => p.Slug == "calanque-de-sormiou").Weights.ShouldContainKey("nature");
+    }
+
+    [Fact]
+    public async Task Poi_detail_returns_stories_and_attributions()
+    {
+        var poi = await _client.GetFromJsonAsync<PoiDetailDto>("/api/catalog/v1/pois/fort-saint-jean", TestContext.Current.CancellationToken);
+
+        poi!.Name.ShouldBe("Fort Saint-Jean");
+        poi.Stories.ShouldHaveSingleItem().Text.ShouldNotBeNullOrWhiteSpace();
+        poi.Attributions.ShouldContain("© OpenStreetMap contributors");
     }
 
     [Fact]
@@ -38,10 +99,29 @@ public sealed class CatalogApiTests(WebApplicationFactory<Program> factory) : IC
     }
 
     [Fact]
-    public async Task Health_endpoint_is_available()
+    public async Task Health_includes_the_database()
     {
         var response = await _client.GetAsync("/health", TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task Premium_stories_cannot_carry_public_text()
+    {
+        var connection = await postgres.CreateDatabaseAsync();
+        await using var factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
+        {
+            builder.UseSetting("ConnectionStrings:catalogdb", connection);
+            builder.UseSetting("Catalog:SeedDemoData", "true");
+        });
+        using var _ = factory.CreateClient();
+
+        await using var db = new Npgsql.NpgsqlConnection(connection);
+        await db.OpenAsync(TestContext.Current.CancellationToken);
+        await using var command = new Npgsql.NpgsqlCommand("update catalog.story set is_premium = true", db);
+
+        var failure = await Should.ThrowAsync<Npgsql.PostgresException>(() => command.ExecuteNonQueryAsync(TestContext.Current.CancellationToken));
+        failure.ConstraintName.ShouldBe("ck_story_premium_text");
     }
 }
