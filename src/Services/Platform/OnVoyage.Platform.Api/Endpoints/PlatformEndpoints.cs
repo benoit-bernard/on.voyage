@@ -1,9 +1,9 @@
-using OnVoyage.Platform.Application.Features.DataRights;
 using OnVoyage.Platform.Application;
 using OnVoyage.Platform.Application.Features.Audit;
 using OnVoyage.Platform.Application.Features.Auth;
 using OnVoyage.Platform.Application.Features.Config;
 using OnVoyage.Platform.Application.Features.Consents;
+using OnVoyage.Platform.Application.Features.DataRights;
 using OnVoyage.Platform.Application.Features.Flags;
 using OnVoyage.Platform.Contracts;
 using OnVoyage.ServiceDefaults.Security;

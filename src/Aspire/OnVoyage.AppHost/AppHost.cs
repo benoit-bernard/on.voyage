@@ -48,6 +48,14 @@ var discovery = builder.AddProject<Projects.OnVoyage_Discovery_Api>("discovery-a
     .WithEnvironment("Auth__JwtSecret", jwtSecret)
     .WithHttpHealthCheck("/health");
 
+// Insights: usage events (with the statistics consent), daily KPIs. Receives ConsentChangedV1 and ConfigChangedV1 from Platform on its own queue.
+var insights = builder.AddProject<Projects.OnVoyage_Insights_Api>("insights-api")
+    .WithReference(database)
+    .WaitFor(database)
+    .WaitFor(platform)
+    .WithEnvironment("Auth__JwtSecret", jwtSecret)
+    .WithHttpHealthCheck("/health");
+
 // Factory: the worker runs the pipeline jobs (osm2pgsql, Wikimedia, later LLM and TTS); the API is the back-office entry point.
 var factoryWorker = builder.AddProject<Projects.OnVoyage_Factory_Worker>("factory-worker")
     .WithReference(database)
@@ -64,6 +72,13 @@ var factoryApi = builder.AddProject<Projects.OnVoyage_Factory_Api>("factory-api"
 var mediaDirectory = Path.Combine(Path.GetTempPath(), "onvoyage-media");
 catalog.WithEnvironment("Media__RootPath", mediaDirectory);
 factoryWorker.WithEnvironment("Factory__MediaDirectory", mediaDirectory);
+
+// Parts of the data exports (T-507): every service writes its part here, Platform assembles the archive.
+var exportsDirectory = Path.Combine(Path.GetTempPath(), "onvoyage-exports");
+foreach (var service in new IResourceBuilder<ProjectResource>[] { platform, discovery, insights, factoryWorker })
+{
+    service.WithEnvironment("Exports__Directory", exportsDirectory);
+}
 
 if (builder.ExecutionContext.IsRunMode)
 {
@@ -89,6 +104,7 @@ var gateway = builder.AddProject<Projects.OnVoyage_Gateway>("gateway")
     .WithReference(platform)
     .WithReference(factoryApi)
     .WithReference(discovery)
+    .WithReference(insights)
     .WaitFor(catalog)
     .WaitFor(platform)
     .WithEnvironment("Auth__JwtSecret", jwtSecret)

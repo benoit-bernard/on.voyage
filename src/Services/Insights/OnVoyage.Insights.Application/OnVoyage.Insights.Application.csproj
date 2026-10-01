@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="FluentValidation" />
+    <ProjectReference Include="../OnVoyage.Insights.Domain/OnVoyage.Insights.Domain.csproj" />
+    <ProjectReference Include="../OnVoyage.Insights.Contracts/OnVoyage.Insights.Contracts.csproj" />
+    <ProjectReference Include="../../Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Insights.UnitTests" />
+  </ItemGroup>
+</Project>

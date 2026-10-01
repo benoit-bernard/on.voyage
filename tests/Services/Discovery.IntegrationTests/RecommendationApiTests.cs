@@ -66,8 +66,14 @@ public sealed class RecommendationApiTests(PostgresFixture postgres) : IAsyncLif
 
     private static string Sub(string category) => category switch
     {
-        "history" => "military", "nature" => "coast", "culture" => "museums", "architecture" => "defensive",
-        "religion" => "churches", "gastronomy" => "markets", "leisure" => "beaches", _ => "hiking",
+        "history" => "military",
+        "nature" => "coast",
+        "culture" => "museums",
+        "architecture" => "defensive",
+        "religion" => "churches",
+        "gastronomy" => "markets",
+        "leisure" => "beaches",
+        _ => "hiking",
     };
 
     private HttpClient Traveler(Guid? id = null)

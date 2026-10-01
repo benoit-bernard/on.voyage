@@ -34,6 +34,11 @@ builder.Host.UseWolverine(options =>
         options.PublishMessage<TravelerDeletionRequestedV1>().ToPostgresqlQueue(service);
         options.PublishMessage<TravelerExportRequestedV1>().ToPostgresqlQueue(service);
     }
+
+    foreach (var subscriber in builder.Configuration.GetSection("Messaging:ConsentSubscribers").Get<string[]>() ?? ["insights"])
+    {
+        options.PublishMessage<ConsentChangedV1>().ToPostgresqlQueue(subscriber);
+    }
 });
 
 builder.Services.AddPlatformInitializer();

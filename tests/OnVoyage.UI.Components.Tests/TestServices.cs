@@ -1,12 +1,12 @@
 using Bunit;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Time.Testing;
-using OnVoyage.App.Core.Audio;
 using NSubstitute;
+using OnVoyage.App.Core.Audio;
 using OnVoyage.App.Core.Feedback;
-using OnVoyage.Discovery.Contracts;
 using OnVoyage.App.Core.Interactions;
 using OnVoyage.App.Core.Profile;
+using OnVoyage.Discovery.Contracts;
 
 namespace OnVoyage.UI.Components.Tests;
 

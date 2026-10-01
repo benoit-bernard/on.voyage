@@ -4,11 +4,11 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using OnVoyage.Platform.Application.Features.DataRights;
 using OnVoyage.Platform.Application.Ports;
 using OnVoyage.Platform.Infrastructure.Identity;
 using OnVoyage.Platform.Infrastructure.Persistence;
 using Wolverine;
-using OnVoyage.Platform.Application.Features.DataRights;
 using Wolverine.EntityFrameworkCore;
 
 namespace OnVoyage.Platform.Infrastructure;

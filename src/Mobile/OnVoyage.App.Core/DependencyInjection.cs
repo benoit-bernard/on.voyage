@@ -15,7 +15,12 @@ public static class DependencyInjection
         services.AddSingleton<SessionService>();
         services.AddSingleton<ISessionProvider>(provider => provider.GetRequiredService<SessionService>());
         services.AddScoped<HomeFeedService>();
-        services.TryAddSingleton<IAnalyticsSink, NullAnalyticsSink>();
+        services.TryAddSingleton<OnVoyage.App.Core.Analytics.AnalyticsConsent>();
+        services.TryAddSingleton<OnVoyage.App.Core.Analytics.IAnalyticsTransport, OnVoyage.App.Core.Analytics.NullAnalyticsTransport>();
+        services.TryAddSingleton<OnVoyage.App.Core.Analytics.IAnalyticsStore, OnVoyage.App.Core.Analytics.InMemoryAnalyticsStore>();
+        services.TryAddSingleton(OnVoyage.App.Core.Analytics.AnalyticsContext.Detect("0.0.0"));
+        services.TryAddSingleton<OnVoyage.App.Core.Analytics.AnalyticsQueue>();
+        services.TryAddSingleton<IAnalyticsSink>(provider => provider.GetRequiredService<OnVoyage.App.Core.Analytics.AnalyticsQueue>());
         services.TryAddSingleton<IFlagStore, InMemoryFlagStore>();
         services.AddSingleton<AudioPlaybackController>();
         services.TryAddSingleton<ITellHistoryStore, InMemoryTellHistoryStore>();
