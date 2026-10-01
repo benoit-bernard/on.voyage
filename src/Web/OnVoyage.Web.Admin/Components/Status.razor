@@ -1,0 +1,13 @@
+@if (Error is not null)
+{
+    <p class="alert error" role="alert">@Error</p>
+}
+else if (Message is not null)
+{
+    <p class="alert ok" role="status">@Message</p>
+}
+
+@code {
+    [Parameter] public string? Message { get; set; }
+    [Parameter] public string? Error { get; set; }
+}

@@ -1,0 +1,55 @@
+@page "/admin/workshop"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+
+<h1>Atelier de contenu</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <div class="tabs" role="tablist">
+        @foreach (var status in Tabs)
+        {
+            <button type="button" role="tab" aria-selected="@(status == _status)" class="@(status == _status ? "active" : null)" @onclick="() => Select(status)">@Labels.Story(status)</button>
+        }
+    </div>
+
+    @if (_stories.Count == 0)
+    {
+        <p class="muted">Aucune histoire dans cet état.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Titre</th><th>Langue</th><th>Type</th><th>Version</th><th>Qualité</th><th>Mise à jour</th></tr></thead>
+            <tbody>
+                @foreach (var story in _stories)
+                {
+                    <tr>
+                        <td><a href="/admin/workshop/story/@story.Id">@story.Title</a></td>
+                        <td>@story.Lang</td>
+                        <td>@Labels.Kind(story.Kind)</td>
+                        <td>v@(story.Version)</td>
+                        <td>@story.QualityScore.ToString("0.00", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        <td>@story.UpdatedAt.ToString("dd/MM HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    <p class="muted">Pour écrire une histoire, ouvrez un lieu dans <a href="/admin/places">la liste des lieux</a> puis son atelier.</p>
+</section>
+
+@code {
+    private static readonly string[] Tabs = ["NeedsReview", "Checked", "Approved", "AudioReady", "Published", "Suspended", "Failed", "Rejected"];
+
+    private string _status = "NeedsReview";
+    private IReadOnlyList<StoryItem> _stories = [];
+
+    protected override Task OnInitializedAsync() => Select(_status);
+
+    private async Task Select(string status)
+    {
+        _status = status;
+        _stories = await LoadAsync(() => Api.ListStoriesByStatusAsync(status, 100)) ?? [];
+    }
+}

@@ -19,6 +19,10 @@ internal sealed class RemoteConfigStore(IDbContextOutbox<PlatformDbContext> outb
         return row is null ? null : ToDomain(row);
     }
 
+    public async Task<IReadOnlyList<RemoteConfigEntry>> HistoryAsync(string key, CancellationToken cancellationToken) =>
+        [.. (await Db.RemoteConfigHistory.AsNoTracking().Where(item => item.Key == key).OrderByDescending(item => item.Version).ToListAsync(cancellationToken))
+            .Select(item => new RemoteConfigEntry(item.Key, item.Value, item.Version, item.UpdatedBy, item.UpdatedAt))];
+
     public async Task SaveAsync(RemoteConfigEntry entry, ConfigChangedV1 changed, CancellationToken cancellationToken)
     {
         var row = await Db.RemoteConfig.FirstOrDefaultAsync(existing => existing.Key == entry.Key, cancellationToken);

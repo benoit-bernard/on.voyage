@@ -6,6 +6,8 @@ namespace OnVoyage.Factory.Application.Ports;
 public interface IDestinationCatalog
 {
     Task<DestinationConfig?> FindAsync(string slug, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<DestinationConfig>> ListAsync(CancellationToken cancellationToken);
 }
 
 /// <summary>Runs the OSM import (osm2pgsql flex into <c>factory_raw</c>, §7.2). The place table is rebuilt from the raw table afterwards.</summary>
@@ -44,6 +46,11 @@ public interface IPlaceStore
     Task<bool> RevertMergeAsync(Guid linkId, CancellationToken cancellationToken);
 
     Task SetEditorialAsync(Guid placeId, int? importanceOverride, bool? saturated, CancellationToken cancellationToken);
+
+    Task SetEthicsAsync(Guid placeId, bool fragile, bool accessRegulated, CancellationToken cancellationToken);
+
+    /// <summary>Replaces the place's interests with the editor's vector; a place waiting for classification review becomes a candidate.</summary>
+    Task SetEditorInterestsAsync(Guid placeId, IReadOnlyDictionary<string, double> weights, CancellationToken cancellationToken);
 
     Task SetStatusAsync(Guid placeId, PlaceStatus status, CancellationToken cancellationToken);
 

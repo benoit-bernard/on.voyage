@@ -27,6 +27,10 @@ public sealed record GenerateAudioCommand(Guid StoryId);
 
 public sealed record ReportStoryCommand(Guid StoryId, Guid TravelerId, string Reason);
 
+public sealed record ChangeStoryVoiceCommand(Guid StoryId, string Voice);
+
+public sealed record ResetAudioCommand(Guid StoryId);
+
 public sealed record StoryView(StoryRecord Story, IReadOnlyList<AudioPartRecord> Parts, IReadOnlyList<StoryReport> Reports, IReadOnlyList<FactRecord> Facts);
 
 public static class StoryQueryHandler
@@ -176,6 +180,66 @@ public static class StoryEditorialHandler
         };
         await content.SaveStoryAsync(correction, cancellationToken);
         return Result.Success(correction);
+    }
+}
+
+public static class StoryAudioAdminHandler
+{
+    private static readonly System.Text.RegularExpressions.Regex VoiceName = new("^[a-z][a-z0-9_-]{1,39}$", System.Text.RegularExpressions.RegexOptions.CultureInvariant, TimeSpan.FromSeconds(1));
+
+    /// <summary>
+    /// A new voice applies to audio not yet made. If the audio exists (waiting to be listened to), it is thrown away and the story goes
+    /// back to "approved": a voice is never swapped under a text a person already listened to.
+    /// </summary>
+    public static async Task<Result<StoryRecord>> Handle(ChangeStoryVoiceCommand command, IContentStore content, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var story = await content.FindStoryAsync(command.StoryId, cancellationToken);
+        if (story is null)
+        {
+            return Result.Failure<StoryRecord>("story_not_found", "Story not found.");
+        }
+
+        var voice = command.Voice.Trim().ToLowerInvariant();
+        if (!VoiceName.IsMatch(voice))
+        {
+            return Result.Failure<StoryRecord>("validation", "A voice name is lowercase letters, digits, - or _.");
+        }
+
+        if (story.Status is not (ContentStatus.Checked or ContentStatus.NeedsReview or ContentStatus.Approved or ContentStatus.AudioReady))
+        {
+            return Result.Failure<StoryRecord>("invalid_transition", $"The voice of a story in state {story.Status} cannot change.");
+        }
+
+        var status = story.Status;
+        if (status == ContentStatus.AudioReady)
+        {
+            await content.DeleteAudioPartsAsync(story.Id, cancellationToken);
+            status = ContentStatus.Approved;
+        }
+
+        var changed = story with { VoiceId = voice, Status = status, UpdatedAt = clock.GetUtcNow() };
+        await content.SaveStoryAsync(changed, cancellationToken);
+        return Result.Success(changed);
+    }
+
+    /// <summary>"Regenerate the audio": drops the parts and goes back to approved so the voice job can run again.</summary>
+    public static async Task<Result<StoryRecord>> Handle(ResetAudioCommand command, IContentStore content, TimeProvider clock, CancellationToken cancellationToken)
+    {
+        var story = await content.FindStoryAsync(command.StoryId, cancellationToken);
+        if (story is null)
+        {
+            return Result.Failure<StoryRecord>("story_not_found", "Story not found.");
+        }
+
+        if (!ContentTransitions.CanMove(story.Status, ContentStatus.Approved) || story.Status != ContentStatus.AudioReady)
+        {
+            return Result.Failure<StoryRecord>("invalid_transition", $"The audio of a story in state {story.Status} cannot be regenerated.");
+        }
+
+        await content.DeleteAudioPartsAsync(story.Id, cancellationToken);
+        var reset = story with { Status = ContentStatus.Approved, UpdatedAt = clock.GetUtcNow() };
+        await content.SaveStoryAsync(reset, cancellationToken);
+        return Result.Success(reset);
     }
 }
 

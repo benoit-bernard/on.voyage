@@ -9,6 +9,9 @@ public interface IRemoteConfigStore
 
     Task<RemoteConfigEntry?> FindAsync(string key, CancellationToken cancellationToken);
 
+    /// <summary>Every version ever published for a key, newest first (history screen, T-408).</summary>
+    Task<IReadOnlyList<RemoteConfigEntry>> HistoryAsync(string key, CancellationToken cancellationToken);
+
     /// <summary>Persists the new version, its history row and the integration event in one transaction (outbox).</summary>
     Task SaveAsync(RemoteConfigEntry entry, ConfigChangedV1 changed, CancellationToken cancellationToken);
 }

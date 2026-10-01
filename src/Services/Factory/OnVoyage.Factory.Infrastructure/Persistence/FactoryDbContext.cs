@@ -19,6 +19,8 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
     public DbSet<StoryAudioPartRow> StoryAudioParts => Set<StoryAudioPartRow>();
     public DbSet<StoryReportRow> StoryReports => Set<StoryReportRow>();
     public DbSet<PronunciationRow> Pronunciations => Set<PronunciationRow>();
+    public DbSet<AuditLogRow> AuditLog => Set<AuditLogRow>();
+
     public DbSet<LlmCallRow> LlmCalls => Set<LlmCallRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -120,6 +122,13 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
         {
             entity.ToTable("pronunciation");
             entity.HasKey(row => new { row.DestinationSlug, row.Term });
+        });
+
+        modelBuilder.Entity<AuditLogRow>(entity =>
+        {
+            entity.ToTable("audit_log");
+            entity.HasKey(row => row.Id);
+            entity.HasIndex(row => row.At);
         });
 
         modelBuilder.Entity<LlmCallRow>(entity =>

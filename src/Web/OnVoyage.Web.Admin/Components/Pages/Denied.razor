@@ -1,0 +1,8 @@
+@page "/denied"
+@layout Layout.BlankLayout
+
+<section class="card narrow">
+    <h1>Accès refusé</h1>
+    <p>Ce compte n'a pas le rôle administrateur.</p>
+    <form method="post" action="/logout"><AntiforgeryToken /><button type="submit" class="ghost">Se déconnecter</button></form>
+</section>

@@ -1,0 +1,324 @@
+@page "/admin/workshop/story/{Id:guid}"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+@inject AdminOptions Options
+
+<p><a href="/admin/workshop/place/@(_detail?.Story.PlaceId)">← Atelier du lieu</a> · <a href="/admin/workshop">Toutes les histoires</a></p>
+<Status Message="@Message" Error="@Error" />
+
+@if (_detail is null)
+{
+    <p>@(Error is null ? "Chargement…" : string.Empty)</p>
+}
+else
+{
+    var story = _detail.Story;
+    <h1>@(string.IsNullOrEmpty(story.Title) ? "(en cours d'écriture)" : story.Title)</h1>
+    <p class="muted">@Labels.Kind(story.Kind) · @story.Lang · v@(story.Version) · <strong>@Labels.Story(story.Status)</strong> · qualité @story.QualityScore.ToString("0.00", Inv) · voix @story.VoiceId · @story.Model (@story.PromptVersion)</p>
+    <p class="alert warn">Contenu généré par une IA : relisez-le avant de le valider.</p>
+
+    <section class="card">
+        <h2>Contrôles automatiques</h2>
+        @if (story.Report.Issues.Count == 0)
+        {
+            <p class="ok-text">Tous les contrôles sont passés.</p>
+        }
+        else
+        {
+            <ul class="issues">
+                @foreach (var issue in story.Report.Issues)
+                {
+                    <li><strong>@issue.Check</strong> — @issue.Detail@(issue.Sentence is null ? "" : $" « {issue.Sentence} »")</li>
+                }
+            </ul>
+        }
+
+        @if (story.Report.Overlap is { } overlap)
+        {
+            <p>Proximité avec les sources : suite la plus longue @overlap.LongestSharedWords mots (seuil 8), 5-grammes communs @overlap.FiveGramJaccard.ToString("0.000", Inv) (seuil 0,03) — @(overlap.Passes ? "conforme" : "trop proche")</p>
+        }
+
+        <p class="muted">@story.Report.Attempts essai(s) de rédaction.</p>
+        @if (story.Report.Uncertainties.Count > 0)
+        {
+            <p>Incertitudes signalées par le rédacteur :</p>
+            <ul>@foreach (var item in story.Report.Uncertainties) { <li>@item</li> }</ul>
+        }
+    </section>
+
+    <section class="card">
+        <h2>Texte</h2>
+        @if (_editable)
+        {
+            <label for="title">Titre</label>
+            <input id="title" @bind="_title" />
+            <label for="text">Texte (@WordCount mots)</label>
+            <textarea id="text" rows="16" @bind="_text" @bind:event="oninput"></textarea>
+            <div class="row">
+                <button type="button" disabled="@Busy" @onclick="SaveText">Enregistrer et relancer les contrôles</button>
+            </div>
+        }
+        else
+        {
+            <p class="story-text">@story.Text</p>
+            <p class="muted">Ce texte n'est plus modifiable : pour le corriger, suspendez l'histoire puis « ouvrir une correction ».</p>
+        }
+
+        <details>
+            <summary>Annonces et accroche</summary>
+            <p><strong>Accroche</strong> : @story.Hook</p>
+            <p><strong>Intro à distance</strong> : @story.RemoteIntro</p>
+            <p><strong>Devant</strong> : @story.AnnounceFront</p>
+            <p><strong>À gauche</strong> : @story.AnnounceLeft</p>
+            <p><strong>À droite</strong> : @story.AnnounceRight</p>
+            @if (!string.IsNullOrEmpty(story.CareNote)) { <p><strong>Précaution</strong> : @story.CareNote</p> }
+        </details>
+    </section>
+
+    <section class="card">
+        <h2>Phrase par phrase</h2>
+        @if (story.Report.Sentences.Count == 0)
+        {
+            <p class="muted">Pas de vérification phrase par phrase pour cette version (texte modifié à la main).</p>
+        }
+        else
+        {
+            <ol class="sentences">
+                @foreach (var sentence in story.Report.Sentences)
+                {
+                    <li class="@sentence.Verdict.ToLowerInvariant()">@sentence.Sentence <span class="tag">@VerdictLabel(sentence.Verdict)</span></li>
+                }
+            </ol>
+        }
+    </section>
+
+    <section class="card">
+        <h2>Faits utilisés (@_detail.Facts.Count)</h2>
+        <ul>
+            @foreach (var fact in _detail.Facts)
+            {
+                <li>@fact.Statement <span class="muted">— « @fact.Quote »</span></li>
+            }
+        </ul>
+    </section>
+
+    <section class="card">
+        <h2>Différences avec une autre version</h2>
+        @if (_others.Count == 0)
+        {
+            <p class="muted">Pas d'autre version de cette histoire.</p>
+        }
+        else
+        {
+            <label for="other">Comparer à</label>
+            <select id="other" @onchange="OnOtherChanged">
+                <option value="">—</option>
+                @foreach (var other in _others)
+                {
+                    <option value="@other.Id">v@(other.Version) · @Labels.Story(other.Status)</option>
+                }
+            </select>
+            @if (_diff is not null)
+            {
+                <p class="diff" aria-label="Différences">
+                    @foreach (var part in _diff)
+                    {
+                        <span class="@part.Kind.ToString().ToLowerInvariant()">@part.Text </span>
+                    }
+                </p>
+                <p class="muted">En vert : ajouté dans cette version. Barré en rouge : présent seulement dans l'autre version.</p>
+            }
+        }
+    </section>
+
+    <section class="card">
+        <h2>Voix</h2>
+        @if (_detail.Parts.Count == 0)
+        {
+            <p class="muted">Pas encore de voix. Approuvez le texte pour la générer.</p>
+        }
+        else
+        {
+            @foreach (var part in _detail.Parts)
+            {
+                <div class="part">
+                    <strong>@PartLabel(part.Part)</strong> (@part.DurationSeconds s)
+                    <audio controls preload="none" src="@AudioUrl(part)" aria-label="@PartLabel(part.Part)"></audio>
+                </div>
+            }
+        }
+
+        <div class="row">
+            <input aria-label="Voix" @bind="_voice" />
+            <button type="button" disabled="@(Busy || string.IsNullOrWhiteSpace(_voice) || _voice == story.VoiceId)" @onclick="ChangeVoice">Changer de voix</button>
+            @if (story.Status == "AudioReady")
+            {
+                <button type="button" disabled="@Busy" @onclick="ResetAudio">Régénérer la voix</button>
+            }
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Décision</h2>
+        <div class="row">
+            @if (story.Status is "Checked" or "NeedsReview")
+            {
+                <div>
+                    <label for="score">Note éditoriale (0–1)</label>
+                    <input id="score" type="number" step="0.05" min="0" max="1" @bind="_editorial" />
+                </div>
+                <button type="button" class="primary" disabled="@Busy" @onclick="Approve">Approuver le texte</button>
+            }
+            @if (story.Status == "Approved")
+            {
+                <button type="button" class="primary" disabled="@Busy" @onclick="RequestAudio">Générer la voix</button>
+                <button type="button" class="ghost" @onclick="ReloadAsync">Actualiser</button>
+            }
+            @if (story.Status == "AudioReady")
+            {
+                <button type="button" class="primary" disabled="@Busy" @onclick="PublishStory">Publier (après écoute)</button>
+            }
+            @if (story.Status == "Suspended")
+            {
+                <button type="button" disabled="@Busy" @onclick="Resume">Remettre en ligne</button>
+                <button type="button" disabled="@Busy" @onclick="Correct">Ouvrir une correction</button>
+            }
+        </div>
+
+        @if (story.Status is "Checked" or "NeedsReview")
+        {
+            <div class="row">
+                <input aria-label="Motif du refus" placeholder="Motif du refus" @bind="_reason" />
+                <button type="button" class="danger" disabled="@(Busy || string.IsNullOrWhiteSpace(_reason))" @onclick="Reject">Refuser</button>
+            </div>
+        }
+
+        @if (story.Status == "Published")
+        {
+            <div class="row">
+                <input aria-label="Motif de la suspension" placeholder="Motif de la suspension" @bind="_reason" />
+                <button type="button" class="danger" disabled="@(Busy || string.IsNullOrWhiteSpace(_reason))" @onclick="Suspend">Suspendre</button>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(story.RejectedReason))
+        {
+            <p>Motif : @story.RejectedReason</p>
+        }
+    </section>
+
+    <section class="card">
+        <h2>Signalements (@_detail.Reports.Count)</h2>
+        @if (_detail.Reports.Count == 0)
+        {
+            <p class="muted">Aucun signalement.</p>
+        }
+        else
+        {
+            <ul>
+                @foreach (var report in _detail.Reports)
+                {
+                    <li>@report.CreatedAt.ToString("dd/MM/yyyy HH:mm", Inv) — @report.Reason</li>
+                }
+            </ul>
+        }
+    </section>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Inv = System.Globalization.CultureInfo.InvariantCulture;
+
+    [Parameter] public Guid Id { get; set; }
+
+    private StoryDetailItem? _detail;
+    private IReadOnlyList<StoryItem> _others = [];
+    private IReadOnlyList<DiffPart>? _diff;
+    private string _title = string.Empty;
+    private string _text = string.Empty;
+    private string _voice = string.Empty;
+    private string _reason = string.Empty;
+    private double? _editorial = 0.8;
+    private bool _editable;
+
+    private int WordCount => _text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length;
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _detail = await LoadAsync(() => Api.GetStoryAsync(Id));
+        if (_detail is null)
+        {
+            return;
+        }
+
+        var story = _detail.Story;
+        _title = story.Title;
+        _text = story.Text;
+        _voice = story.VoiceId;
+        _editorial = story.EditorialScore;
+        _editable = story.Status is "Checked" or "NeedsReview" or "AiGenerated";
+        _diff = null;
+        _others = [.. (await LoadAsync(() => Api.ListStoriesAsync(story.PlaceId)) ?? []).Where(other => other.Id != story.Id && other.Lang == story.Lang && other.Kind == story.Kind).OrderByDescending(other => other.Version)];
+    }
+
+    private async Task Act(Func<Task> action, string done)
+    {
+        await RunAsync(action, done);
+        await ReloadAsync();
+    }
+
+    private Task SaveText() => Act(() => Api.EditStoryTextAsync(Id, _title, _text), "Texte enregistré, contrôles relancés.");
+
+    private Task Approve() => Act(() => Api.ApproveStoryAsync(Id, _editorial), "Texte approuvé : vous pouvez générer la voix.");
+
+    private Task Reject() => Act(() => Api.RejectStoryAsync(Id, _reason.Trim()), "Histoire refusée.");
+
+    private Task RequestAudio() => Act(() => Api.RequestAudioAsync(Id), "Voix en cours de génération : actualisez dans quelques instants.");
+
+    private Task ResetAudio() => Act(() => Api.ResetAudioAsync(Id), "Voix supprimée : générez-la à nouveau.");
+
+    private Task ChangeVoice() => Act(() => Api.ChangeVoiceAsync(Id, _voice.Trim()), "Voix changée.");
+
+    private Task PublishStory() => Act(() => Api.PublishStoryAsync(Id), "Histoire publiée.");
+
+    private Task Suspend() => Act(() => Api.SuspendStoryAsync(Id, _reason.Trim()), "Histoire suspendue.");
+
+    private Task Resume() => Act(() => Api.ResumeStoryAsync(Id), "Histoire remise en ligne.");
+
+    private async Task Correct()
+    {
+        StoryItem? correction = null;
+        await RunAsync(async () => correction = await Api.OpenCorrectionAsync(Id), "Correction ouverte.");
+        if (correction is not null)
+        {
+            Navigation.NavigateTo($"/admin/workshop/story/{correction.Id}");
+        }
+    }
+
+    private void OnOtherChanged(ChangeEventArgs args)
+    {
+        var other = _others.FirstOrDefault(item => item.Id.ToString() == args.Value?.ToString());
+        _diff = other is null ? null : WordDiff.Compare(other.Text, _detail!.Story.Text);
+    }
+
+    private string AudioUrl(AudioPartItem part) => $"{Options.MediaBaseUrl.TrimEnd('/')}/media/{part.Path}";
+
+    private static string PartLabel(string part) => part switch
+    {
+        "main" => "Histoire",
+        "remote_intro" => "Intro à distance",
+        "announce_front" => "Annonce : devant",
+        "announce_left" => "Annonce : à gauche",
+        "announce_right" => "Annonce : à droite",
+        _ => part,
+    };
+
+    private static string VerdictLabel(string verdict) => verdict switch
+    {
+        "Supported" => "appuyée par un fait",
+        "Generic" => "transition",
+        "Unsupported" => "non appuyée",
+        _ => verdict,
+    };
+}

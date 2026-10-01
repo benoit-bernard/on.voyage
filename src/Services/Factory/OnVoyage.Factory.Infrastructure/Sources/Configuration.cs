@@ -10,27 +10,31 @@ namespace OnVoyage.Factory.Infrastructure.Sources;
 /// <summary>Destinations are configuration (<c>Factory:Destinations</c>): activating a new one is a settings change, not a release (D-13).</summary>
 internal sealed class ConfiguredDestinationCatalog(IConfiguration configuration) : IDestinationCatalog
 {
+    public Task<IReadOnlyList<DestinationConfig>> ListAsync(CancellationToken cancellationToken) =>
+        Task.FromResult<IReadOnlyList<DestinationConfig>>([.. configuration.GetSection("Factory:Destinations").GetChildren().Where(child => child["Slug"] is not null).Select(Read)]);
+
     public Task<DestinationConfig?> FindAsync(string slug, CancellationToken cancellationToken)
     {
         var section = configuration.GetSection("Factory:Destinations").GetChildren().FirstOrDefault(child => string.Equals(child["Slug"], slug, StringComparison.OrdinalIgnoreCase));
-        if (section is null)
-        {
-            return Task.FromResult<DestinationConfig?>(null);
-        }
+        return Task.FromResult(section is null ? null : Read(section));
+    }
 
-        var bbox = section.GetSection("BoundingBox").Get<double[]>() ?? throw new InvalidOperationException($"Destination '{slug}' needs a BoundingBox [minLon, minLat, maxLon, maxLat].");
+    private static DestinationConfig Read(IConfigurationSection section)
+    {
+        var bbox = section.GetSection("BoundingBox").Get<double[]>() ?? throw new InvalidOperationException($"Destination '{section["Slug"]}' needs a BoundingBox [minLon, minLat, maxLon, maxLat].");
         if (bbox.Length != 4)
         {
-            throw new InvalidOperationException($"Destination '{slug}' BoundingBox must have four numbers.");
+            throw new InvalidOperationException($"Destination '{section["Slug"]}' BoundingBox must have four numbers.");
         }
 
-        return Task.FromResult<DestinationConfig?>(new DestinationConfig(
-            section["Slug"]!,
+        var slug = section["Slug"]!;
+        return new DestinationConfig(
+            slug,
             section["Name"] ?? section["Slug"]!,
             new GeoPoint(section.GetValue<double>("CenterLatitude"), section.GetValue<double>("CenterLongitude")),
             bbox[0], bbox[1], bbox[2], bbox[3],
             section["OsmExtractUrl"] ?? "https://download.geofabrik.de/europe/france/provence-alpes-cote-d-azur-latest.osm.pbf",
-            section["OsmExtractFile"]));
+            section["OsmExtractFile"]);
     }
 }
 

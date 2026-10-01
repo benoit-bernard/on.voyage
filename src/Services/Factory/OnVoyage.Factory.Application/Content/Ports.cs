@@ -75,6 +75,8 @@ public interface IContentStore
 
     Task SaveAudioPartsAsync(Guid storyId, IReadOnlyList<AudioPartRecord> parts, CancellationToken cancellationToken);
 
+    Task DeleteAudioPartsAsync(Guid storyId, CancellationToken cancellationToken);
+
     Task<IReadOnlyDictionary<string, string>> GetPronunciationAsync(string destinationSlug, CancellationToken cancellationToken);
 
     /// <summary>Persists the story change and the integration events in one transaction (outbox).</summary>

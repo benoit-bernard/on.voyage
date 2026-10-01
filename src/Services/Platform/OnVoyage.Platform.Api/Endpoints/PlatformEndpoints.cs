@@ -32,6 +32,12 @@ internal static class PlatformEndpoints
 
         var admin = group.MapGroup("/admin").RequireAuthorization(Policies.Admin);
 
+        admin.MapGet("/config", (IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<ConfigEntryDto>>>(new ListConfigQuery(), ct)));
+
+        admin.MapGet("/config/{key}/history", (string key, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<ConfigEntryDto>>>(new GetConfigHistoryQuery(key), ct)));
+
         admin.MapGet("/config/{key}", (string key, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<ConfigEntryDto>>(new GetConfigEntryQuery(key), ct)));
 

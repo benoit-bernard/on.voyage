@@ -1,0 +1,97 @@
+@page "/admin"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+
+<h1>Accueil</h1>
+<Status Message="@Message" Error="@Error" />
+
+@if (_destinations is null)
+{
+    <p>Chargement…</p>
+}
+else
+{
+    <section class="card">
+        <h2>Destination</h2>
+        <label for="destination">Destination</label>
+        <select id="destination" @onchange="OnDestinationChanged">
+            @foreach (var destination in _destinations)
+            {
+                <option value="@destination.Slug" selected="@(destination.Slug == _slug)">@destination.Name</option>
+            }
+        </select>
+        <h3>Lieux par statut</h3>
+        <ul class="counts">
+            @foreach (var group in _counts)
+            {
+                <li><a href="/admin/places?destination=@_slug&status=@group.Key">@Labels.Place(group.Key)</a> <strong>@group.Value</strong></li>
+            }
+        </ul>
+        <h3>Lancer une étape</h3>
+        <div class="row">
+            <button type="button" disabled="@Busy" @onclick='() => Start("imports")'>Importer OSM</button>
+            <button type="button" disabled="@Busy" @onclick='() => Start("enrichments")'>Enrichir (Wikidata)</button>
+            <button type="button" disabled="@Busy" @onclick='() => Start("scorings")'>Classer et noter</button>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Histoires à traiter</h2>
+        @foreach (var (status, stories) in _queues)
+        {
+            <h3>@Labels.Story(status) (@stories.Count)</h3>
+            @if (stories.Count == 0)
+            {
+                <p class="muted">Rien en attente.</p>
+            }
+            else
+            {
+                <ul>
+                    @foreach (var story in stories)
+                    {
+                        <li><a href="/admin/workshop/story/@story.Id">@story.Title (@story.Lang, v@(story.Version))</a></li>
+                    }
+                </ul>
+            }
+        }
+    </section>
+}
+
+@code {
+    private static readonly string[] QueueStatuses = ["NeedsReview", "Checked", "Approved", "AudioReady", "Suspended", "Failed"];
+
+    private IReadOnlyList<DestinationItem>? _destinations;
+    private string? _slug;
+    private Dictionary<string, int> _counts = [];
+    private List<(string Status, IReadOnlyList<StoryItem> Stories)> _queues = [];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _destinations = await LoadAsync(() => Api.GetDestinationsAsync()) ?? [];
+        _slug = _destinations.FirstOrDefault()?.Slug;
+        await RefreshAsync();
+    }
+
+    private async Task OnDestinationChanged(ChangeEventArgs args)
+    {
+        _slug = args.Value?.ToString();
+        await RefreshAsync();
+    }
+
+    private async Task RefreshAsync()
+    {
+        if (_slug is not null)
+        {
+            var places = await LoadAsync(() => Api.ListPlacesAsync(_slug, null, 500)) ?? [];
+            _counts = places.GroupBy(place => place.Status).OrderBy(group => group.Key, StringComparer.Ordinal).ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        _queues = [];
+        foreach (var status in QueueStatuses)
+        {
+            _queues.Add((status, await LoadAsync(() => Api.ListStoriesByStatusAsync(status, 20)) ?? []));
+        }
+    }
+
+    private Task Start(string step) => RunAsync(() => Api.StartPipelineStepAsync(step, _slug!), "Étape lancée : suivez son avancement dans la liste des lieux.");
+}

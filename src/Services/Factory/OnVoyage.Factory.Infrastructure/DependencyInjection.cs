@@ -51,6 +51,7 @@ public static class DependencyInjection
     private static void AddFactoryContent(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddScoped<IContentStore, ContentStore>();
+        services.AddScoped<OnVoyage.Factory.Application.Features.Admin.IAdminStore, AdminStore>();
         services.AddScoped<IWikipediaTextClient, WikipediaTextClient>();
         services.AddSingleton<IContentSettingsProvider>(new ConfiguredContentSettings(configuration.GetSection("Factory:Content").Get<ContentSettings>() ?? new ContentSettings()));
         services.AddSingleton<IAudioProcessor, FfmpegAudioProcessor>();

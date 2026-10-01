@@ -219,3 +219,14 @@ internal sealed class LlmCallRow
     public bool Succeeded { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
+
+internal sealed class AuditLogRow
+{
+    public Guid Id { get; set; }
+    public DateTimeOffset At { get; set; }
+    public string Actor { get; set; } = string.Empty;
+    public string Action { get; set; } = string.Empty;
+    public string Target { get; set; } = string.Empty;
+    public int Status { get; set; }
+    public string? Detail { get; set; }
+}

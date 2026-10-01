@@ -22,7 +22,12 @@ public sealed record GetPlaceQuery(Guid PlaceId);
 
 public sealed record ListDedupProposalsQuery(string DestinationSlug);
 
-public sealed record PlaceView(PlaceRecord Place, IReadOnlyList<(string Code, double Weight)> Interests);
+public sealed record PlaceView(PlaceRecord Place, IReadOnlyList<(string Code, double Weight)> Interests, PlaceScoreDetail Detail);
+
+public sealed record SetPlaceEthicsCommand(Guid PlaceId, bool Fragile, bool AccessRegulated);
+
+/// <summary>An editor's own vector: leaf weights in (0, 1]. Level-1 weights are derived (the maximum of their children).</summary>
+public sealed record SetPlaceInterestsCommand(Guid PlaceId, IReadOnlyDictionary<string, double> Weights);
 
 public static class PublishPlaceHandler
 {
@@ -129,6 +134,41 @@ public static class PlaceAdminHandler
         return Result.Success(true);
     }
 
+    public static async Task<Result<bool>> Handle(SetPlaceEthicsCommand command, IPlaceStore places, CancellationToken cancellationToken)
+    {
+        if (await places.FindAsync(command.PlaceId, cancellationToken) is null)
+        {
+            return Result.Failure<bool>("place_not_found", "Place not found.");
+        }
+
+        await places.SetEthicsAsync(command.PlaceId, command.Fragile, command.AccessRegulated, cancellationToken);
+        return Result.Success(true);
+    }
+
+    public static async Task<Result<bool>> Handle(SetPlaceInterestsCommand command, IPlaceStore places, CancellationToken cancellationToken)
+    {
+        var place = await places.FindAsync(command.PlaceId, cancellationToken);
+        if (place is null)
+        {
+            return Result.Failure<bool>("place_not_found", "Place not found.");
+        }
+
+        var leaves = Interests.All.Where(code => code.Contains('.', StringComparison.Ordinal)).ToHashSet(StringComparer.Ordinal);
+        if (command.Weights.Count == 0 || command.Weights.Any(pair => !leaves.Contains(pair.Key) || double.IsNaN(pair.Value) || pair.Value is <= 0 or > 1))
+        {
+            return Result.Failure<bool>("validation", "Give at least one taxonomy code of level 2, each with a weight above 0 and up to 1.");
+        }
+
+        var vector = command.Weights.ToDictionary(pair => pair.Key, pair => Math.Round(pair.Value, 2), StringComparer.Ordinal);
+        foreach (var group in command.Weights.GroupBy(pair => Interests.LevelOneOf(pair.Key)))
+        {
+            vector[group.Key] = Math.Round(group.Max(pair => pair.Value), 2);
+        }
+
+        await places.SetEditorInterestsAsync(command.PlaceId, vector, cancellationToken);
+        return Result.Success(true);
+    }
+
     public static async Task<Result<bool>> Handle(RejectPlaceCommand command, IPlaceStore places, CancellationToken cancellationToken)
     {
         var place = await places.FindAsync(command.PlaceId, cancellationToken);
@@ -174,7 +214,7 @@ public static class PlaceQueryHandler
         var place = await places.FindAsync(query.PlaceId, cancellationToken);
         return place is null
             ? Result.Failure<PlaceView>("place_not_found", "Place not found.")
-            : Result.Success(new PlaceView(place, await places.GetInterestsAsync(place.Id, cancellationToken)));
+            : Result.Success(new PlaceView(place, await places.GetInterestsAsync(place.Id, cancellationToken), await places.GetScoreDetailAsync(place.Id, cancellationToken)));
     }
 
     public static async Task<Result<IReadOnlyList<DedupLink>>> Handle(ListDedupProposalsQuery query, IPlaceStore places, CancellationToken cancellationToken) =>

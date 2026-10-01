@@ -152,7 +152,7 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
         row.PublishedAt = story.PublishedAt;
     }
 
-    private static StoryRecord ToStory(StoryRow row) => new(
+    internal static StoryRecord ToStory(StoryRow row) => new(
         row.Id, row.PlaceId, row.Lang, Enum.Parse<StoryKind>(row.Kind), row.Version, Enum.Parse<ContentStatus>(row.Status), row.Title, row.Hook, row.Text,
         row.RemoteIntro, row.AnnounceFront, row.AnnounceLeft, row.AnnounceRight, row.CareNote, row.FactsUsed, row.EstimatedDurationSeconds, row.PromptVersion,
         row.Model, row.QualityScore, JsonSerializer.Deserialize<CheckReport>(row.CheckReport, Json) ?? CheckReport.Empty, row.VoiceId, row.EditorialScore,
@@ -181,6 +181,9 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
 
         await Db.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task DeleteAudioPartsAsync(Guid storyId, CancellationToken cancellationToken) =>
+        await Db.StoryAudioParts.Where(row => row.StoryId == storyId).ExecuteDeleteAsync(cancellationToken);
 
     public async Task<IReadOnlyDictionary<string, string>> GetPronunciationAsync(string destinationSlug, CancellationToken cancellationToken) =>
         await Db.Pronunciations.AsNoTracking().Where(row => row.DestinationSlug == destinationSlug).ToDictionaryAsync(row => row.Term, row => row.Replacement, cancellationToken);

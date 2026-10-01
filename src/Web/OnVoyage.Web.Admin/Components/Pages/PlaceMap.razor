@@ -1,0 +1,43 @@
+@* A map without tiles: every position stays inside ON.VOYAGE (no third-party map server sees what an editor looks at). *@
+<svg viewBox="0 0 @Width @Height" role="img" aria-label="Carte des lieux" class="map">
+    <rect width="@Width" height="@Height" class="map-bg" />
+    @if (Places.Count > 0)
+    {
+    @foreach (var place in Places)
+    {
+        var (x, y) = Project(place);
+        <circle cx="@x.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)" cy="@y.ToString("0.#", System.Globalization.CultureInfo.InvariantCulture)"
+                r="@(place.Id == Selected ? 8 : 5)" class="@Css(place)" tabindex="0" role="button" aria-label="@place.Name"
+                @onclick="() => OnSelect.InvokeAsync(place.Id)">
+            <title>@place.Name</title>
+        </circle>
+    }
+    }
+</svg>
+
+@code {
+    private const int Width = 640;
+    private const int Height = 360;
+    private const int Margin = 16;
+
+    [Parameter] public IReadOnlyList<PlaceItem> Places { get; set; } = [];
+    [Parameter] public Guid? Selected { get; set; }
+    [Parameter] public EventCallback<Guid> OnSelect { get; set; }
+
+    private (double X, double Y) Project(PlaceItem place)
+    {
+        double minLon = Places.Min(p => p.Longitude), maxLon = Places.Max(p => p.Longitude);
+        double minLat = Places.Min(p => p.Latitude), maxLat = Places.Max(p => p.Latitude);
+        var x = maxLon - minLon < 1e-9 ? Width / 2d : Margin + ((place.Longitude - minLon) / (maxLon - minLon) * (Width - (2 * Margin)));
+        var y = maxLat - minLat < 1e-9 ? Height / 2d : Height - Margin - ((place.Latitude - minLat) / (maxLat - minLat) * (Height - (2 * Margin)));
+        return (x, y);
+    }
+
+    private static string Css(PlaceItem place) => place.Status switch
+    {
+        "Published" => "pin published",
+        "NeedsReview" => "pin review",
+        "Rejected" or "Merged" or "Unpublished" => "pin off",
+        _ => "pin",
+    };
+}

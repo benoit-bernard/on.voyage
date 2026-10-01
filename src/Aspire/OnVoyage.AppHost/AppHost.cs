@@ -95,4 +95,14 @@ builder.AddProject<Projects.OnVoyage_Web_Pwa>("web-pwa")
     .WaitFor(gateway)
     .WithExternalHttpEndpoints();
 
+// Back-office (Blazor, interactive server). It only talks to the Gateway, with the editor's own token. The media base URL is the address
+// the editor's browser uses to play audio, which is the Gateway's external endpoint, not the internal service name.
+builder.AddProject<Projects.OnVoyage_Web_Admin>("web-admin")
+    .WithReference(gateway)
+    .WaitFor(gateway)
+    .WithEnvironment("Gateway__BaseUrl", gateway.GetEndpoint("http"))
+    .WithEnvironment("Admin__MediaBaseUrl", gateway.GetEndpoint("http"))
+    .WithExternalHttpEndpoints()
+    .WithHttpHealthCheck("/health");
+
 builder.Build().Run();

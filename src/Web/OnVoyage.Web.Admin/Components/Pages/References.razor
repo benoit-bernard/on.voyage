@@ -1,0 +1,98 @@
+@page "/admin/references"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@using OnVoyage.Taxonomy
+@inherits AdminPageBase
+
+<h1>Référentiels</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <h2>Lexique de prononciation</h2>
+    <p class="muted">Le terme est remplacé par son écriture phonétique <em>seulement dans le texte envoyé à la voix</em> ; le texte affiché ne change pas.</p>
+    <label for="destination">Destination</label>
+    <select id="destination" @onchange="OnDestinationChanged">
+        @foreach (var destination in _destinations)
+        {
+            <option value="@destination.Slug" selected="@(destination.Slug == _slug)">@destination.Name</option>
+        }
+    </select>
+
+    <table>
+        <thead><tr><th>Terme</th><th>Prononcé comme</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var entry in _lexicon)
+            {
+                <tr>
+                    <td>@entry.Term</td>
+                    <td>@entry.Replacement</td>
+                    <td><button type="button" class="ghost" disabled="@Busy" @onclick="() => Remove(entry.Term)">Supprimer</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    <div class="row">
+        <input aria-label="Terme" placeholder="Terme (ex. Canebière)" @bind="_term" />
+        <input aria-label="Prononciation" placeholder="Prononcé (ex. Canebiaire)" @bind="_replacement" />
+        <button type="button" class="primary" disabled="@(Busy || string.IsNullOrWhiteSpace(_term) || string.IsNullOrWhiteSpace(_replacement))" @onclick="Add">Ajouter</button>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Sites saturés</h2>
+    <p>La liste éditoriale se gère lieu par lieu, depuis la fiche d'un lieu (« Site saturé »). Les sites saturés sont placés en haut de l'échelle d'affluence.</p>
+    <p><a href="/admin/places">Ouvrir la liste des lieux</a></p>
+</section>
+
+<section class="card">
+    <h2>Taxonomie des centres d'intérêt</h2>
+    <p class="muted">Lecture seule : la taxonomie est versionnée avec le code (changer un code demande une migration des lieux et des profils).</p>
+    <ul class="taxonomy">
+        @foreach (var (level1, children) in Interests.Tree)
+        {
+            <li><strong>@level1</strong>: @string.Join(", ", children)</li>
+        }
+    </ul>
+</section>
+
+@code {
+    private IReadOnlyList<DestinationItem> _destinations = [];
+    private IReadOnlyList<PronunciationItem> _lexicon = [];
+    private string? _slug;
+    private string _term = string.Empty;
+    private string _replacement = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _destinations = await LoadAsync(() => Api.GetDestinationsAsync()) ?? [];
+        _slug = _destinations.FirstOrDefault()?.Slug;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (_slug is not null)
+        {
+            _lexicon = await LoadAsync(() => Api.ListPronunciationsAsync(_slug)) ?? [];
+        }
+    }
+
+    private async Task OnDestinationChanged(ChangeEventArgs args)
+    {
+        _slug = args.Value?.ToString();
+        await ReloadAsync();
+    }
+
+    private async Task Add()
+    {
+        await RunAsync(() => Api.SetPronunciationAsync(_slug!, _term.Trim(), _replacement.Trim()), "Entrée enregistrée (valable pour les prochaines voix).");
+        _term = string.Empty;
+        _replacement = string.Empty;
+        await ReloadAsync();
+    }
+
+    private async Task Remove(string term)
+    {
+        await RunAsync(() => Api.DeletePronunciationAsync(_slug!, term), "Entrée supprimée.");
+        await ReloadAsync();
+    }
+}

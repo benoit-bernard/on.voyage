@@ -61,6 +61,27 @@ public sealed class PlatformApiTests(PostgresFixture postgres) : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_admin_lists_every_key_and_reads_the_history_of_a_key_newest_first()
+    {
+        var admin = await AdminAsync();
+        (await _p.SendAsync(HttpMethod.Put, "/api/platform/v1/admin/config/reco", admin, new { value = new { radius_m = 777 } })).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        var list = (await (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/config", admin)).Content.ReadFromJsonAsync<List<ConfigEntryDto>>(Ct))!;
+        list.Select(entry => entry.Key).ShouldContain("reco");
+        list.Select(entry => entry.Key).ShouldContain("security");
+        list.Select(entry => entry.Key).ShouldBe(list.Select(entry => entry.Key).Order(StringComparer.Ordinal));
+
+        var history = (await (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/config/reco/history", admin)).Content.ReadFromJsonAsync<List<ConfigEntryDto>>(Ct))!;
+        history.Count.ShouldBeGreaterThanOrEqualTo(2);
+        history[0].Version.ShouldBe(history[1].Version + 1);
+        history[0].Value.GetProperty("radius_m").GetInt32().ShouldBe(777);
+        history[0].UpdatedBy.ShouldStartWith("admin:");
+
+        (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/config/nothing_here/history", admin)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+        (await _p.SendAsync(HttpMethod.Get, "/api/platform/v1/admin/config", await _p.AnonymousAsync())).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task A_forged_admin_token_is_refused()
     {
         var forged = TestTokens.Mint(roles: ["admin"], anonymous: false, secret: "an-attacker-secret-0123456789abcdef-0123456789");

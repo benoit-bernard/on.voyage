@@ -1,0 +1,171 @@
+@page "/admin/places/{Id:guid}"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@using OnVoyage.Taxonomy
+@inherits AdminPageBase
+
+<p><a href="/admin/places">← Lieux</a></p>
+<Status Message="@Message" Error="@Error" />
+
+@if (_detail is null)
+{
+    <p>@(Error is null ? "Chargement…" : string.Empty)</p>
+}
+else
+{
+    var place = _detail.Place;
+    <h1>@place.Name</h1>
+    <p class="muted">@Labels.Place(place.Status)@(place.PublishedVersion > 0 ? $" · version {place.PublishedVersion}" : "")@(place.Qid is null ? "" : $" · {place.Qid}") · @place.Latitude.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture), @place.Longitude.ToString("0.0000", System.Globalization.CultureInfo.InvariantCulture)</p>
+    @if (!string.IsNullOrEmpty(place.DescriptionFr))
+    {
+        <p>@place.DescriptionFr</p>
+    }
+
+    <section class="card">
+        <h2>Publication</h2>
+        <div class="row">
+            <button type="button" class="primary" disabled="@Busy" @onclick="Publish">@(place.Status == "Published" ? "Republier" : "Publier")</button>
+            <a class="button" href="/admin/workshop/place/@place.Id">Ouvrir l'atelier de contenu</a>
+        </div>
+        @if (place.Status == "Published")
+        {
+            <div class="row">
+                <input aria-label="Motif de dépublication" placeholder="Motif de dépublication" @bind="_reason" />
+                <button type="button" disabled="@(Busy || string.IsNullOrWhiteSpace(_reason))" @onclick="Unpublish">Dépublier</button>
+            </div>
+        }
+        else if (place.Status is not ("Merged" or "Rejected"))
+        {
+            <button type="button" class="danger" disabled="@Busy" @onclick="Reject">Refuser ce lieu</button>
+        }
+    </section>
+
+    <section class="card">
+        <h2>Éditorial</h2>
+        <div class="row">
+            <div>
+                <label for="override">Importance imposée (0–100, vide = calculée : @(place.ImportanceScore?.ToString() ?? "—"))</label>
+                <input id="override" type="number" min="0" max="100" @bind="_importance" />
+            </div>
+            <label class="check"><input type="checkbox" @bind="_saturated" /> Site saturé (liste éditoriale)</label>
+            <button type="button" disabled="@Busy" @onclick="SaveEditorial">Enregistrer</button>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Éthique (F-13)</h2>
+        <div class="row">
+            <label class="check"><input type="checkbox" @bind="_fragile" /> Site fragile (pas de mise en avant, voix sobre)</label>
+            <label class="check"><input type="checkbox" @bind="_regulated" /> Accès réglementé</label>
+            <button type="button" disabled="@Busy" @onclick="SaveEthics">Enregistrer</button>
+        </div>
+    </section>
+
+    <section class="card">
+        <h2>Catégories et poids</h2>
+        @if (place.Status == "NeedsReview")
+        {
+            <p class="alert warn">Aucune règle ne couvre ce lieu : choisissez ses catégories pour pouvoir le publier.</p>
+        }
+
+        <table>
+            <thead><tr><th>Catégorie</th><th>Poids (0–1)</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var interestCode in _weights.Keys.OrderBy(interestCode => interestCode, StringComparer.Ordinal).ToList())
+                {
+                    <tr>
+                        <td>@interestCode</td>
+                        <td><input type="number" step="0.05" min="0.05" max="1" aria-label="Poids de @interestCode" value="@_weights[interestCode].ToString("0.##", System.Globalization.CultureInfo.InvariantCulture)" @onchange="args => SetWeight(interestCode, args)" /></td>
+                        <td><button type="button" class="ghost" @onclick="() => _weights.Remove(interestCode)">Retirer</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <div class="row">
+            <select aria-label="Ajouter une catégorie" @bind="_toAdd">
+                <option value="">Ajouter une catégorie…</option>
+                @foreach (var interestCode in Interests.All.Where(interestCode => interestCode.Contains('.') && !_weights.ContainsKey(interestCode)))
+                {
+                    <option value="@interestCode">@interestCode</option>
+                }
+            </select>
+            <button type="button" disabled="@string.IsNullOrEmpty(_toAdd)" @onclick="AddInterest">Ajouter</button>
+            <button type="button" class="primary" disabled="@(Busy || _weights.Count == 0)" @onclick="SaveInterests">Enregistrer les poids</button>
+        </div>
+        <p class="muted">Les catégories de niveau 1 sont déduites (le poids le plus fort de leurs sous-catégories). Les poids saisis ici ne sont plus modifiés par un nouveau calcul.</p>
+    </section>
+
+    <section class="card">
+        <h2>Affluence et scores</h2>
+        <p>Hors saison @_detail.Crowd.Offpeak · mi-saison @_detail.Crowd.Shoulder · haute saison @_detail.Crowd.Peak (échelle 1–5)</p>
+        <p>Pages vues annuelles : @place.AnnualPageviews.ToString("N0") · centile @(place.PopularityPercentile?.ToString() ?? "—") @(place.HiddenGem ? "· pépite" : "")</p>
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private PlaceDetailItem? _detail;
+    private string _reason = string.Empty;
+    private int? _importance;
+    private bool _saturated;
+    private bool _fragile;
+    private bool _regulated;
+    private string _toAdd = string.Empty;
+    private readonly Dictionary<string, double> _weights = new(StringComparer.Ordinal);
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _detail = await LoadAsync(() => Api.GetPlaceAsync(Id));
+        if (_detail is null)
+        {
+            return;
+        }
+
+        _importance = _detail.ImportanceOverride;
+        _saturated = _detail.Saturated;
+        _fragile = _detail.Ethics.Fragile;
+        _regulated = _detail.Ethics.AccessRegulated;
+        _weights.Clear();
+        foreach (var interest in _detail.Interests.Where(interest => interest.Code.Contains('.', StringComparison.Ordinal)))
+        {
+            _weights[interest.Code] = interest.Weight;
+        }
+    }
+
+    private async Task Act(Func<Task> action, string done)
+    {
+        await RunAsync(action, done);
+        await ReloadAsync();
+    }
+
+    private Task Publish() => Act(() => Api.PublishPlaceAsync(Id), "Lieu publié : le catalogue le reçoit dans quelques secondes.");
+
+    private Task Unpublish() => Act(() => Api.UnpublishPlaceAsync(Id, _reason.Trim()), "Lieu dépublié.");
+
+    private Task Reject() => Act(() => Api.RejectPlaceAsync(Id), "Lieu refusé.");
+
+    private Task SaveEditorial() => Act(() => Api.SetEditorialAsync(Id, _importance, _saturated), "Choix éditoriaux enregistrés (le prochain calcul les respecte).");
+
+    private Task SaveEthics() => Act(() => Api.SetEthicsAsync(Id, _fragile, _regulated), "Drapeaux éthiques enregistrés (republiez le lieu pour que le catalogue les reçoive).");
+
+    private Task SaveInterests() => Act(() => Api.SetInterestsAsync(Id, new Dictionary<string, double>(_weights)), "Catégories enregistrées.");
+
+    private void SetWeight(string code, ChangeEventArgs args)
+    {
+        if (double.TryParse(args.Value?.ToString(), System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var value))
+        {
+            _weights[code] = Math.Clamp(value, 0.05, 1);
+        }
+    }
+
+    private void AddInterest()
+    {
+        if (!string.IsNullOrEmpty(_toAdd))
+        {
+            _weights[_toAdd] = 0.7;
+            _toAdd = string.Empty;
+        }
+    }
+}

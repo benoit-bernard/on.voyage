@@ -1,0 +1,131 @@
+@page "/admin/config"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@using System.Text.Json
+@using OnVoyage.Platform.Contracts
+@inherits AdminPageBase
+
+<h1>Configuration</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <h2>Paramètres à distance</h2>
+    <p class="muted">Chaque modification crée une version (rien n'est écrasé) et est diffusée aux services et aux apps.</p>
+    <div class="split">
+        <ul class="keys">
+            @foreach (var entry in _entries)
+            {
+                <li><button type="button" class="@(entry.Key == _key ? "active" : "link")" @onclick="() => Open(entry.Key)">@entry.Key <span class="muted">v@(entry.Version)</span></button></li>
+            }
+        </ul>
+        <div>
+            @if (_key is not null)
+            {
+                <h3>@_key</h3>
+                <label for="json">Valeur (JSON)</label>
+                <textarea id="json" rows="14" spellcheck="false" @bind="_json"></textarea>
+                <div class="row">
+                    <button type="button" class="primary" disabled="@Busy" @onclick="Save">Enregistrer une nouvelle version</button>
+                </div>
+                <h4>Historique</h4>
+                <table>
+                    <thead><tr><th>Version</th><th>Par</th><th>Date</th><th></th></tr></thead>
+                    <tbody>
+                        @foreach (var version in _history)
+                        {
+                            <tr>
+                                <td>v@(version.Version)</td>
+                                <td>@version.UpdatedBy</td>
+                                <td>@version.UpdatedAt.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
+                                <td><button type="button" class="ghost" @onclick="() => Restore(version)">Recharger cette valeur</button></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+            else
+            {
+                <p class="muted">Choisissez une clé.</p>
+            }
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Feature flags</h2>
+    <table>
+        <thead><tr><th>Nom</th><th>Actif</th><th>Déploiement %</th><th>Plateformes (virgules)</th><th>Version min.</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var flag in _flags)
+            {
+                <tr>
+                    <td>@flag.Name</td>
+                    <td><input type="checkbox" aria-label="@flag.Name actif" @bind="flag.Enabled" /></td>
+                    <td><input type="number" min="0" max="100" aria-label="@flag.Name pourcentage" @bind="flag.RolloutPercent" /></td>
+                    <td><input aria-label="@flag.Name plateformes" @bind="flag.Platforms" /></td>
+                    <td><input aria-label="@flag.Name version minimale" @bind="flag.MinAppVersion" /></td>
+                    <td><button type="button" disabled="@Busy" @onclick="() => SaveFlag(flag)">Enregistrer</button></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+@code {
+    private sealed class FlagEdit(FeatureFlagDto source)
+    {
+        public string Name { get; } = source.Name;
+        public bool Enabled { get; set; } = source.Enabled;
+        public int RolloutPercent { get; set; } = source.RolloutPercent;
+        public string Platforms { get; set; } = string.Join(",", source.Platforms);
+        public string? MinAppVersion { get; set; } = source.MinAppVersion;
+    }
+
+    private static readonly JsonSerializerOptions Pretty = new() { WriteIndented = true };
+
+    private IReadOnlyList<ConfigEntryDto> _entries = [];
+    private IReadOnlyList<ConfigEntryDto> _history = [];
+    private List<FlagEdit> _flags = [];
+    private string? _key;
+    private string _json = string.Empty;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _entries = await LoadAsync(() => Api.ListConfigAsync()) ?? [];
+        _flags = [.. (await LoadAsync(() => Api.ListFlagsAsync()) ?? []).Select(flag => new FlagEdit(flag))];
+    }
+
+    private async Task Open(string key)
+    {
+        _key = key;
+        _history = await LoadAsync(() => Api.GetConfigHistoryAsync(key)) ?? [];
+        var current = _entries.First(entry => entry.Key == key);
+        _json = JsonSerializer.Serialize(current.Value, Pretty);
+    }
+
+    private void Restore(ConfigEntryDto version) => _json = JsonSerializer.Serialize(version.Value, Pretty);
+
+    private async Task Save()
+    {
+        JsonElement value;
+        try
+        {
+            value = JsonDocument.Parse(_json).RootElement.Clone();
+        }
+        catch (JsonException exception)
+        {
+            Error = $"Ce n'est pas du JSON valide : {exception.Message}";
+            Message = null;
+            return;
+        }
+
+        await RunAsync(() => Api.SetConfigAsync(_key!, value), "Nouvelle version enregistrée et diffusée.");
+        _entries = await LoadAsync(() => Api.ListConfigAsync()) ?? _entries;
+        await Open(_key!);
+    }
+
+    private Task SaveFlag(FlagEdit flag) => RunAsync(
+        () => Api.SetFlagAsync(
+            flag.Name,
+            new SetFeatureFlagRequest(flag.Enabled, Math.Clamp(flag.RolloutPercent, 0, 100), [.. flag.Platforms.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)], string.IsNullOrWhiteSpace(flag.MinAppVersion) ? null : flag.MinAppVersion.Trim())),
+        $"Flag « {flag.Name} » enregistré.");
+}

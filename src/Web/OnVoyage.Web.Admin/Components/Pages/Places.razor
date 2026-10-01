@@ -1,0 +1,145 @@
+@page "/admin/places"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+
+<h1>Lieux</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <div class="row">
+        <div>
+            <label for="destination">Destination</label>
+            <select id="destination" @onchange="OnDestinationChanged">
+                @foreach (var destination in _destinations)
+                {
+                    <option value="@destination.Slug" selected="@(destination.Slug == Destination)">@destination.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="status">Statut</label>
+            <select id="status" @onchange="OnStatusChanged">
+                <option value="">Tous</option>
+                @foreach (var status in StatusValues)
+                {
+                    <option value="@status" selected="@(status == Status)">@Labels.Place(status)</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="search">Recherche</label>
+            <input id="search" type="search" @bind="_search" @bind:event="oninput" placeholder="Nom du lieu" />
+        </div>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Carte</h2>
+    <PlaceMap Places="Visible" Selected="_selected" OnSelect="id => _selected = id" />
+</section>
+
+<section class="card">
+    <h2>@Visible.Count lieu(x)</h2>
+    <table>
+        <thead>
+            <tr><th>Nom</th><th>Statut</th><th>Importance</th><th>Pépite</th><th>Classement</th><th></th></tr>
+        </thead>
+        <tbody>
+            @foreach (var place in Visible)
+            {
+                <tr class="@(place.Id == _selected ? "selected" : null)">
+                    <td><a href="/admin/places/@place.Id">@place.Name</a></td>
+                    <td>@Labels.Place(place.Status)</td>
+                    <td>@(place.ImportanceScore?.ToString() ?? "—")</td>
+                    <td>@(place.HiddenGem ? "oui" : "")</td>
+                    <td>@place.Classification</td>
+                    <td><a href="/admin/workshop/place/@place.Id">Atelier</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</section>
+
+<section class="card">
+    <h2>Doublons proposés</h2>
+    @if (_links.Count == 0)
+    {
+        <p class="muted">Aucune proposition en attente.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Lieu conservé</th><th>Lieu proposé à la fusion</th><th>Raison</th><th>Similarité</th><th>Distance</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var link in _links)
+                {
+                    <tr>
+                        <td><a href="/admin/places/@link.KeptPlaceId">@Name(link.KeptPlaceId)</a></td>
+                        <td><a href="/admin/places/@link.OtherPlaceId">@Name(link.OtherPlaceId)</a></td>
+                        <td>@link.Reason</td>
+                        <td>@link.Similarity.ToString("0.00")</td>
+                        <td>@link.DistanceMeters.ToString("0") m</td>
+                        <td>
+                            <button type="button" disabled="@Busy" @onclick="() => Confirm(link.Id)">Fusionner</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    private static readonly string[] StatusValues = ["Candidate", "NeedsReview", "Published", "Unpublished", "Rejected", "Merged"];
+
+    [SupplyParameterFromQuery(Name = "destination")] private string? Destination { get; set; }
+    [SupplyParameterFromQuery(Name = "status")] private string? Status { get; set; }
+
+    private IReadOnlyList<DestinationItem> _destinations = [];
+    private IReadOnlyList<PlaceItem> _places = [];
+    private IReadOnlyList<DedupItem> _links = [];
+    private string _search = string.Empty;
+    private Guid? _selected;
+
+    private IReadOnlyList<PlaceItem> Visible => string.IsNullOrWhiteSpace(_search)
+        ? _places
+        : [.. _places.Where(place => place.Name.Contains(_search.Trim(), StringComparison.CurrentCultureIgnoreCase))];
+
+    protected override async Task OnInitializedAsync()
+    {
+        _destinations = await LoadAsync(() => Api.GetDestinationsAsync()) ?? [];
+        Destination ??= _destinations.FirstOrDefault()?.Slug;
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        if (Destination is null)
+        {
+            return;
+        }
+
+        _places = await LoadAsync(() => Api.ListPlacesAsync(Destination, Status, 500)) ?? [];
+        _links = await LoadAsync(() => Api.ListDedupAsync(Destination)) ?? [];
+    }
+
+    private async Task OnDestinationChanged(ChangeEventArgs args)
+    {
+        Destination = args.Value?.ToString();
+        await ReloadAsync();
+    }
+
+    private async Task OnStatusChanged(ChangeEventArgs args)
+    {
+        Status = string.IsNullOrEmpty(args.Value?.ToString()) ? null : args.Value!.ToString();
+        await ReloadAsync();
+    }
+
+    private string Name(Guid id) => _places.FirstOrDefault(place => place.Id == id)?.Name ?? id.ToString()[..8];
+
+    private async Task Confirm(Guid linkId)
+    {
+        await RunAsync(() => Api.ConfirmMergeAsync(linkId), "Lieux fusionnés (réversible depuis la fiche).");
+        await ReloadAsync();
+    }
+}

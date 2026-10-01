@@ -1,6 +1,8 @@
 using System.Security.Claims;
 using OnVoyage.Factory.Application;
+using OnVoyage.Factory.Application.Ports;
 using OnVoyage.Factory.Application.Content;
+using OnVoyage.Factory.Application.Features.Admin;
 using OnVoyage.Factory.Application.Features.Content;
 using OnVoyage.Factory.Application.Features.EnrichPlaces;
 using OnVoyage.Factory.Application.Features.ImportPlaces;
@@ -16,6 +18,10 @@ internal sealed record UnpublishRequest(string Reason);
 
 internal sealed record EditorialRequest(int? ImportanceOverride, bool? EditoriallySaturated);
 
+internal sealed record EthicsRequest(bool Fragile, bool AccessRegulated);
+
+internal sealed record InterestsRequest(Dictionary<string, double> Weights);
+
 internal sealed record DestinationRequest(string Destination);
 
 internal sealed record DecideFactRequest(bool Accept, string? Reason);
@@ -26,16 +32,39 @@ internal sealed record EditStoryRequest(string Title, string Text);
 
 internal sealed record ApproveStoryRequest(double? EditorialScore);
 
+internal sealed record VoiceRequest(string Voice);
+
 internal sealed record ReasonRequest(string Reason);
 
 internal sealed record ReportRequest(string Reason);
+
+internal sealed record PronunciationRequest(string Replacement);
+
+/// <summary>Every write on the back-office is journaled (SEC-10): who, what, which target, outcome. Reads are not.</summary>
+internal sealed class AuditFilter(IMessageBus bus) : IEndpointFilter
+{
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    {
+        var http = context.HttpContext;
+        var write = !HttpMethods.IsGet(http.Request.Method) && !HttpMethods.IsHead(http.Request.Method);
+        var result = await next(context);
+        if (write)
+        {
+            var status = result is IStatusCodeHttpResult { StatusCode: { } code } ? code : http.Response.StatusCode;
+            var actor = http.User.TravelerId()?.ToString() ?? "unknown";
+            await bus.InvokeAsync<Result<bool>>(new RecordAuditCommand(actor, $"{http.Request.Method} {http.GetEndpoint()?.DisplayName}", http.Request.Path.Value ?? string.Empty, status, null), http.RequestAborted);
+        }
+
+        return result;
+    }
+}
 
 internal static class FactoryEndpoints
 {
     public static IEndpointRouteBuilder MapFactoryEndpoints(this IEndpointRouteBuilder app)
     {
         // Everything in Factory is back-office: no traveler route exists (§9.3).
-        var admin = app.MapGroup("/api/factory/v1/admin").RequireAuthorization(Policies.Admin);
+        var admin = app.MapGroup("/api/factory/v1/admin").RequireAuthorization(Policies.Admin).AddEndpointFilter<AuditFilter>();
 
         // Long jobs go to the worker through the durable queue; the call returns once the job is recorded.
         admin.MapPost("/imports", async (DestinationRequest request, IMessageBus bus) =>
@@ -58,7 +87,7 @@ internal static class FactoryEndpoints
             Translate(bus.InvokeAsync<Result<IReadOnlyList<PlaceRecord>>>(new ListPlacesQuery(destination, status, limit ?? 50), ct), places => places.Select(PlaceDto.From)));
 
         admin.MapGet("/places/{id:guid}", (Guid id, IMessageBus bus, CancellationToken ct) =>
-            Translate(bus.InvokeAsync<Result<PlaceView>>(new GetPlaceQuery(id), ct), view => new { place = PlaceDto.From(view.Place), interests = view.Interests.Select(i => new { code = i.Code, weight = i.Weight }) }));
+            Translate(bus.InvokeAsync<Result<PlaceView>>(new GetPlaceQuery(id), ct), view => new { place = PlaceDto.From(view.Place), interests = view.Interests.Select(i => new { code = i.Code, weight = i.Weight }), ethics = new { fragile = view.Detail.Fragile, accessRegulated = view.Detail.AccessRegulated }, crowd = new { offpeak = view.Detail.Offpeak, shoulder = view.Detail.Shoulder, peak = view.Detail.Peak }, importanceOverride = view.Place.ImportanceOverride, saturated = view.Place.EditoriallySaturated }));
 
         admin.MapPost("/places/{id:guid}/publish", (Guid id, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<int>>(new PublishPlaceCommand(id), ct), version => new { version }));
@@ -72,6 +101,12 @@ internal static class FactoryEndpoints
         admin.MapPut("/places/{id:guid}/editorial", (Guid id, EditorialRequest request, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<bool>>(new SetPlaceEditorialCommand(id, request.ImportanceOverride, request.EditoriallySaturated), ct), _ => new { updated = true }));
 
+        admin.MapPut("/places/{id:guid}/ethics", (Guid id, EthicsRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new SetPlaceEthicsCommand(id, request.Fragile, request.AccessRegulated), ct), _ => new { updated = true }));
+
+        admin.MapPut("/places/{id:guid}/interests", (Guid id, InterestsRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new SetPlaceInterestsCommand(id, request.Weights), ct), _ => new { updated = true }));
+
         admin.MapGet("/dedup", (string destination, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<DedupLink>>>(new ListDedupProposalsQuery(destination), ct), links => links));
 
@@ -82,6 +117,7 @@ internal static class FactoryEndpoints
             Translate(bus.InvokeAsync<Result<bool>>(new RevertMergeCommand(id), ct), _ => new { reverted = true }));
 
         MapContent(admin);
+        MapReferences(admin);
 
         // Travelers report a problem with a story (F-20). The only traveler-facing Factory route; the gateway exposes it separately.
         app.MapPost("/api/factory/v1/stories/{id:guid}/reports", (Guid id, ReportRequest request, ClaimsPrincipal user, IMessageBus bus, CancellationToken ct) =>
@@ -90,6 +126,27 @@ internal static class FactoryEndpoints
                 : Task.FromResult(Results.Unauthorized())).RequireAuthorization(Policies.Traveler);
 
         return app;
+    }
+
+    private static void MapReferences(RouteGroupBuilder admin)
+    {
+        admin.MapGet("/destinations", (IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<DestinationConfig>>>(new ListDestinationsQuery(), ct), items => items.Select(item => new { slug = item.Slug, name = item.Name, latitude = item.Center.Latitude, longitude = item.Center.Longitude })));
+
+        admin.MapGet("/audit", (int? limit, string? actor, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<AuditEntry>>>(new ListAuditQuery(limit ?? 100, actor), ct), items => items));
+
+        admin.MapGet("/stories", (ContentStatus? status, int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<StoryRecord>>>(new ListStoriesByStatusQuery(status ?? ContentStatus.NeedsReview, limit ?? 50), ct), items => items));
+
+        admin.MapGet("/pronunciations", (string destination, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<PronunciationEntry>>>(new ListPronunciationsQuery(destination), ct), items => items));
+
+        admin.MapPut("/pronunciations/{destination}/{term}", (string destination, string term, PronunciationRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new SetPronunciationCommand(destination, term, request.Replacement), ct), _ => new { saved = true }));
+
+        admin.MapDelete("/pronunciations/{destination}/{term}", (string destination, string term, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new DeletePronunciationCommand(destination, term), ct), _ => new { deleted = true }));
     }
 
     private static void MapContent(RouteGroupBuilder admin)
@@ -129,6 +186,10 @@ internal static class FactoryEndpoints
             await bus.SendAsync(new GenerateAudioCommand(id));
             return Results.Accepted();
         });
+        admin.MapPut("/stories/{id:guid}/voice", (Guid id, VoiceRequest request, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new ChangeStoryVoiceCommand(id, request.Voice), ct), story => story));
+        admin.MapPost("/stories/{id:guid}/audio/reset", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<StoryRecord>>(new ResetAudioCommand(id), ct), story => story));
         admin.MapPost("/stories/{id:guid}/publish", (Guid id, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<StoryRecord>>(new PublishStoryCommand(id), ct), story => story));
         admin.MapPost("/stories/{id:guid}/suspend", (Guid id, ReasonRequest request, IMessageBus bus, CancellationToken ct) =>

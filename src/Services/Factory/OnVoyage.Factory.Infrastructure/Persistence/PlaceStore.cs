@@ -370,6 +370,41 @@ internal sealed partial class PlaceStore(IDbContextOutbox<FactoryDbContext> outb
         await Db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task SetEthicsAsync(Guid placeId, bool fragile, bool accessRegulated, CancellationToken cancellationToken) =>
+        await Db.Places.Where(place => place.Id == placeId).ExecuteUpdateAsync(
+            update => update.SetProperty(place => place.Fragile, fragile).SetProperty(place => place.AccessRegulated, accessRegulated).SetProperty(place => place.UpdatedAt, clock.GetUtcNow()), cancellationToken);
+
+    public async Task SetEditorInterestsAsync(Guid placeId, IReadOnlyDictionary<string, double> weights, CancellationToken cancellationToken)
+    {
+        var row = await Db.Places.Include(place => place.Interests).FirstAsync(place => place.Id == placeId, cancellationToken);
+        foreach (var stale in row.Interests.Where(interest => !weights.ContainsKey(interest.TaxonomyCode)).ToList())
+        {
+            Db.PlaceInterests.Remove(stale);
+        }
+
+        foreach (var (code, weight) in weights)
+        {
+            var existing = row.Interests.FirstOrDefault(interest => interest.TaxonomyCode == code);
+            if (existing is null)
+            {
+                Db.PlaceInterests.Add(new PlaceInterestRow { PlaceId = placeId, TaxonomyCode = code, Weight = (float)weight, Source = "editor" });
+            }
+            else
+            {
+                existing.Weight = (float)weight;
+                existing.Source = "editor";
+            }
+        }
+
+        if (row.Status == nameof(PlaceStatus.NeedsReview))
+        {
+            row.Status = nameof(PlaceStatus.Candidate);
+        }
+
+        row.UpdatedAt = clock.GetUtcNow();
+        await Db.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task SetStatusAsync(Guid placeId, PlaceStatus status, CancellationToken cancellationToken) =>
         await Db.Places.Where(place => place.Id == placeId).ExecuteUpdateAsync(update => update.SetProperty(place => place.Status, status.ToString()).SetProperty(place => place.UpdatedAt, clock.GetUtcNow()), cancellationToken);
 

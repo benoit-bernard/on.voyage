@@ -1,0 +1,140 @@
+@page "/admin/workshop/place/{PlaceId:guid}"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+
+<p><a href="/admin/places/@PlaceId">← Fiche du lieu</a></p>
+<h1>@(_place?.Place.Name ?? "Atelier")</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <h2>1 · Sources</h2>
+    <p class="muted">Les textes viennent de Wikipédia (CC BY-SA 4.0), avec leur révision. Ils ne servent qu'à extraire des faits : le rédacteur ne les voit jamais.</p>
+    <button type="button" disabled="@Busy" @onclick="Fetch">Récupérer les sources et extraire les faits</button>
+    @if (_facts is { Documents.Count: > 0 })
+    {
+        <table>
+            <thead><tr><th>Source</th><th>Langue</th><th>Licence</th><th>Révision</th><th>Récupérée</th></tr></thead>
+            <tbody>
+                @foreach (var document in _facts.Documents)
+                {
+                    <tr>
+                        <td><a href="@document.Url" rel="noopener noreferrer" target="_blank">@document.Title</a> <span class="muted">(@document.Publisher)</span></td>
+                        <td>@document.Language</td>
+                        <td>@document.License</td>
+                        <td>@document.Revision</td>
+                        <td>@document.RetrievedAt.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p class="muted">Aucune source récupérée pour l'instant.</p>
+    }
+</section>
+
+<section class="card">
+    <h2>2 · Faits</h2>
+    @if (_facts is null || _facts.Facts.Count == 0)
+    {
+        <p class="muted">Aucun fait extrait.</p>
+    }
+    else
+    {
+        <p>@_facts.Facts.Count(f => f.Status == "Validated") validés · @_facts.Facts.Count(f => f.Status == "Conflict") en conflit · @_facts.Facts.Count(f => f.Status == "Rejected") rejetés</p>
+        <table>
+            <thead><tr><th>Fait</th><th>Type</th><th>Citation exacte</th><th>Statut</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var fact in _facts.Facts.OrderBy(f => f.Status, StringComparer.Ordinal).ThenBy(f => f.Type, StringComparer.Ordinal))
+                {
+                    <tr class="@fact.Status.ToLowerInvariant()">
+                        <td>@fact.Statement</td>
+                        <td>@fact.Type</td>
+                        <td><q>@fact.Quote</q></td>
+                        <td>@fact.Status@(fact.Reason is null ? "" : $" ({fact.Reason})")</td>
+                        <td class="actions">
+                            @if (fact.Status != "Validated")
+                            {
+                                <button type="button" disabled="@Busy" @onclick="() => Decide(fact.Id, true, null)">Valider</button>
+                            }
+                            @if (fact.Status != "Rejected")
+                            {
+                                <button type="button" class="ghost" disabled="@Busy" @onclick="() => Decide(fact.Id, false, RejectReason)">Rejeter</button>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+<section class="card">
+    <h2>3 · Histoires</h2>
+    <div class="row">
+        <div>
+            <label for="lang">Langue</label>
+            <select id="lang" @bind="_lang"><option value="fr">Français</option><option value="en">English</option></select>
+        </div>
+        <div>
+            <label for="kind">Type</label>
+            <select id="kind" @bind="_kind">
+                <option value="Standard">@Labels.Kind("Standard")</option>
+                <option value="Anecdote">@Labels.Kind("Anecdote")</option>
+                <option value="OnboardingClip">@Labels.Kind("OnboardingClip")</option>
+            </select>
+        </div>
+        <button type="button" class="primary" disabled="@Busy" @onclick="Write">Écrire à partir des faits validés</button>
+    </div>
+    @if (_stories.Count > 0)
+    {
+        <table>
+            <thead><tr><th>Titre</th><th>Langue</th><th>Type</th><th>Version</th><th>État</th></tr></thead>
+            <tbody>
+                @foreach (var story in _stories.OrderBy(s => s.Lang, StringComparer.Ordinal).ThenBy(s => s.Kind, StringComparer.Ordinal).ThenByDescending(s => s.Version))
+                {
+                    <tr>
+                        <td><a href="/admin/workshop/story/@story.Id">@(string.IsNullOrEmpty(story.Title) ? "(en cours d'écriture)" : story.Title)</a></td>
+                        <td>@story.Lang</td>
+                        <td>@Labels.Kind(story.Kind)</td>
+                        <td>v@(story.Version)</td>
+                        <td>@Labels.Story(story.Status)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button type="button" class="ghost" @onclick="ReloadAsync">Actualiser</button>
+    }
+</section>
+
+@code {
+    private const string RejectReason = "écarté par l'éditeur";
+
+    [Parameter] public Guid PlaceId { get; set; }
+
+    private PlaceDetailItem? _place;
+    private PlaceFactsItem? _facts;
+    private IReadOnlyList<StoryItem> _stories = [];
+    private string _lang = "fr";
+    private string _kind = "Standard";
+
+    protected override Task OnParametersSetAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _place = await LoadAsync(() => Api.GetPlaceAsync(PlaceId));
+        _facts = await LoadAsync(() => Api.GetFactsAsync(PlaceId));
+        _stories = await LoadAsync(() => Api.ListStoriesAsync(PlaceId)) ?? [];
+    }
+
+    private Task Fetch() => RunAsync(() => Api.FetchSourcesAsync(PlaceId), "Récupération lancée : actualisez dans quelques instants.");
+
+    private async Task Decide(Guid factId, bool accept, string? reason)
+    {
+        await RunAsync(() => Api.DecideFactAsync(factId, accept, reason), accept ? "Fait validé." : "Fait rejeté.");
+        await ReloadAsync();
+    }
+
+    private Task Write() => RunAsync(() => Api.WriteStoryAsync(PlaceId, _lang, _kind), "Rédaction lancée : l'histoire apparaît ci-dessous une fois contrôlée.");
+}
