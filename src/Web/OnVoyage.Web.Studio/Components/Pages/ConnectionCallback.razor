@@ -1,0 +1,45 @@
+@page "/studio/connections/{Platform}/callback"
+@attribute [Authorize(Policy = StudioClaims.PolicyName)]
+@inherits StudioPageBase
+
+<h1>Connexion à @Labels.Platform(Platform)</h1>
+<Status Message="@Message" Error="@Error" />
+@if (Error is null && Message is null)
+{
+    <p id="working">Connexion en cours…</p>
+}
+else if (Error is not null)
+{
+    <p><a href="/studio/connections">Retour aux connexions</a></p>
+}
+
+@code {
+    [Parameter] public string Platform { get; set; } = string.Empty;
+
+    [SupplyParameterFromQuery(Name = "code")] private string? Code { get; set; }
+    [SupplyParameterFromQuery(Name = "state")] private string? State { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] private string? PlatformError { get; set; }
+
+    // Not in OnInitialized: with prerendering it would run twice, and an authorization code only works once.
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender)
+        {
+            return;
+        }
+
+        if (!string.IsNullOrEmpty(PlatformError) || string.IsNullOrEmpty(Code) || string.IsNullOrEmpty(State))
+        {
+            Navigation.NavigateTo($"/studio/connections?error={Uri.EscapeDataString("L'autorisation n'a pas été donnée : rien n'est connecté.")}");
+            return;
+        }
+
+        await RunAsync(async () => await Api.CompleteConnectionAsync(Platform, Code, State));
+        if (Error is null)
+        {
+            Navigation.NavigateTo($"/studio/connections?connected={Uri.EscapeDataString(Platform)}");
+        }
+
+        StateHasChanged();
+    }
+}

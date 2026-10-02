@@ -1,0 +1,72 @@
+@page "/studio"
+@attribute [Authorize]
+@inherits StudioPageBase
+@inject AuthenticationStateProvider Authentication
+
+<h1>Votre espace créateur</h1>
+<Status Message="@Message" Error="@Error" />
+
+@if (_profile is null)
+{
+    @if (Error is null)
+    {
+        <p>Chargement…</p>
+    }
+}
+else
+{
+    var block = Labels.PublishBlock(_profile.PublishBlock?.Code);
+    <section class="card" id="summary">
+        <h2>@@@_profile.Handle <span class="tag" id="status">@Labels.CreatorStatus(_profile.Status)</span></h2>
+        <p>
+            @_profile.DisplayName ·
+            @if (_profile.IsNew)
+            {
+                <span id="followers">Nouveau créateur</span>
+            }
+            else
+            {
+                <span id="followers">@_profile.FollowerCount abonnés</span>
+            }
+            <span class="muted"> · le nombre d'abonnés n'est affiché qu'à partir de 20, et vous ne voyez jamais qui vous suit.</span>
+        </p>
+        @if (_profile.Status == "suspended")
+        {
+            <p class="alert error" role="status" id="suspended">Votre page est suspendue par l'équipe ON.VOYAGE : vous pouvez la lire mais pas la modifier. Écrivez-nous pour en savoir plus.</p>
+        }
+        else if (_profile.Status != "published" && block is not null)
+        {
+            <p class="alert warn" role="status" id="publish-block">@block <a href="/studio/profile">Compléter le profil</a></p>
+        }
+        else if (_profile.Status != "published")
+        {
+            <p class="alert ok" role="status" id="ready">Votre page est prête à être publiée. <a href="/studio/profile">Publier</a></p>
+        }
+    </section>
+
+    <section class="card" id="counts">
+        <h2>En un coup d'œil</h2>
+        <ul class="counts">
+            <li><a href="/studio/contents">Contenus</a> <strong id="content-count">@_profile.Contents.Count(content => content.Status != "removed")</strong></li>
+            <li><a href="/studio/contents#places">Lieux publiés</a> <strong id="place-count">@_profile.PlaceLinks.Where(link => link.Status == "validated").Select(link => link.PoiId).Distinct().Count()</strong></li>
+            <li><a href="/studio/tips">Conseils</a> <strong id="tip-count">@_profile.Tips.Count</strong></li>
+        </ul>
+    </section>
+}
+
+@code {
+    private StudioProfileDto? _profile;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var user = (await Authentication.GetAuthenticationStateAsync()).User;
+        if (!user.IsCreator())
+        {
+            // A signed-in account that is not a creator yet starts by opening its space.
+            Navigation.NavigateTo("/studio/join");
+            return;
+        }
+
+        _profile = await LoadAsync(() => Api.GetProfileAsync());
+    }
+}

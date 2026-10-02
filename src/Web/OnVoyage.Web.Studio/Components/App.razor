@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>ON.VOYAGE — Espace créateur</title>
+    <base href="/" />
+    <link rel="stylesheet" href="studio.css" />
+    <HeadOutlet @rendermode="PageMode" />
+</head>
+<body>
+    <Routes @rendermode="PageMode" />
+    <div id="blazor-error-ui" hidden>Une erreur est survenue. <a href="">Recharger</a></div>
+    <script src="_framework/blazor.web.js"></script>
+</body>
+</html>
+
+@code {
+    [CascadingParameter] private HttpContext HttpContext { get; set; } = default!;
+
+    // Sign-in pages are plain server-rendered forms; everything else is interactive.
+    private IComponentRenderMode? PageMode =>
+        HttpContext.Request.Path.StartsWithSegments("/login") || HttpContext.Request.Path.StartsWithSegments("/denied") ? null : InteractiveServer;
+}

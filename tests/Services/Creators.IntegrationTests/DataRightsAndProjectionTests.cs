@@ -149,7 +149,7 @@ public sealed class DataRightsAndProjectionTests(PostgresFixture postgres) : IAs
         string[] forbidden = ["lat", "latitude", "lon", "longitude", "lng", "coordinates", "position", "location", "geom", "geog"];
         columns.ShouldNotBeEmpty();
         columns.ShouldAllBe(column => !forbidden.Contains(column, StringComparer.OrdinalIgnoreCase));
-        tables.ShouldBe(["content_item", "creator", "creator_tip", "follow", "moderation_case", "place_link", "poi_directory"]);
+        tables.ShouldBe(["connected_account", "content_item", "creator", "creator_tip", "follow", "moderation_case", "place_link", "poi_directory", "unmatched_mention"]);
         (await _host.Scalar<string>("select data_type || '/' || udt_name from information_schema.columns where table_schema = 'creators' and table_name = 'creator' and column_name = 'handle'")).ShouldBe("USER-DEFINED/citext");
     }
 

@@ -48,7 +48,9 @@ public sealed record ContentItem(
     string? CoverPath,
     IReadOnlyList<Chapter> Chapters,
     bool IsCommercial,
-    string Status)
+    string Status,
+    Guid? ConnectedAccountId = null,
+    DateTimeOffset? GeotaggedAt = null)
 {
     public const int MaxCaptionExcerpt = 500;
     public const int MaxTitle = 200;

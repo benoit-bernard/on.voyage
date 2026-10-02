@@ -10,6 +10,7 @@ internal sealed class CreatorsDbContext(DbContextOptions<CreatorsDbContext> opti
     public const string HandleIndex = "ux_creator_handle";
     public const string AccountIndex = "ux_creator_account";
     public const string ContentIndex = "ux_content_item_platform_external_id";
+    public const string ConnectedAccountIndex = "ux_connected_account_platform_external_user";
 
     public DbSet<CreatorRow> Creators => Set<CreatorRow>();
     public DbSet<ContentRow> Contents => Set<ContentRow>();
@@ -18,6 +19,8 @@ internal sealed class CreatorsDbContext(DbContextOptions<CreatorsDbContext> opti
     public DbSet<FollowRow> Follows => Set<FollowRow>();
     public DbSet<PoiDirectoryRow> Pois => Set<PoiDirectoryRow>();
     public DbSet<ModerationCaseRow> Cases => Set<ModerationCaseRow>();
+    public DbSet<ConnectedAccountRow> ConnectedAccounts => Set<ConnectedAccountRow>();
+    public DbSet<UnmatchedMentionRow> UnmatchedMentions => Set<UnmatchedMentionRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -49,7 +52,34 @@ internal sealed class CreatorsDbContext(DbContextOptions<CreatorsDbContext> opti
             e.HasOne<CreatorRow>().WithMany().HasForeignKey(r => r.CreatorId).OnDelete(DeleteBehavior.Cascade);
             e.HasIndex(r => new { r.Platform, r.ExternalId }).IsUnique().HasDatabaseName(ContentIndex);
             e.HasIndex(r => r.CreatorId);
+            e.HasIndex(r => r.ConnectedAccountId);
+            e.HasIndex(r => new { r.CreatorId, r.GeotaggedAt });
+            e.HasOne<ConnectedAccountRow>().WithMany().HasForeignKey(r => r.ConnectedAccountId).OnDelete(DeleteBehavior.SetNull);
             e.Property(r => r.Chapters).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<UnmatchedMentionRow>(e =>
+        {
+            e.ToTable("unmatched_mention");
+            e.HasKey(r => r.Id);
+            e.HasOne<CreatorRow>().WithMany().HasForeignKey(r => r.CreatorId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ContentRow>().WithMany().HasForeignKey(r => r.ContentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.ContentId, r.Key }).IsUnique();
+            e.HasIndex(r => r.CreatorId);
+        });
+
+        modelBuilder.Entity<ConnectedAccountRow>(e =>
+        {
+            e.ToTable("connected_account", t =>
+            {
+                t.HasCheckConstraint("ck_connected_account_platform", "platform in ('instagram', 'youtube', 'tiktok')");
+                t.HasCheckConstraint("ck_connected_account_status", "status in ('active', 'needs_reauth')");
+            });
+            e.HasKey(r => r.Id);
+            e.HasOne<CreatorRow>().WithMany().HasForeignKey(r => r.CreatorId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.CreatorId, r.Platform }).IsUnique().HasDatabaseName("ux_connected_account_creator_platform");
+            e.HasIndex(r => new { r.Platform, r.ExternalUserId }).IsUnique().HasDatabaseName(ConnectedAccountIndex);
+            e.HasIndex(r => r.LastSyncAt);
         });
 
         modelBuilder.Entity<PlaceLinkRow>(e =>

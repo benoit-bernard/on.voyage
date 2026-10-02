@@ -42,6 +42,11 @@
         <p class="bio">@_creator.Bio</p>
     }
 
+    @if (_creator.ConnectedPlatforms is { Count: > 0 } connected)
+    {
+        <p class="note" id="verified">Comptes vérifiés : @string.Join(", ", connected.Select(Platform))</p>
+    }
+
     @if (_creator.Links.Count > 0)
     {
         <section aria-labelledby="links">
@@ -114,6 +119,14 @@
     private CreatorPageDto? _creator;
     private IReadOnlyList<(string, string)> _alternates = [];
     private Dictionary<Guid, string> _pages = [];
+
+    private static string Platform(string platform) => platform switch
+    {
+        "instagram" => "Instagram",
+        "youtube" => "YouTube",
+        "tiktok" => "TikTok",
+        _ => platform,
+    };
 
     private string Followers => _creator!.FollowerCount is { } count ? $"{count} abonné{(count > 1 ? "s" : "")}" : "Nouveau créateur";
 

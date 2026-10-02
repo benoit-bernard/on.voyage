@@ -16,6 +16,7 @@ Sources : cahier des charges §9.7, §21, NF-05, NF-06 ; fichiers sous `deploy/`
 Internet ──443──▶ Caddy (HTTPS automatique) ──┬─ /api/*, /media/*, /health ─▶ gateway ─▶ platform-api, catalog-api, discovery-api, factory-api
                                               ├─ /*                         ─▶ web-pwa (fichiers statiques)
                                               └─ admin.<domaine>            ─▶ web-admin (Blazor serveur)
+                                              └─ studio.<domaine>           ─▶ web-studio (Blazor serveur, espace créateur)
 factory-worker ──(volume media)──▶ catalog-api (lecture seule, sert /media)
 tous les services ──▶ postgres (PostGIS 16, une base, un schéma par service)      backup ──▶ volume backups
 ```
@@ -30,7 +31,7 @@ tous les services ──▶ postgres (PostGIS 16, une base, un schéma par servi
 
 | Image | Dockerfile | Notes |
 | --- | --- | --- |
-| `platform-api`, `catalog-api`, `discovery-api`, `factory-api`, `gateway`, `web-admin` | `deploy/docker/service.Dockerfile` (arguments `PROJECT`, `ASSEMBLY`) | build en deux étapes (SDK 10 puis `aspnet:10.0`), utilisateur non root (`APP_UID`), port 8080, `HEALTHCHECK` sur `/alive` |
+| `platform-api`, `catalog-api`, `discovery-api`, `factory-api`, `gateway`, `web-admin`, `web-studio` | `deploy/docker/service.Dockerfile` (arguments `PROJECT`, `ASSEMBLY`) | build en deux étapes (SDK 10 puis `aspnet:10.0`), utilisateur non root (`APP_UID`), port 8080, `HEALTHCHECK` sur `/alive` |
 | `factory-worker` | idem, avec `RUNTIME_PACKAGES="curl osm2pgsql ffmpeg"` | `osm2pgsql` (import OSM, ADR-0004) et `ffmpeg` (normalisation audio) sont lus dans le `PATH` |
 | `web-pwa` | `deploy/docker/pwa.Dockerfile` | `dotnet publish` de la PWA, servie par Caddy (utilisateur 10001, port 8080). `MAP_TILES_URL` (variable `STAGING_MAP_TILES_URL`) est écrit dans `appsettings.json` **avant** la publication : le service worker de la PWA contrôle l'empreinte SHA-256 de ce fichier, le modifier après coup casserait l'installation du cache hors ligne. Une image par environnement. |
 | `backup` | `deploy/staging/backup/Dockerfile` | `pg_dump`, `pg_basebackup`, `age` ; utilisateur 999 |
@@ -138,5 +139,8 @@ Les migrations doivent rester **rétrocompatibles d'une version** (§21) : les a
 
 - Aucune de ces briques n'a été exécutée sur un vrai VPS dans cette tranche : voir le compte rendu de vérification de la PR (compose validé par `docker compose config`, scripts de sauvegarde exécutés contre un PostgreSQL local ; images, Caddy, pile d'observabilité et workflow de déploiement non exécutés).
 - L'app mobile en Release appelle `https://api.on.voyage/` (adresse figée dans `MauiProgram.cs`, hors Debug) : le Caddyfile expose le Gateway sous `api.<domaine>` pour que ce nom existe, mais un build mobile ne vise le staging qu'après changement de cette adresse (ou d'un réglage de build à introduire). La PWA, elle, est servie sur la même origine.
-- Les sessions du back-office sont gardées en mémoire du conteneur `web-admin` : chaque déploiement déconnecte les éditeurs.
+- Les sessions du back-office sont gardées en mémoire du conteneur `web-admin` : chaque déploiement déconnecte les éditeurs. Même chose pour `web-studio` (créateurs).
+- **Imports Instagram et YouTube (T-1207/1208)** : éteints tant que `Creators__Social__<Plateforme>__Enabled` n'est pas vrai (H-008). Pour les ouvrir : secrets `Creators__Social__Instagram__ClientId/ClientSecret`, `Creators__Social__YouTube__ClientId/ClientSecret`, adresses de retour `Creators__Social__<Plateforme>__RedirectUri` déclarées chez Meta et Google, un **volume persistant** et sauvegardé pour `Creators__DataProtection__KeysDirectory`, `Creators__Social__MediaDirectory` = le dossier média de Catalog, et la sortie réseau vers `api.instagram.com`, `graph.instagram.com`, `accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`, `i.ytimg.com`, `*.cdninstagram.com`, `*.fbcdn.net`.
+- **Géo-association (T-1209)** : `Creators__GeoAssociation__Provider` vaut `disabled` tant qu'il n'est pas changé. Pour utiliser un modèle : `openai` avec `OpenAI__ApiKey` (secret) et `Creators__Llm__GeotagModel` ; sortie réseau vers `api.openai.com`. `PlaceSuggestedV1` part vers la file `factory`, que le worker Factory doit écouter (T-410).
+- `web-studio` (T-1206) est dans `docker-compose.yml`, `Caddyfile` (`studio.<domaine>`), la surveillance et la matrice de construction, mais **`creators-api` n'est pas encore un service du compose** (ADR-0016) : tant qu'il n'y est pas, l'espace créateur répond « Impossible de joindre le serveur ». DNS : ajouter `studio.<domaine>`.
 - Un seul VPS : la disponibilité de 99,5 % (NF-05) dépend de lui ; la sonde de santé et l'alerte `MonthlyAvailabilityBelowTarget` servent à la mesurer.

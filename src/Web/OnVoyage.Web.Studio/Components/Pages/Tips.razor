@@ -1,0 +1,107 @@
+@page "/studio/tips"
+@attribute [Authorize(Policy = StudioClaims.PolicyName)]
+@inherits StudioPageBase
+
+<h1>Vos conseils</h1>
+<p class="muted">Un conseil de 280 caractères au plus par lieu (« Viens au coucher du soleil, côté ouest »). Pas de note chiffrée. Un conseil recommande le lieu : il apparaît dans « Vu par les créateurs ».</p>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card" id="new-tip">
+    <h2>Écrire un conseil</h2>
+    <div class="row">
+        <div>
+            <label for="place-query">Chercher un lieu</label>
+            <input id="place-query" @bind="_query" @bind:event="oninput" placeholder="Fort Saint-Jean" />
+        </div>
+        <button type="button" id="search-places" disabled="@(Busy || _query.Trim().Length < 2)" @onclick="SearchAsync">Chercher</button>
+    </div>
+    @if (_results.Count > 0)
+    {
+        <ul class="candidates" id="place-results">
+            @foreach (var place in _results)
+            {
+                <li>
+                    <span>@place.Name <span class="muted">· @place.City@(place.IsPublished ? "" : " · pas encore en ligne")</span></span>
+                    <button type="button" disabled="@Busy" @onclick="() => Choose(place)">Choisir</button>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (_chosen is not null)
+    {
+        <div class="card" id="chosen">
+            <h3>@_chosen.Name</h3>
+            <label for="tip">Conseil (@_text.Length / 280)</label>
+            <textarea id="tip" rows="3" maxlength="280" @bind="_text" @bind:event="oninput"></textarea>
+            <button type="button" id="save-tip" class="primary" disabled="@(Busy || string.IsNullOrWhiteSpace(_text))" @onclick="SaveAsync">Enregistrer le conseil</button>
+        </div>
+    }
+</section>
+
+<section class="card" id="tips">
+    <h2>Mes conseils</h2>
+    @if (_profile is null)
+    {
+        @if (Error is null)
+        {
+            <p>Chargement…</p>
+        }
+    }
+    else if (_profile.Tips.Count == 0)
+    {
+        <p class="muted" id="no-tips">Aucun conseil pour l'instant.</p>
+    }
+    else
+    {
+        <ul>
+            @foreach (var tip in _profile.Tips)
+            {
+                <li class="tip">
+                    <strong>@tip.PoiName</strong> — @tip.Text
+                    @if (tip.Status == "hidden")
+                    {
+                        <span class="tag">masqué par la modération</span>
+                    }
+                    <button type="button" class="ghost" disabled="@Busy" @onclick="() => RemoveAsync(tip.PoiId)">Supprimer</button>
+                </li>
+            }
+        </ul>
+    }
+</section>
+
+@code {
+    private StudioProfileDto? _profile;
+    private string _query = string.Empty;
+    private IReadOnlyList<PoiSearchResultDto> _results = [];
+    private PoiSearchResultDto? _chosen;
+    private string _text = string.Empty;
+
+    protected override async Task OnInitializedAsync() => _profile = await LoadAsync(() => Api.GetProfileAsync());
+
+    private Task SearchAsync() => RunAsync(async () => _results = await Api.SearchPlacesAsync(_query.Trim()));
+
+    private void Choose(PoiSearchResultDto place)
+    {
+        _chosen = place;
+        _results = [];
+        _text = _profile?.Tips.FirstOrDefault(tip => tip.PoiId == place.PoiId)?.Text ?? string.Empty;
+    }
+
+    private async Task SaveAsync()
+    {
+        await RunAsync(async () => await Api.SetTipAsync(_chosen!.PoiId, _text.Trim()), "Conseil enregistré.");
+        if (Error is null)
+        {
+            _chosen = null;
+            _text = string.Empty;
+            _profile = await LoadAsync(() => Api.GetProfileAsync());
+        }
+    }
+
+    private async Task RemoveAsync(Guid poiId)
+    {
+        await RunAsync(() => Api.RemoveTipAsync(poiId), "Conseil supprimé.");
+        _profile = await LoadAsync(() => Api.GetProfileAsync());
+    }
+}

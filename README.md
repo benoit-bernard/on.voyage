@@ -45,7 +45,7 @@ Puis, en local :
 | `src/Gateway` | proxy YARP : JWT, limitation de débit, blocage des robots d'IA |
 | `src/Aspire` | `AppHost` (orchestration locale et modèle de publication) et `ServiceDefaults` (OpenTelemetry, santé, authentification, résilience) |
 | `src/Shared` | `Messaging` (Wolverine), `Recommendation.Engine` (apprentissage, classement, planificateur), `Taxonomy` |
-| `src/Web` | `UI.Components` (RCL partagée), `Web.Pwa`, `Web.Admin` |
+| `src/Web` | `UI.Components` (RCL partagée), `Web.Pwa`, `Web.Admin`, `Web.Studio` (espace créateur), `Web.Public` |
 | `src/Mobile` | `App` (MAUI, hors `OnVoyage.slnx`), `App.Core`, `App.Infrastructure`, `App.LocalData` |
 | `tests/` | projets de test (voir [`docs/TESTING.md`](docs/TESTING.md)) |
 | `prompts/`, `data-pipeline/` | prompts versionnés de Factory ; taxonomie, style osm2pgsql, traces GPX synthétiques |

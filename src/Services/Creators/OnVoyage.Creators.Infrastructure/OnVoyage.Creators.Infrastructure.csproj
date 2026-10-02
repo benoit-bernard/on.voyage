@@ -4,11 +4,15 @@
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
     <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <PackageReference Include="OpenAI" />
     <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
     <ProjectReference Include="../OnVoyage.Creators.Application/OnVoyage.Creators.Application.csproj" />
     <ProjectReference Include="../OnVoyage.Creators.Domain/OnVoyage.Creators.Domain.csproj" />
   </ItemGroup>
   <ItemGroup>
+    <EmbeddedResource Include="../../../../prompts/geotag-places.md" LogicalName="prompts/geotag-places.md" />
     <InternalsVisibleTo Include="Creators.UnitTests" />
     <InternalsVisibleTo Include="Creators.IntegrationTests" />
   </ItemGroup>

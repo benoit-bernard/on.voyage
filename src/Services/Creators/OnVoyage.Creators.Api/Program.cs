@@ -1,3 +1,4 @@
+using OnVoyage.Creators.Api.Background;
 using OnVoyage.Creators.Api.Endpoints;
 using OnVoyage.Creators.Application.Features;
 using OnVoyage.Creators.Contracts;
@@ -15,6 +16,11 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddOnVoyageAuthentication(builder.Configuration);
 builder.Services.AddCreatorsInfrastructure(builder.Configuration);
+if (builder.Configuration.GetValue("Creators:Social:SyncEnabled", false))
+{
+    builder.Services.AddHostedService<SocialSyncScheduler>();
+}
+
 
 var connectionString = builder.Configuration.GetConnectionString(DependencyInjection.ConnectionName)!;
 builder.Host.UseWolverine(options =>
@@ -27,6 +33,9 @@ builder.Host.UseWolverine(options =>
     options.PublishMessage<TravelerExportPartReadyV1>().ToPostgresqlQueue("platform");
     options.PublishMessage<AdminActionRecordedV1>().ToPostgresqlQueue("platform");
     options.PublishMessage<CreatorTermsAcceptedV1>().ToPostgresqlQueue("platform");
+
+    // Unknown places that creators mention go to the editorial team (Factory, F-28).
+    options.PublishMessage<PlaceSuggestedV1>().ToPostgresqlQueue("factory");
 
     // Consumers of the creator events: one queue per subscribed service. Discovery handles them since T-1205; Insights joins with T-1212 (configuration, not code).
     foreach (var subscriber in builder.Configuration.GetSection("Messaging:CreatorSubscribers").Get<string[]>() ?? ["discovery"])

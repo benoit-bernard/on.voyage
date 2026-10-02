@@ -63,6 +63,23 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | Clé | Défaut | Rôle |
 | --- | --- | --- |
 | `Creators:Migrate` | `true` | Migrations au démarrage. |
+| `Creators:Terms:CurrentVersion` | `2026-10` | Version des CGU créateurs que l'inscription (`POST /studio/signup`) exige. La changer fait redemander l'acceptation (`POST /studio/terms`). Le texte juridique (H-010) est dans l'espace créateur ; la version est ici. |
+| `Creators:GeoAssociation:Provider` | `disabled` | Qui lit les lieux cités par les contenus (F-28) : `disabled` (rien n'est analysé, rien n'échoue), `offline` (déterministe, sans réseau : tests, démonstration) ou `openai` (modèle de langage, **en arrière-plan seulement**, jamais sur le chemin d'une requête, jamais avec des données de voyageur). `openai` exige `OpenAI__ApiKey` et `Creators__Llm__GeotagModel` (**secrets / paramètres** ; modèle à fixer, Q-14) : le service refuse de démarrer sans eux. |
+| `Creators:GeoAssociation:BulkValidateThreshold` | `0.9` | Confiance à partir de laquelle « Tout valider » s'applique (annexe E : `creators.geotag.auto_validate_threshold`). Plancher 0,5. |
+| `Creators:GeoAssociation:MinProposalConfidence` | `0.4` | En dessous, un rapprochement n'est pas proposé. |
+| `Creators:GeoAssociation:MaxProposalsPerContent` | `50` | Plafond de propositions pour un contenu. |
+| `Creators:GeoAssociation:SuggestionConfidence` | `0.7` | Certitude du lecteur (qu'il s'agit d'un vrai lieu) à partir de laquelle un lieu inconnu du catalogue est suggéré à l'équipe éditoriale (`PlaceSuggestedV1`). |
+| `Creators:Social:Provider` | `live` | `live` (les plateformes) ou `fake` (adaptateurs déterministes hors ligne : tests, démonstration sans identifiants). |
+| `Creators:Social:Instagram:Enabled`, `Creators:Social:YouTube:Enabled` | `false` | **Import désactivé par défaut** (H-008 : revue des applications Meta et Google en attente). Activer exige aussi les trois clés suivantes, sinon la plateforme reste fermée pour les créateurs (« pas encore ouvert »). |
+| `Creators:Social:<Plateforme>:ClientId`, `…:ClientSecret` | aucun | **Secrets** : identifiants de l'application chez Meta (Instagram API with Instagram Login) et Google (client OAuth « application web », portée `youtube.readonly`). Variables d'environnement `Creators__Social__Instagram__ClientId`, `Creators__Social__Instagram__ClientSecret`, `Creators__Social__YouTube__ClientId`, `Creators__Social__YouTube__ClientSecret` ; jamais dans le dépôt. |
+| `Creators:Social:<Plateforme>:RedirectUri` | aucun | Adresse de retour déclarée chez la plateforme : **une page de l'espace créateur**, `https://studio.<domaine>/studio/connections/instagram/callback` et `…/youtube/callback`. |
+| `Creators:Social:<Plateforme>:UsePkce` | `true` | Envoie un défi PKCE S256. Google le supporte ; la prise en charge par Instagram n'est pas documentée : mettre `false` si l'autorisation est refusée à cause du paramètre. |
+| `Creators:Social:Instagram:ApiVersion` | vide | Préfixe de version du Graph API (`v23.0`) ; vide : adresse sans version. |
+| `Creators:DataProtection:KeysDirectory` | aucun | Dossier des **clés qui chiffrent les jetons OAuth** (ASP.NET Core Data Protection). **Obligatoire dès qu'une plateforme est activée** (le service refuse de démarrer sinon) et à garder entre deux déploiements (volume Docker, sauvegardé) : sans ces clés, les jetons stockés sont illisibles et les créateurs doivent reconnecter leurs comptes. |
+| `Creators:DataProtection:CertificatePath`, `…:CertificatePassword` | aucun | Certificat PKCS#12 qui chiffre les clés au repos (sinon elles sont en clair dans le dossier : le dossier doit alors être protégé comme un secret). |
+| `Creators:Social:MediaDirectory` | aucun | Racine des médias (celle que Catalog sert sous `/media`) où les vignettes des contenus importés sont copiées, dans `creators/`. Vide : aucune vignette copiée. L'AppHost y met le dossier média partagé. |
+| `Creators:Social:ThumbnailHosts` | `i.ytimg.com`, `img.youtube.com`, `*.cdninstagram.com`, `*.fbcdn.net` | Hôtes d'où une vignette peut être téléchargée (https, 1 Mo, image, sans redirection). |
+| `Creators:Social:SyncEnabled`, `Creators:Social:SyncIntervalHours` | `false`, `24` | Synchronisation incrémentale quotidienne dans le processus `creators-api` (pas de worker Creators séparé pour l'instant). |
 | `Messaging:CreatorSubscribers` | `["discovery"]` | Files qui reçoivent `CreatorPublishedV1`, `CreatorUnpublishedV1`, `CreatorPlaceLinkChangedV1` et `FollowChangedV1`. Discovery les traite depuis T-1205 ; **n'ajouter `insights` qu'avec ses gestionnaires** (T-1212), sinon les messages seraient mis de côté. `[]` désactive le routage. `CreatorTermsAcceptedV1`, le journal admin et les réponses aux droits des données vont toujours à `platform`. |
 | `Messaging:ProjectionSubscribers` (lue par **Catalog**) | `["creators", "discovery"]` | Files qui reçoivent `PoiProjectionChangedV1`. |
 | `Exports:Directory` | dossier temporaire | Dossier de la partie `creators.json` des exports (comme les autres services). |
@@ -129,6 +146,7 @@ Les deux hôtes lisent la même section ; le worker exécute les tâches, l'API 
 | --- | --- | --- | --- |
 | `web-admin` | `Gateway:BaseUrl` | `https+http://gateway` ; **obligatoire** | Adresse interne du Gateway. |
 | `web-admin` | `Admin:MediaBaseUrl` | vide : repli sur `Gateway:BaseUrl` | Adresse que le **navigateur** de l'éditeur utilise pour lire l'audio (origine publique). |
+| `web-studio` | `Gateway:BaseUrl` | `https+http://gateway` ; **obligatoire** | Adresse interne du Gateway (espace créateur, T-1206). Aucune base, aucun secret : le jeton est celui du créateur. |
 | `web-pwa` | `Gateway:BaseAddress` | vide : même origine | Adresse du Gateway (`wwwroot/appsettings.json`, lu par le navigateur au démarrage : aucune injection par Aspire possible). |
 | `web-pwa` | `Map:TilesUrl` | vide : la page Carte dit que la carte n'est pas configurée | Fichier `.pmtiles` servi avec requêtes Range. |
 | `web-pwa` | `Map:GlyphsUrl` | `_content/OnVoyage.UI.Components/fonts/{fontstack}/{range}.pbf` | Polices de la carte (embarquées, pas de tiers). |

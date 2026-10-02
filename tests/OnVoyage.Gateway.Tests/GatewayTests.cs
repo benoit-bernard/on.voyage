@@ -87,6 +87,25 @@ public sealed class GatewayTests
     }
 
     [Fact]
+    public async Task Studio_routes_need_the_creator_role_except_sign_up_which_needs_a_verified_account()
+    {
+        await using var g = await GatewayHarness.StartAsync();
+        var anonymous = TestTokens.Mint();
+        var account = TestTokens.Mint(anonymous: false);
+        var creator = TestTokens.Mint(anonymous: false, roles: ["creator"]);
+
+        (await g.GetAsync("/api/creators/v1/studio/profile")).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await g.GetAsync("/api/creators/v1/studio/profile", anonymous)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await g.GetAsync("/api/creators/v1/studio/profile", account)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await g.GetAsync("/api/creators/v1/studio/profile", creator)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await g.GetAsync("/api/creators/v1/studio/contents", account)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+
+        // Before the role exists, a verified e-mail is enough to see where one stands and to sign up; an anonymous session is not.
+        (await g.GetAsync("/api/creators/v1/studio/registration", anonymous)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await g.GetAsync("/api/creators/v1/studio/registration", account)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Health_endpoints_stay_open()
     {
         await using var g = await GatewayHarness.StartAsync();

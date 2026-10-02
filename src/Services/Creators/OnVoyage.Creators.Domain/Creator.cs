@@ -66,6 +66,10 @@ public sealed record Creator(
     public Creator WithFounderConsent(string documentRef, DateTimeOffset acceptedAt, DateTimeOffset now) =>
         this with { Founding = true, TermsVersion = TermsVersions.Founder, TermsDocumentRef = documentRef.Trim(), TermsAcceptedAt = acceptedAt, UpdatedAt = now };
 
+    /// <summary>The creator accepts a version of the creator terms (F-26). The reference of a founder's signed document is dropped: the terms now stand on their own.</summary>
+    public Creator WithTermsAccepted(string version, DateTimeOffset acceptedAt, DateTimeOffset now) =>
+        this with { TermsVersion = version, TermsAcceptedAt = acceptedAt, TermsDocumentRef = null, UpdatedAt = now };
+
     public Creator WithAccount(Guid accountId, DateTimeOffset now) => this with { AccountId = accountId, UpdatedAt = now };
 
     /// <summary>The caller has already checked <see cref="PublishBlock"/>.</summary>

@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 # Image of any ASP.NET Core / worker host of the solution (platform-api, catalog-api, discovery-api, factory-api, factory-worker,
-# gateway, web-admin and the future insights-api, creators-api, creators-worker, web-public). One parameterised file, one image per
+# gateway, web-admin, web-studio and the future insights-api, creators-api, creators-worker, web-public). One parameterised file, one image per
 # host. Build context: the repository root.
 #
 #   docker build -f deploy/docker/service.Dockerfile \

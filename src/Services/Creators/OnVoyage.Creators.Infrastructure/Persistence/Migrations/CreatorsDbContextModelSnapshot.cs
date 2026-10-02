@@ -25,6 +25,86 @@ namespace OnVoyage.Creators.Infrastructure.Persistence.Migrations
             NpgsqlModelBuilderExtensions.HasPostgresExtension(modelBuilder, "pg_trgm");
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("OnVoyage.Creators.Infrastructure.Persistence.ConnectedAccountRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("AccessTokenProtected")
+                        .HasColumnType("text")
+                        .HasColumnName("access_token_protected");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("ExternalUserId")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("external_user_id");
+
+                    b.Property<string>("LastError")
+                        .HasColumnType("text")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset?>("LastSyncAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_sync_at");
+
+                    b.Property<string>("Platform")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("platform");
+
+                    b.Property<string>("RefreshTokenProtected")
+                        .HasColumnType("text")
+                        .HasColumnName("refresh_token_protected");
+
+                    b.PrimitiveCollection<string[]>("Scopes")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("scopes");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Username")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("username");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("LastSyncAt");
+
+                    b.HasIndex("CreatorId", "Platform")
+                        .IsUnique()
+                        .HasDatabaseName("ux_connected_account_creator_platform");
+
+                    b.HasIndex("Platform", "ExternalUserId")
+                        .IsUnique()
+                        .HasDatabaseName("ux_connected_account_platform_external_user");
+
+                    b.ToTable("connected_account", "creators", t =>
+                        {
+                            t.HasCheckConstraint("ck_connected_account_platform", "platform in ('instagram', 'youtube', 'tiktok')");
+
+                            t.HasCheckConstraint("ck_connected_account_status", "status in ('active', 'needs_reauth')");
+                        });
+                });
+
             modelBuilder.Entity("OnVoyage.Creators.Infrastructure.Persistence.ContentRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -40,6 +120,10 @@ namespace OnVoyage.Creators.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("jsonb")
                         .HasColumnName("chapters");
+
+                    b.Property<Guid?>("ConnectedAccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("connected_account_id");
 
                     b.Property<string>("CoverPath")
                         .HasColumnType("text")
@@ -61,6 +145,10 @@ namespace OnVoyage.Creators.Infrastructure.Persistence.Migrations
                         .IsRequired()
                         .HasColumnType("text")
                         .HasColumnName("external_id");
+
+                    b.Property<DateTimeOffset?>("GeotaggedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("geotagged_at");
 
                     b.Property<bool>("IsCommercial")
                         .HasColumnType("boolean")
@@ -97,7 +185,11 @@ namespace OnVoyage.Creators.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("ConnectedAccountId");
+
                     b.HasIndex("CreatorId");
+
+                    b.HasIndex("CreatorId", "GeotaggedAt");
 
                     b.HasIndex("Platform", "ExternalId")
                         .IsUnique()
@@ -462,8 +554,69 @@ namespace OnVoyage.Creators.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("OnVoyage.Creators.Infrastructure.Persistence.UnmatchedMentionRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("City")
+                        .HasColumnType("text")
+                        .HasColumnName("city");
+
+                    b.Property<Guid>("ContentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("content_id");
+
+                    b.Property<Guid>("CreatorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("creator_id");
+
+                    b.Property<string>("Excerpt")
+                        .HasColumnType("text")
+                        .HasColumnName("excerpt");
+
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("key");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("SuggestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suggested_at");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreatorId");
+
+                    b.HasIndex("ContentId", "Key")
+                        .IsUnique();
+
+                    b.ToTable("unmatched_mention", "creators");
+                });
+
+            modelBuilder.Entity("OnVoyage.Creators.Infrastructure.Persistence.ConnectedAccountRow", b =>
+                {
+                    b.HasOne("OnVoyage.Creators.Infrastructure.Persistence.CreatorRow", null)
+                        .WithMany()
+                        .HasForeignKey("CreatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
             modelBuilder.Entity("OnVoyage.Creators.Infrastructure.Persistence.ContentRow", b =>
                 {
+                    b.HasOne("OnVoyage.Creators.Infrastructure.Persistence.ConnectedAccountRow", null)
+                        .WithMany()
+                        .HasForeignKey("ConnectedAccountId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
                     b.HasOne("OnVoyage.Creators.Infrastructure.Persistence.CreatorRow", null)
                         .WithMany()
                         .HasForeignKey("CreatorId")
@@ -496,6 +649,21 @@ namespace OnVoyage.Creators.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("OnVoyage.Creators.Infrastructure.Persistence.TipRow", b =>
                 {
+                    b.HasOne("OnVoyage.Creators.Infrastructure.Persistence.CreatorRow", null)
+                        .WithMany()
+                        .HasForeignKey("CreatorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("OnVoyage.Creators.Infrastructure.Persistence.UnmatchedMentionRow", b =>
+                {
+                    b.HasOne("OnVoyage.Creators.Infrastructure.Persistence.ContentRow", null)
+                        .WithMany()
+                        .HasForeignKey("ContentId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
                     b.HasOne("OnVoyage.Creators.Infrastructure.Persistence.CreatorRow", null)
                         .WithMany()
                         .HasForeignKey("CreatorId")

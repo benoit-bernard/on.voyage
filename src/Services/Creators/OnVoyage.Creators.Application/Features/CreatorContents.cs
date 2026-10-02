@@ -300,7 +300,7 @@ public static class CreatorContentHandler
     }
 
     /// <summary>The published set changed: a link that became validated (and online) is announced, one that stopped being so is withdrawn.</summary>
-    private static IEnumerable<CreatorPlaceLinkChangedV1> StatusChange(PlaceLink? before, PlaceLink? after, ContentItem? content, DateTimeOffset now)
+    internal static IEnumerable<CreatorPlaceLinkChangedV1> StatusChange(PlaceLink? before, PlaceLink? after, ContentItem? content, DateTimeOffset now)
     {
         var online = content is null || content.IsOnline;
         var wasPublic = before is { IsValidated: true } && online;

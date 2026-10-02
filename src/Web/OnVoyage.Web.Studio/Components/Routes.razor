@@ -1,0 +1,17 @@
+<Router AppAssembly="typeof(Program).Assembly">
+    <Found Context="routeData">
+        <AuthorizeRouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)">
+            <NotAuthorized>
+                <h1>Accès refusé</h1>
+                <p>Cet espace est réservé aux créateurs ON.VOYAGE.</p>
+            </NotAuthorized>
+        </AuthorizeRouteView>
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="typeof(Layout.MainLayout)">
+            <h1>Page introuvable</h1>
+            <p><a href="/studio">Retour à l'accueil</a></p>
+        </LayoutView>
+    </NotFound>
+</Router>

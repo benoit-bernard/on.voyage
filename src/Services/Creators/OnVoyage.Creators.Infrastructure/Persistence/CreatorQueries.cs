@@ -112,6 +112,7 @@ internal sealed class CreatorQueries(CreatorsDbContext db) : ICreatorQueries
         var followers = await db.Follows.CountAsync(follow => follow.CreatorId == creator.Id, cancellationToken);
         var isFollowing = viewer is { } traveler && await db.Follows.AnyAsync(follow => follow.CreatorId == creator.Id && follow.TravelerId == traveler, cancellationToken);
         var domain = creator.ToDomain();
+        var connected = await db.ConnectedAccounts.AsNoTracking().Where(account => account.CreatorId == creator.Id).OrderBy(account => account.Platform).Select(account => account.Platform).ToListAsync(cancellationToken);
 
         return new CreatorPageDto(
             creator.Id,
@@ -128,7 +129,8 @@ internal sealed class CreatorQueries(CreatorsDbContext db) : ICreatorQueries
             rows.Select(row => row.DestinationId).Distinct().Count(),
             isFollowing,
             places,
-            recent);
+            recent,
+            connected);
     }
 
     public async Task<CreatorListDto> ListPublishedAsync(string? destinationSlug, string? specialty, int offset, int limit, CancellationToken cancellationToken)
@@ -264,6 +266,44 @@ internal sealed class CreatorQueries(CreatorsDbContext db) : ICreatorQueries
             [.. contents.Select(content => new AdminContentDto(content.Id, content.Platform, content.Kind, content.Title, content.Permalink, content.CaptionExcerpt, content.CoverPath, content.DurationS, content.PublishedAt, content.IsCommercial, content.Status, [.. Mapping.Chapters(content.Chapters).Select(chapter => new ChapterDto(chapter.StartSeconds, chapter.Title))]))],
             [.. links.Select(link => new AdminPlaceLinkDto(link.Id, link.PoiId, names.GetValueOrDefault(link.PoiId, string.Empty), link.ContentId, link.ContentId is { } id ? titles.GetValueOrDefault(id) : null, link.StartS, link.Confidence, link.Status, link.ValidatedAt))],
             [.. tips.Select(tip => new AdminTipDto(tip.Id, tip.PoiId, names.GetValueOrDefault(tip.PoiId, string.Empty), tip.Text, tip.Status, tip.UpdatedAt))]);
+    }
+
+    public async Task<PlaceProposalsDto> ListProposalsAsync(Guid creatorId, double bulkThreshold, CancellationToken cancellationToken)
+    {
+        var rows = await (
+            from link in db.PlaceLinks.AsNoTracking()
+            where link.CreatorId == creatorId && link.Status == PlaceLinkStatuses.Proposed
+            join poi in db.Pois.AsNoTracking() on link.PoiId equals poi.PoiId
+            join content in db.Contents.AsNoTracking() on link.ContentId equals content.Id into contents
+            from content in contents.DefaultIfEmpty()
+            select new { link.Id, link.PoiId, PoiName = poi.Name, poi.City, poi.DestinationSlug, ContentId = (Guid?)content.Id, content.Title, content.Platform, content.Permalink, link.StartS, link.Confidence, link.Signals }).ToListAsync(cancellationToken);
+        var pending = await db.Contents.AsNoTracking().CountAsync(content => content.CreatorId == creatorId && content.Status == ContentStatuses.Imported && content.GeotaggedAt == null, cancellationToken);
+
+        var items = rows.Select(row =>
+        {
+            var (signals, evidence) = ReadSignals(row.Signals);
+            return (row.DestinationSlug, Item: new PlaceProposalDto(
+                row.Id, row.PoiId, row.PoiName, row.City, row.DestinationSlug, row.ContentId, row.Title,
+                row.Permalink is null ? null : ContentUrls.At(row.Platform!, row.Permalink, row.StartS), row.StartS, Math.Round(row.Confidence, 3), evidence, signals));
+        }).ToList();
+        var groups = items.GroupBy(item => item.DestinationSlug)
+            .Select(group => new PlaceProposalGroupDto(group.Key, [.. group.Select(item => item.Item).OrderByDescending(item => item.Confidence).ThenBy(item => item.PoiName, StringComparer.CurrentCultureIgnoreCase)]))
+            .OrderByDescending(group => group.Items.Count).ThenBy(group => group.Destination, StringComparer.Ordinal).ToList();
+        return new PlaceProposalsDto(items.Count, items.Count(item => item.Item.Confidence >= bulkThreshold), bulkThreshold, pending, groups);
+    }
+
+    private static (IReadOnlyList<string> Signals, string? Evidence) ReadSignals(string json)
+    {
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            var signals = document.RootElement.TryGetProperty("signals", out var list) && list.ValueKind == JsonValueKind.Array ? list.EnumerateArray().Select(item => item.GetString()).OfType<string>().ToList() : [];
+            return (signals, document.RootElement.TryGetProperty("evidence", out var evidence) && evidence.ValueKind == JsonValueKind.String ? evidence.GetString() : null);
+        }
+        catch (JsonException)
+        {
+            return ([], null);
+        }
     }
 
     private static PublishBlockDto? Block(Creator creator) => creator.PublishBlock is { } block ? new PublishBlockDto(block.Code, block.Message) : null;

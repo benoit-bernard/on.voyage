@@ -1,0 +1,73 @@
+@page "/studio/profile"
+@attribute [Authorize(Policy = StudioClaims.PolicyName)]
+@inherits StudioPageBase
+
+<h1>Votre profil</h1>
+<Status Message="@Message" Error="@Error" />
+
+@if (_profile is null)
+{
+    @if (Error is null)
+    {
+        <p>Chargement…</p>
+    }
+}
+else
+{
+    var block = Labels.PublishBlock(_profile.PublishBlock?.Code);
+    var suspended = _profile.Status == "suspended";
+    <section class="card" id="publication">
+        <h2>Publication <span class="tag" id="status">@Labels.CreatorStatus(_profile.Status)</span></h2>
+        @if (suspended)
+        {
+            <p class="alert error" role="status" id="suspended">Votre page est suspendue par l'équipe ON.VOYAGE : vous ne pouvez ni la modifier ni la republier.</p>
+        }
+        else if (_profile.Status != "published" && block is not null)
+        {
+            <p class="alert warn" role="status" id="publish-block">@block</p>
+        }
+
+        <div class="row actions">
+            @if (_profile.Status != "published")
+            {
+                <button type="button" id="publish" class="primary" disabled="@(Busy || suspended || block is not null)" aria-describedby="@(block is null ? null : "publish-block")" @onclick="PublishAsync">Publier ma page</button>
+            }
+            else
+            {
+                <button type="button" id="unpublish" disabled="@Busy" @onclick="UnpublishAsync">Dépublier ma page</button>
+            }
+        </div>
+        <p class="muted">Publier rend votre page visible dans l'app et sur le web (on.voyage/@@@_profile.Handle) ; la dépublier la retire aussitôt.</p>
+    </section>
+
+    <section class="card" id="profile">
+        <h2>Profil public</h2>
+        <fieldset disabled="@suspended">
+            <ProfileForm Input="_input" IdPrefix="profile" SubmitLabel="Enregistrer le profil" Busy="Busy || suspended" HandleLocked="@(_profile.Status == "published")" OnSubmit="SaveAsync" />
+        </fieldset>
+    </section>
+}
+
+@code {
+    private StudioProfileDto? _profile;
+    private ProfileInput _input = new();
+
+    protected override async Task OnInitializedAsync() => Show(await LoadAsync(() => Api.GetProfileAsync()));
+
+    private void Show(StudioProfileDto? profile)
+    {
+        if (profile is null)
+        {
+            return;
+        }
+
+        _profile = profile;
+        _input = ProfileInput.From(profile);
+    }
+
+    private Task SaveAsync() => RunAsync(async () => Show(await Api.UpdateProfileAsync(_input.ToRequest())), "Profil enregistré.");
+
+    private Task PublishAsync() => RunAsync(async () => Show(await Api.PublishAsync()), "Votre page est en ligne.");
+
+    private Task UnpublishAsync() => RunAsync(async () => Show(await Api.UnpublishAsync()), "Votre page est retirée.");
+}

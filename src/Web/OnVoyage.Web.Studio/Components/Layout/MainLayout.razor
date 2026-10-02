@@ -1,0 +1,28 @@
+@inherits LayoutComponentBase
+
+<div class="shell">
+    <header class="top">
+        <a class="brand" href="/studio">ON.VOYAGE <span>Espace créateur</span></a>
+        <AuthorizeView>
+            <Authorized>
+                <nav aria-label="Navigation principale">
+                    <NavLink href="/studio" Match="NavLinkMatch.All">Accueil</NavLink>
+                    @if (context.User.IsCreator())
+                    {
+                        <NavLink href="/studio/profile">Profil</NavLink>
+                        <NavLink href="/studio/contents">Contenus</NavLink>
+                        <NavLink href="/studio/review">Propositions</NavLink>
+                        <NavLink href="/studio/connections">Connexions</NavLink>
+                        <NavLink href="/studio/tips">Conseils</NavLink>
+                    }
+                </nav>
+                <form method="post" action="/logout" class="signout">
+                    <AntiforgeryToken />
+                    <span class="who">@context.User.FindFirst("email")?.Value</span>
+                    <button type="submit" class="ghost">Se déconnecter</button>
+                </form>
+            </Authorized>
+        </AuthorizeView>
+    </header>
+    <main>@Body</main>
+</div>

@@ -52,6 +52,21 @@ public sealed class CreatorsHost : IAsyncDisposable
                 builder.UseSetting("Exports:Directory", exports);
                 builder.UseSetting("Messaging:CreatorSubscribers:0", "discovery");
                 builder.UseSetting("Logging:LogLevel:Default", "Error");
+
+                // Imports run against the deterministic adapters (no network): both platforms open, tokens encrypted with keys kept in a temporary folder.
+                builder.UseSetting("Creators:Social:Provider", "fake");
+                foreach (var platform in new[] { "Instagram", "YouTube" })
+                {
+                    builder.UseSetting($"Creators:Social:{platform}:Enabled", "true");
+                    builder.UseSetting($"Creators:Social:{platform}:ClientId", $"{platform}-client");
+                    builder.UseSetting($"Creators:Social:{platform}:ClientSecret", $"{platform}-secret");
+                    builder.UseSetting($"Creators:Social:{platform}:RedirectUri", $"https://studio.onvoyage.test/studio/connections/{platform.ToLowerInvariant()}/callback");
+                }
+
+                // The reader of the places mentioned in contents is the offline deterministic one: no model, no network.
+                builder.UseSetting("Creators:GeoAssociation:Provider", "offline");
+                builder.UseSetting("Creators:DataProtection:KeysDirectory", Path.Combine(exports, "keys"));
+                builder.UseSetting("Creators:Social:MediaDirectory", Path.Combine(exports, "media"));
             });
             _ = factory.Server; // starts the host: migrations
             return _shared = new CreatorsHost(factory, connection, exports);
@@ -71,6 +86,9 @@ public sealed class CreatorsHost : IAsyncDisposable
         }
     }
 
+    /// <summary>The platforms of the fake adapters: tests fill what an account has published and make its tokens fail.</summary>
+    internal OnVoyage.Creators.Infrastructure.Social.FakeSocialWorld World => Factory.Services.GetRequiredService<OnVoyage.Creators.Infrastructure.Social.FakeSocialWorld>();
+
     // A fresh bus per call, like a handler invoked from the outside.
     public MessageBus Bus => new(Factory.Services.GetRequiredService<IWolverineRuntime>());
 
@@ -82,6 +100,14 @@ public sealed class CreatorsHost : IAsyncDisposable
     }
 
     public HttpClient Admin() => Traveler(null, "admin");
+
+    /// <summary>A signed-in account (verified e-mail), with the given roles: what Studio presents once the creator has signed in.</summary>
+    public HttpClient Account(Guid? id = null, params string[] roles)
+    {
+        var client = Factory.CreateClient();
+        client.Authenticate(TestTokens.Mint(id ?? Guid.NewGuid(), anonymous: false, roles: roles));
+        return client;
+    }
 
     public static string Unique(string prefix = "t") => prefix + Guid.NewGuid().ToString("N")[..12];
 

@@ -159,6 +159,22 @@ public sealed class ArchitectureTests
         }
     }
 
+    /// <summary>§23.4 rule 13: OAuth to Instagram, YouTube and TikTok lives in Creators only; the creator space and the apps hold no SDK of those platforms.</summary>
+    [Fact]
+    public void Web_studio_and_the_apps_hold_no_social_platform_sdk_and_only_know_creators_through_contracts()
+    {
+        string[] hostsOfNoPlatform = ["OnVoyage.Web.Studio", "OnVoyage.Web.Admin", "OnVoyage.Web.Public", "OnVoyage.Web.Pwa", "OnVoyage.UI.Components", "OnVoyage.App.Core", "OnVoyage.App.Infrastructure", "OnVoyage.App.LocalData"];
+        var forbidden = new[] { "Google.Apis", "Facebook", "Meta", "Instagram", "TikTok", "Firebase" };
+
+        foreach (var project in Projects().Where(p => hostsOfNoPlatform.Contains(Path.GetFileNameWithoutExtension(p))))
+        {
+            Packages(project).ShouldNotContain(package => forbidden.Any(word => package.Contains(word, StringComparison.OrdinalIgnoreCase)), project);
+            References(project).Where(reference => reference.StartsWith("OnVoyage.Creators.", StringComparison.Ordinal)).ShouldAllBe(reference => reference.EndsWith(".Contracts"), project);
+        }
+
+        File.Exists(Path.Combine(Root, "src/Web/OnVoyage.Web.Studio/OnVoyage.Web.Studio.csproj")).ShouldBeTrue();
+    }
+
     [Fact]
     public void No_type_is_named_helper_utils_or_manager()
     {

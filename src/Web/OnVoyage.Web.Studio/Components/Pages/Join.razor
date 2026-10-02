@@ -1,0 +1,92 @@
+@page "/studio/join"
+@attribute [Authorize]
+@inherits StudioPageBase
+@inject IRoleRefresher Roles
+
+<h1>Ouvrir votre espace créateur</h1>
+<Status Message="@Message" Error="@Error" />
+
+@if (_registration is null)
+{
+    @if (Error is null)
+    {
+        <p>Chargement…</p>
+    }
+}
+else if (_registration.Registered && _registration.TermsAccepted)
+{
+    <section class="card" id="registered">
+        <p>Votre espace @@@_registration.Handle existe déjà.</p>
+        <button type="button" id="activate" class="primary" disabled="@Busy" @onclick="ActivateAsync">Ouvrir mon espace</button>
+    </section>
+}
+else
+{
+    <section class="card">
+        <h2>@(_registration.Registered ? "Nouvelles CGU créateurs" : "Votre identité de créateur")</h2>
+        @if (!_registration.Registered)
+        {
+            <div class="row">
+                <div>
+                    <label for="join-handle">Handle public (3 à 30 caractères : lettres, chiffres, point, tiret bas)</label>
+                    <input id="join-handle" @bind="_handle" @bind:event="oninput" maxlength="31" autocomplete="off" placeholder="marie_marseille" />
+                </div>
+                <div>
+                    <label for="join-name">Nom affiché</label>
+                    <input id="join-name" @bind="_name" @bind:event="oninput" maxlength="80" />
+                </div>
+            </div>
+        }
+
+        <h3>CGU créateurs (version @_registration.CurrentTermsVersion)</h3>
+        <p class="alert warn" role="note" id="terms-notice">@CreatorTerms.Notice</p>
+        <ul id="terms">
+            @foreach (var commitment in CreatorTerms.Commitments)
+            {
+                <li>@commitment</li>
+            }
+        </ul>
+        <label class="check"><input id="accept-terms" type="checkbox" checked="@_accepted" @onchange="e => _accepted = e.Value is true" /> J'ai lu et j'accepte les CGU créateurs.</label>
+        <button type="button" id="join-submit" class="primary" disabled="@(Busy || !_accepted || (!_registration.Registered && (string.IsNullOrWhiteSpace(_handle) || string.IsNullOrWhiteSpace(_name))))" @onclick="JoinAsync">
+            @(_registration.Registered ? "Accepter" : "Ouvrir mon espace")
+        </button>
+    </section>
+}
+
+@code {
+    private StudioRegistrationDto? _registration;
+    private string _handle = string.Empty;
+    private string _name = string.Empty;
+    private bool _accepted;
+
+    protected override async Task OnInitializedAsync() => _registration = await LoadAsync(() => Api.GetRegistrationAsync());
+
+    private async Task JoinAsync()
+    {
+        var version = _registration!.CurrentTermsVersion;
+        await RunAsync(async () =>
+        {
+            _registration = _registration.Registered
+                ? await Api.AcceptTermsAsync(version)
+                : await Api.SignUpAsync(_handle.Trim(), _name.Trim(), version);
+        });
+        if (Error is null)
+        {
+            await ActivateAsync();
+        }
+    }
+
+    /// <summary>Platform grants the creator role a moment after the terms were accepted: ask for a fresh session until it is there, then reload with it.</summary>
+    private async Task ActivateAsync()
+    {
+        Message = "Activation de votre espace…";
+        if (await Roles.WaitForCreatorRoleAsync(CancellationToken.None))
+        {
+            Navigation.NavigateTo("/studio", forceLoad: true);
+        }
+        else
+        {
+            Message = "Votre espace est créé. L'activation du rôle créateur prend un instant : réessayez dans quelques secondes.";
+        }
+    }
+}

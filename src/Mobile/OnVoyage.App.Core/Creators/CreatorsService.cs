@@ -36,6 +36,15 @@ public static class CreatorLabels
 
     public const string Advertising = "Publicité";
 
+    /// <summary>The platforms whose account the creator proved they own (F-26 badge).</summary>
+    public static string Platform(string platform) => platform switch
+    {
+        "instagram" => "Instagram",
+        "youtube" => "YouTube",
+        "tiktok" => "TikTok",
+        _ => platform,
+    };
+
     public static string Kind(string? kind) => kind switch
     {
         "video" => "Vidéo",

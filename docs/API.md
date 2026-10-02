@@ -39,6 +39,8 @@ Configuration YARP de `appsettings.json` (section `ReverseProxy`). « Politique 
 | `platform` | `/api/platform/{**}` | toutes | `traveler` | platform-api |
 | `insights` | `/api/insights/v1/kpis`, `/api/insights/v1/kpis/export` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway ; le tableau de bord le dit au lieu d'échouer). `kpis?from&to&destination&cohort` : `cohort` vaut `control` ou `personalized` (toute autre valeur : 400), au plus 400 jours ; clés calculées : `central_ctr_ratio`, `satisfaction`, `activation`, `stories_per_session`, `completion`, `retention_d1/d7/d30`, `ctr_depth_0_9/10_49/50_plus`, `profile_depth_median_d7`, `crash_rate`, `creator_block_ctr`, `creator_follow_rate`, `creator_attributed_installs` |
 | `creators-admin` | `/api/creators/v1/admin/{**}` | toutes | `admin` | creators-api |
+| `creators-studio-join` | `/api/creators/v1/studio/{registration|signup|terms}` | toutes | `account` (e-mail vérifié) | creators-api |
+| `creators-studio` | `/api/creators/v1/studio/{**}` | toutes | `creator` | creators-api (dont `connections/{platform}/start|callback`, T-1207/1208) |
 | `creators` | `/api/creators/{**}` | toutes | `traveler` | creators-api |
 | `factory-story-reports` | `/api/factory/v1/stories/{id}/reports` | POST | `traveler` | factory-api |
 | `factory` | `/api/factory/{**}` | toutes | `admin` | factory-api |
@@ -127,6 +129,30 @@ Administrateur (politique `admin`, préfixe `/admin`, chaque écriture est journ
 | `GET /places?query&destination&limit` | Recherche dans le répertoire (sans accents ni casse). |
 | `GET /moderation?status&limit`, `POST /moderation/{caseId}/decision` | File des signalements (jamais l'auteur) ; décision `dismissed` ou `upheld` (exposé des motifs obligatoire). |
 
+Créateur (espace `web-studio`, T-1206, préfixe `/studio`). Le créateur est **toujours le compte du jeton** : aucun identifiant de créateur dans les chemins, un identifiant d'un autre créateur est simplement inconnu (404). Un créateur suspendu lit mais n'écrit pas (403 `creator_suspended`) et ne peut pas lever sa suspension en republiant. Les écritures sont journalisées chez Platform comme celles de l'administrateur (acteur = compte du créateur).
+
+| Méthode et chemin | Politique | Remarques |
+| --- | --- | --- |
+| `GET /registration` | `account` | `StudioRegistrationDto` : inscrit ou non, version courante des CGU, handle, statut, CGU acceptées. |
+| `POST /signup` | `account` | `StudioSignupRequest` (`handle`, `displayName`, `acceptedTermsVersion`). Crée le brouillon et enregistre l'acceptation ; publie `CreatorTermsAcceptedV1` (Platform ajoute `creator`). 422 `terms_required` si la version n'est pas la version courante ; 409 `handle_taken` avec une suggestion. Idempotent. |
+| `POST /terms` | `account` | Accepte la version courante (nouvelles CGU). Un fondateur garde son drapeau `founding`. |
+| `GET` / `PUT /profile` | `creator` | `StudioProfileDto` (comme la fiche admin, sans identifiant de compte ni liste d'abonnés ; abonnés `null` sous 20). 409 `handle_locked` si le handle change sur un profil publié. |
+| `POST /publish`, `/unpublish` | `creator` | Règle F-26 (`terms_required`, `specialty_required`). |
+| `POST` / `PUT` / `DELETE /contents[/{contentId}]` | `creator` | Contenus par URL, chapitres, « Publicité ». |
+| `POST` / `PUT` / `DELETE /place-links[/{linkId}]` | `creator` | Associations ; le créateur valide ou retire lui-même. |
+| `PUT` / `DELETE /tips/{poiId}` | `creator` | Conseil de 280 caractères au plus. |
+| `GET /places?query&destination` | `creator` | Recherche dans le répertoire. |
+| `GET /place-links?status=proposed` | `creator` | `PlaceProposalsDto` (F-28) : « nous avons trouvé N lieux dans vos contenus », groupés par destination, meilleure confiance d'abord ; chaque proposition porte sa confiance (0–1), ses signaux (`text`, `chapter`, `context`, `partial`, `ambiguous`), sa preuve (extrait) et le lien vers le contenu à l'horodatage du chapitre. `readyCount` = propositions à `bulkThreshold` (0,9) ou plus ; `pending` = contenus pas encore analysés. Seul `proposed` est consultable (400 sinon). **Rien de cela n'est public.** |
+| `POST /place-links/validate` | `creator` | `{ linkIds }` (une par une) ou `{ minConfidence }` (« Tout valider » : jamais en dessous du seuil `Creators:GeoAssociation:BulkValidateThreshold`, quelle que soit la valeur demandée). Seules les propositions de ce créateur sont atteintes ; chaque validation publie `CreatorPlaceLinkChangedV1`. |
+| `POST /place-links/reject` | `creator` | `{ linkIds }` : refusée, elle n'est plus jamais reproposée. |
+| `POST /place-links/{linkId}/correct` | `creator` | `{ poiId }` : la proposition est refusée et le lieu choisi est validé à sa place (même contenu, même chapitre). |
+| `POST /place-links/analyze?force` | `creator` | 202 `AnalysisRequestedDto` : met en file l'analyse des contenus pas encore analysés (tous avec `force=true`). |
+| `GET /connections` | `creator` | `ConnectionsDto` : pour `instagram` et `youtube`, `enabled` (faux tant que l'application de la plateforme est en revue, H-008) et le compte connecté (`ConnectedAccountDto` : nom, statut `active` ou `needs_reauth`, dernière synchronisation, nombre de contenus). **Jamais un jeton.** |
+| `GET /connections/{platform}/start` | `creator` | `ConnectionStartDto.authorizeUrl` : l'adresse d'autorisation de la plateforme (code + PKCE ; l'`state` chiffré lie le créateur, la plateforme, le vérificateur PKCE et 10 minutes). 503 `connections_disabled` si la plateforme n'est pas ouverte. |
+| `POST /connections/{platform}/callback` | `creator` | Corps `{ code, state }` : la page de retour du Studio y transmet ce que la plateforme a renvoyé, **avec le jeton du créateur**. 400 `invalid_state` (état inconnu, expiré, d'une autre plateforme ou d'un autre créateur), 422 `professional_account_required` (compte Instagram personnel) ou `access_denied`, 409 `account_in_use` (compte déjà connecté à un autre créateur), 502 `provider_error`. La première importation part en arrière-plan. |
+| `DELETE /connections/{platform}?deleteContents` | `creator` | Révoque chez la plateforme quand elle le permet, supprime la ligne et donc les jetons, supprime les vignettes copiées ; `deleteContents=true` retire aussi les contenus importés (et publie les retraits de leurs lieux). 204. |
+| `POST /sync` | `creator` | « Resynchroniser » : 202 `SyncRequestedDto` (nombre de comptes actifs mis en file). Un compte `needs_reauth` n'est pas relancé. |
+
 Erreurs : Problem Details avec `type` = `https://on.voyage/problems/<code>` et l'extension `code`.
 
 ## Factory — `/api/factory/v1` (back-office)
@@ -173,6 +199,10 @@ Recherche et sélection répondent `429` `youtube_quota_exhausted` quand le quot
 ## Back-office web (`web-admin`)
 
 Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/kpis` (indicateurs, comparaison « Pour vous » / témoin, export CSV), `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/videos`, `/admin/bootstrap`, `/admin/dead-letters`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
+
+## Espace créateur (`web-studio`)
+
+Application Blazor serveur, jamais appelée par l'app. Même connexion que le back-office (`POST /login/code`, `/login/verify`, `/logout`, cookie `ov_studio` avec un identifiant de session opaque, jetons et **rôles** gardés côté serveur : le rôle `creator`, donné par Platform un instant après l'inscription, apparaît dès le renouvellement de la session). Pages : `/studio` (accueil), `/studio/join` (inscription et CGU), `/studio/profile`, `/studio/contents`, `/studio/tips`, `/studio/review` (propositions de lieux à valider, F-28), `/studio/connections` et `/studio/connections/{platform}/callback` (page où la plateforme renvoie le navigateur : elle remet `code` et `state` au service Creators, une seule fois). Tout `/studio/*` répond **403** à un compte sans le rôle `creator`, sauf `/studio` et `/studio/join`. `/health` et `/alive` sans authentification.
 
 ## Écarts avec le §12 du cahier des charges
 
