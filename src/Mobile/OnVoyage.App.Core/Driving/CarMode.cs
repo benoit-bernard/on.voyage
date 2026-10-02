@@ -29,8 +29,7 @@ public sealed class CarModeState
 public sealed record CarModeView(bool Active, bool Suggested, bool CanLeave, bool Playing, string? CurrentTitle, string? NextTitle, int? NextDistanceMeters, bool SignalLost)
 {
     /// <summary>"450 m" under a kilometre, "1,2 km" above (rounded to 100 m).</summary>
-    public static string FormatDistance(int meters) =>
-        meters < 1000 ? $"{meters} m" : $"{Math.Round(meters / 1000d, 1, MidpointRounding.AwayFromZero).ToString("0.#", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))} km";
+    public static string FormatDistance(int meters) => DistanceText.Format(meters);
 }
 
 public enum CarModeStartResult

@@ -10,6 +10,12 @@ public interface IDiscoveryClient
     Task<IReadOnlyList<OnboardingClipDto>> GetOnboardingClipsAsync(string lang, CancellationToken cancellationToken);
 
     Task<InteractionBatchResponse> PostOnboardingAsync(OnboardingRequest request, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// "Surprenez-moi" (F-12). The position, when given, is only sent as <c>lat</c> and <c>lng</c> of this call (§12.1). Null when no place is
+    /// left to propose (404 <c>surprise_not_found</c>).
+    /// </summary>
+    Task<RecommendationItemDto?> GetSurpriseAsync(double? latitude, double? longitude, int radiusMeters, CancellationToken cancellationToken);
 }
 
 /// <summary>

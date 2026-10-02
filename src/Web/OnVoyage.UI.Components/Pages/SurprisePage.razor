@@ -1,0 +1,59 @@
+@page "/surprise"
+@inject SurpriseService Draws
+@inject ILocationProvider Location
+
+<PageTitle>Surprenez-moi · ON.VOYAGE</PageTitle>
+
+<h1>Surprenez-moi</h1>
+
+@if (_drawing)
+{
+    <p class="empty" aria-live="polite">On cherche un lieu pour vous…</p>
+}
+else if (_outcome is { Status: SurpriseStatus.Unavailable })
+{
+    <p class="empty" role="alert">Impossible de joindre ON.VOYAGE. Vérifiez votre connexion.</p>
+    <button type="button" class="btn" @onclick="DrawAsync">Réessayer</button>
+}
+else if (_outcome is { Status: SurpriseStatus.NothingLeft })
+{
+    <p class="empty" role="status">Vous avez fait le tour de ce que nous pouvons vous proposer ici pour l'instant. Revenez plus tard, ou élargissez vos envies depuis la carte.</p>
+    <a class="btn btn-soft" href="carte">Ouvrir la carte</a>
+}
+else if (_outcome is { Surprise: { } place })
+{
+    <article class="surprise" aria-labelledby="surprise-name">
+        <h2 id="surprise-name">@place.Name</h2>
+        @if (place.IsExploration)
+        {
+            <span class="badge">Hors de vos habitudes</span>
+        }
+
+        <p class="explanation">@place.Explanation</p>
+        <div class="row">
+            <a class="btn" href="lieu/@place.Slug">Voir la fiche</a>
+            <button type="button" class="btn btn-soft" @onclick="DrawAsync">🎲 Une autre surprise</button>
+        </div>
+    </article>
+}
+else
+{
+    <p class="hint">Un lieu proche de vos goûts, que vous n'avez pas encore croisé.</p>
+    <button type="button" class="btn" @onclick="DrawAsync">🎲 Surprenez-moi</button>
+}
+
+@code {
+    private SurpriseOutcome? _outcome;
+    private bool _drawing;
+
+    protected override Task OnInitializedAsync() => DrawAsync();
+
+    private async Task DrawAsync()
+    {
+        _drawing = true;
+        StateHasChanged();
+        var position = await Location.GetCurrentAsync(CancellationToken.None);
+        _outcome = await Draws.DrawAsync(position, CancellationToken.None);
+        _drawing = false;
+    }
+}

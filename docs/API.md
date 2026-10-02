@@ -13,7 +13,7 @@ Source : les fichiers `Api/Endpoints/*.cs` de chaque service, `src/Gateway/OnVoy
 | Erreurs | Problem Details (RFC 9457, `application/problem+json`) avec un `type` stable `https://on.voyage/problems/{code}`. Les codes d'erreur métier sont des identifiants courts (`validation`, `unknown_destination`, `otp_cooldown`…). Les services appellent `AddProblemDetails()` ; le Gateway répond aussi en Problem Details. |
 | Correspondance code → statut | Catalog et Discovery : `*not_found` → 404, tout autre → 400. Platform : `otp_cooldown` et `otp_rate_limited` → 429 (avec `Retry-After`), `invalid_refresh_token` → 401, `email_already_linked` → 409, `email_unavailable` → 502, `*not_found` → 404, autre → 400. Factory : `*not_found` → 404, `validation` → 400, `youtube_not_configured` → 503, `youtube_unavailable` → 502, autre → 409. |
 | Version minimale | Si l'en-tête `X-App-Version` (ex. `1.0.0`) est inférieur à `app.min_app_version` de la configuration distante, les routes `/api` du **Catalog** répondent `426` (`upgrade_required`, avec `minAppVersion`). Seul Catalog applique ce contrôle aujourd'hui. |
-| Position | Les coordonnées ne voyagent que dans les paramètres `lat` et `lon` de `GET …/destinations/{slug}/pois`. Elles ne sont ni stockées ni journalisées (voir `docs/PRIVACY.md`). |
+| Position | Les coordonnées ne voyagent que dans les paramètres `lat` et `lon` de `GET …/destinations/{slug}/pois` et `lat` et `lng` de `GET /api/discovery/v1/surprise` (arrondis à 3 décimales par l'app). Elles ne sont ni stockées ni journalisées (voir `docs/PRIVACY.md`). |
 | Idempotence | Les envois d'interactions portent un `clientEventId` : le renvoyer ne change rien. |
 
 ### Protection du Gateway (SEC-04, F-24)

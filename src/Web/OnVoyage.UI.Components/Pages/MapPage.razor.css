@@ -6,3 +6,4 @@
 .preview h2 { margin: 0; font-size: 1.05rem; }
 .preview p { margin: .15rem 0; color: var(--ov-muted); font-size: .85rem; }
 .play { width: 3rem; height: 3rem; border: 0; border-radius: 50%; background: var(--ov-accent); color: var(--ov-on-accent); font-size: 1.2rem; cursor: pointer; }
+.surprise-link { display: inline-block; margin: 0 0 .75rem; color: var(--ov-ink); font-weight: 700; }

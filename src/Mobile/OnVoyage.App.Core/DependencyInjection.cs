@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<OnVoyage.App.Core.Driving.CarModeController>();
         services.AddScoped<OnVoyage.App.Core.Planning.DestinationService>();
         services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();
+        services.AddScoped<OnVoyage.App.Core.Surprise.SurpriseService>();
         services.TryAddSingleton<OnVoyage.App.Core.Interactions.IInteractionOutbox, OnVoyage.App.Core.Interactions.DirectInteractionOutbox>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionSender>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionRecorder>();
