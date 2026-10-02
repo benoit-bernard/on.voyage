@@ -2,6 +2,7 @@ using OnVoyage.Catalog.Application;
 using OnVoyage.Catalog.Application.Features.GetDestination;
 using OnVoyage.Catalog.Application.Features.GetNearbyPois;
 using OnVoyage.Catalog.Application.Features.GetPoi;
+using OnVoyage.Catalog.Application.Features.SearchPois;
 using OnVoyage.Catalog.Contracts;
 using OnVoyage.ServiceDefaults.Security;
 using Wolverine;
@@ -21,6 +22,9 @@ internal static class CatalogEndpoints
         group.MapGet("/destinations/{slug}/pois", (string slug, double? lat, double? lon, int? radius, int? limit, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<PoiSummaryDto>>>(
                 new GetNearbyPoisQuery(slug, lat, lon, radius ?? 50_000, limit ?? 100), ct)));
+
+        group.MapGet("/search", (string? q, string? destination, int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<PoiSummaryDto>>>(new SearchPoisQuery(destination ?? "marseille", q ?? string.Empty, limit ?? 20), ct)));
 
         group.MapGet("/pois/{slug}", (string slug, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<PoiDetailDto>>(new GetPoiQuery(slug), ct)));

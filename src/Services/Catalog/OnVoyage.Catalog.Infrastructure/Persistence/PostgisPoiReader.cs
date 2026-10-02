@@ -39,6 +39,19 @@ internal sealed class PostgisPoiReader(CatalogDbContext db, Microsoft.Extensions
         return [.. ordered.Select(item => new PlaceDistance(PoiMapper.ToDomain(byId[item.Id], Lang, MediaBaseUrl), item.Distance))];
     }
 
+    public async Task<IReadOnlyList<Poi>> SearchPublishedAsync(string destinationSlug, string text, int limit, CancellationToken cancellationToken)
+    {
+        var ids = await PoiSearch.Build(db, destinationSlug, text, Lang).Take(limit).ToListAsync(cancellationToken);
+        if (ids.Count == 0)
+        {
+            return [];
+        }
+
+        var rows = await LoadAsync(db.Pois.AsNoTracking().Where(poi => ids.Contains(poi.Id)), cancellationToken);
+        var byId = rows.ToDictionary(row => row.Id);
+        return [.. ids.Select(id => PoiMapper.ToDomain(byId[id], Lang, MediaBaseUrl))];
+    }
+
     public Task<int> CountPublishedAsync(string destinationSlug, CancellationToken cancellationToken) =>
         db.Pois.CountAsync(poi => poi.Destination.Slug == destinationSlug && poi.PublishedAt != null, cancellationToken);
 

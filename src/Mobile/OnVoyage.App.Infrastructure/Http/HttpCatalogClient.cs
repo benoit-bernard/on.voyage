@@ -26,6 +26,13 @@ internal sealed class HttpCatalogClient(HttpClient http) : ICatalogClient
         return await ReadAsync<List<PoiSummaryDto>>(response, cancellationToken) ?? [];
     }
 
+    public async Task<IReadOnlyList<PoiSummaryDto>> SearchAsync(string destination, string text, int limit, CancellationToken cancellationToken)
+    {
+        var url = string.Create(CultureInfo.InvariantCulture, $"api/catalog/v1/search?q={Uri.EscapeDataString(text)}&destination={Uri.EscapeDataString(destination)}&limit={limit}");
+        using var response = await http.GetAsync(url, cancellationToken);
+        return await ReadAsync<List<PoiSummaryDto>>(response, cancellationToken) ?? [];
+    }
+
     public async Task<PoiDetailDto?> GetPoiAsync(string slug, CancellationToken cancellationToken)
     {
         using var response = await http.GetAsync($"api/catalog/v1/pois/{Uri.EscapeDataString(slug)}", cancellationToken);

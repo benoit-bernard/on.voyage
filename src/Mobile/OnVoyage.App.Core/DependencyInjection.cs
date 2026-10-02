@@ -36,6 +36,8 @@ public static class DependencyInjection
         services.AddScoped<OnVoyage.App.Core.Planning.DestinationService>();
         services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();
         services.AddScoped<OnVoyage.App.Core.Surprise.SurpriseService>();
+        services.TryAddSingleton<OnVoyage.App.Core.Search.IOfflineSearch, OnVoyage.App.Core.Search.NoOfflineSearch>();
+        services.AddScoped<OnVoyage.App.Core.Search.SearchSession>();
         services.TryAddSingleton<OnVoyage.App.Core.Interactions.IInteractionOutbox, OnVoyage.App.Core.Interactions.DirectInteractionOutbox>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionSender>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionRecorder>();
