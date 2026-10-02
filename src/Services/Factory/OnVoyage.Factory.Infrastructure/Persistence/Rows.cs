@@ -270,3 +270,30 @@ internal sealed class PlaceVideoRow
     public string Url { get; set; } = string.Empty;
     public DateTimeOffset SelectedAt { get; set; }
 }
+
+internal sealed class BootstrapRunRow
+{
+    public Guid Id { get; set; }
+    public string Destination { get; set; } = string.Empty;
+    public string Status { get; set; } = "Queued";
+    public string RequestedBy { get; set; } = string.Empty;
+    public DateTimeOffset RequestedAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? FinishedAt { get; set; }
+    public int MaxPlaces { get; set; }
+    public int? MinImportance { get; set; }
+    public string Lang { get; set; } = "fr";
+    public bool AutoPublish { get; set; }
+    public double BudgetUsd { get; set; }
+    public double CostUsd { get; set; }
+    public int PlacesTotal { get; set; }
+    public int PlacesDone { get; set; }
+    public int Written { get; set; }
+    public int ToReview { get; set; }
+    public int Published { get; set; }
+    public int Failed { get; set; }
+    public string? Outcome { get; set; }
+    public string? Error { get; set; }
+    public bool CancelRequested { get; set; }
+    public string Steps { get; set; } = "[]";
+}

@@ -110,7 +110,7 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
         WriteAsync(HttpMethod.Delete, $"{Factory}/places/{placeId}/videos/{Uri.EscapeDataString(videoId)}", null, cancellationToken);
 
     public async Task<Guid> CreateBatchAsync(NewBatch batch, CancellationToken cancellationToken = default) =>
-        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches", new { batch.Destination, batch.MinImportance, batch.PlaceStatuses, batch.Lang, batch.Kind, batch.Limit }, cancellationToken)).GetProperty("id").GetGuid();
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches", new { batch.Destination, batch.MinImportance, batch.PlaceStatuses, batch.Lang, batch.Kind, batch.Limit, batch.BudgetUsd }, cancellationToken)).GetProperty("id").GetGuid();
 
     public Task<IReadOnlyList<BatchProgressItem>> ListBatchesAsync(int limit, CancellationToken cancellationToken = default) =>
         GetAsync<IReadOnlyList<BatchProgressItem>>($"{Factory}/batches?limit={limit}", cancellationToken);
@@ -119,6 +119,24 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
 
     public async Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default) =>
         (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches/{id}/retry", null, cancellationToken)).GetProperty("requeued").GetInt32();
+
+    public async Task<int> CancelBatchAsync(Guid id, CancellationToken cancellationToken = default) =>
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches/{id}/cancel", null, cancellationToken)).GetProperty("cancelled").GetInt32();
+
+    public Task RetryJobAsync(Guid jobId, CancellationToken cancellationToken = default) => WriteAsync(HttpMethod.Post, $"{Factory}/batch-jobs/{jobId}/retry", null, cancellationToken);
+
+    public Task<IReadOnlyList<DeadLetterItem>> ListDeadLettersAsync(int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<DeadLetterItem>>($"{Factory}/dead-letters?limit={limit}", cancellationToken);
+
+    public async Task<Guid> StartBootstrapAsync(NewBootstrap bootstrap, CancellationToken cancellationToken = default) =>
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/bootstrap", new { bootstrap.Destination, bootstrap.MaxPlaces, bootstrap.MinImportance, bootstrap.Lang, bootstrap.BudgetUsd, bootstrap.AutoPublish, bootstrap.ForceImport, bootstrap.SkipImport }, cancellationToken)).GetProperty("id").GetGuid();
+
+    public Task<IReadOnlyList<BootstrapRunItem>> ListBootstrapRunsAsync(int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<BootstrapRunItem>>($"{Factory}/bootstrap-runs?limit={limit}", cancellationToken);
+
+    public Task<BootstrapRunItem> GetBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default) => GetAsync<BootstrapRunItem>($"{Factory}/bootstrap-runs/{id}", cancellationToken);
+
+    public Task CancelBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default) => WriteAsync(HttpMethod.Post, $"{Factory}/bootstrap-runs/{id}/cancel", null, cancellationToken);
 
     public async Task<KpiReport?> GetKpisAsync(DateOnly from, DateOnly to, string? destination, string? cohort, CancellationToken cancellationToken = default)
     {

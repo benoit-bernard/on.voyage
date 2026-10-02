@@ -38,7 +38,9 @@ public sealed record BootstrapDestinationCommand(
     bool SkipImport = false,
     bool AllowUnpriced = false,
     int PauseMilliseconds = 500,
-    IReadOnlyList<double>? RetryDelaysSeconds = null);
+    IReadOnlyList<double>? RetryDelaysSeconds = null,
+    Guid? RunId = null,
+    string RequestedBy = "cli");
 
 public sealed record BootstrapStepReport(string Step, string Outcome, string? Detail = null);
 
@@ -50,12 +52,14 @@ public static class BootstrapDestinationHandler
     public const string Completed = "completed";
     public const string BudgetExhausted = "budget_exhausted";
     public const string ProviderUnavailable = "provider_unavailable";
+    public const string Cancelled = "cancelled";
 
     private const int MaxConsecutiveProviderFailures = 3;
 
     private static readonly ContentStatus[] Live =
         [ContentStatus.Draft, ContentStatus.AiGenerated, ContentStatus.Checked, ContentStatus.NeedsReview, ContentStatus.Approved, ContentStatus.AudioReady, ContentStatus.Published];
 
+    /// <summary>Records the run (visible in the back-office while it works), executes it, then stores its final state.</summary>
     public static async Task<Result<BootstrapReport>> Handle(
         BootstrapDestinationCommand command,
         IDestinationCatalog destinations,
@@ -71,6 +75,44 @@ public static class BootstrapDestinationHandler
         IMediaStorage storage,
         IContentSettingsProvider settings,
         IUsageReader usage,
+        IBootstrapRunStore runs,
+        IServiceScopeFactory scopes,
+        TimeProvider clock,
+        ILoggerFactory loggers,
+        CancellationToken cancellationToken)
+    {
+        var runId = command.RunId ?? Guid.CreateVersion7();
+        await runs.BeginAsync(runId, command, clock.GetUtcNow(), cancellationToken);
+        try
+        {
+            var result = await ExecuteAsync(command, runId, destinations, places, osm, wikidata, pageviews, rules, classifier, heritage, speech, processor, storage, settings, usage, runs, scopes, clock, loggers, cancellationToken);
+            await runs.FinishAsync(runId, result.IsSuccess ? result.Value : null, result.IsSuccess ? null : result.Error!.Message, clock.GetUtcNow(), CancellationToken.None);
+            return result;
+        }
+        catch (Exception exception) when (exception is not OperationCanceledException)
+        {
+            await runs.FinishAsync(runId, null, $"{exception.GetType().Name}: {exception.Message}", clock.GetUtcNow(), CancellationToken.None);
+            throw;
+        }
+    }
+
+    private static async Task<Result<BootstrapReport>> ExecuteAsync(
+        BootstrapDestinationCommand command,
+        Guid runId,
+        IDestinationCatalog destinations,
+        IPlaceStore places,
+        IOsmImporter osm,
+        IWikidataClient wikidata,
+        IPageviewsClient pageviews,
+        IClassificationRuleProvider rules,
+        IPlaceModelClassifier classifier,
+        HeritageClasses heritage,
+        ITextToSpeechProvider speech,
+        IAudioProcessor processor,
+        IMediaStorage storage,
+        IContentSettingsProvider settings,
+        IUsageReader usage,
+        IBootstrapRunStore runs,
         IServiceScopeFactory scopes,
         TimeProvider clock,
         ILoggerFactory loggers,
@@ -90,6 +132,11 @@ public static class BootstrapDestinationHandler
         if (usage.PriceProblem() is { } problem && !command.AllowUnpriced)
         {
             return Result.Failure<BootstrapReport>("prices_missing", problem);
+        }
+
+        if (await runs.IsCancelRequestedAsync(runId, cancellationToken))
+        {
+            return Result.Success(new BootstrapReport(command.Destination, Cancelled, 0d, command.BudgetUsd, 0, 0, 0, 0, 0, []));
         }
 
         var started = clock.GetUtcNow();
@@ -132,12 +179,20 @@ public static class BootstrapDestinationHandler
             .Take(command.MaxPlaces)
             .ToList();
         steps.Add(new BootstrapStepReport("selection", "done", $"{targets.Count} places (most important first)."));
+        await runs.ProgressAsync(runId, new BootstrapProgress(targets.Count, 0, 0, 0, 0, 0, await usage.CostSinceAsync(started, cancellationToken), steps), cancellationToken);
 
         // 3. Stories, then (on request) approval, voice and publication.
         int written = 0, toReview = 0, published = 0, failed = 0, consecutiveOutages = 0;
         var outcome = Completed;
+        var processed = 0;
         foreach (var place in targets)
         {
+            if (await runs.IsCancelRequestedAsync(runId, cancellationToken))
+            {
+                outcome = Cancelled;
+                break;
+            }
+
             if (await usage.CostSinceAsync(started, cancellationToken) >= command.BudgetUsd)
             {
                 outcome = BudgetExhausted;
@@ -175,6 +230,8 @@ public static class BootstrapDestinationHandler
                 }
             }
 
+            processed++;
+            await runs.ProgressAsync(runId, new BootstrapProgress(targets.Count, processed, written, toReview, published, failed, await usage.CostSinceAsync(started, cancellationToken), steps), cancellationToken);
             if (command.PauseMilliseconds > 0)
             {
                 await Task.Delay(command.PauseMilliseconds, cancellationToken);

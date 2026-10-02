@@ -1,0 +1,51 @@
+@page "/admin/dead-letters"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+
+<p><a href="/admin/batches">← Lots</a></p>
+<h1>Lettres mortes</h1>
+<p class="muted">Messages que la file a abandonnés après leurs essais (fournisseur en panne, erreur inattendue). Un job de lot qui y figure est marqué « Échec » dans son lot et se relance depuis le lot.</p>
+<Status Message="@Message" Error="@Error" />
+
+@if (_items is null)
+{
+    <p>@(Error is null ? "Chargement…" : string.Empty)</p>
+}
+else if (_items.Count == 0)
+{
+    <p class="muted">Aucune lettre morte.</p>
+}
+else
+{
+    <section class="card">
+        <table>
+            <thead><tr><th>Envoyé</th><th>Message</th><th>Lieu</th><th>Erreur</th></tr></thead>
+            <tbody>
+                @foreach (var item in _items)
+                {
+                    <tr>
+                        <td>@(item.At?.ToString("dd/MM HH:mm", System.Globalization.CultureInfo.InvariantCulture) ?? "—")</td>
+                        <td>@item.MessageType</td>
+                        <td>
+                            @if (item.BatchId is { } batch)
+                            {
+                                <a href="/admin/batches/@batch">@(item.PlaceName ?? "Lot")</a>
+                            }
+                            else
+                            {
+                                <span class="muted">—</span>
+                            }
+                        </td>
+                        <td><span class="muted">@item.ExceptionType</span> @item.ExceptionMessage</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<DeadLetterItem>? _items;
+
+    protected override async Task OnInitializedAsync() => _items = await LoadAsync(() => Api.ListDeadLettersAsync(100));
+}

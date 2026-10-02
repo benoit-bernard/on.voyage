@@ -577,7 +577,30 @@ Tâche d'un lot : étape, état, tentatives, dernière erreur, lieu, histoire pr
 | `updated_at` | `timestamp with time zone` | non |  |
 
 - Index (`batch_id`, `state`)
-- Contrainte `ck_generation_job_state` : `state in ('Pending', 'Running', 'Succeeded', 'Failed')`
+- Contrainte `ck_generation_job_state` : `state in ('Pending', 'Running', 'Succeeded', 'Failed', 'Cancelled')`
+
+Le plafond de coût d'un lot (`budgetUsd`) est dans `generation_batch.criteria` ; le coût dépensé n'est pas stocké : il est calculé à la lecture (somme de `factory.llm_call.cost_usd` entre la création du lot et la fin de sa dernière tâche).
+
+#### `factory.bootstrap_run`
+
+Exécution d'amorçage d'une destination ([ADR-0019](adr/0019-suivi-des-lots-et-signalements-dans-l-admin.md)) : demandée par l'administration ou la ligne de commande, suivie pendant qu'elle tourne (compteurs, coût), puis son rapport final. Aucune donnée voyageur.
+
+| Colonne | Type | Nul | Remarque |
+| --- | --- | --- | --- |
+| `id` | `uuid` | non | clé primaire |
+| `destination` | `text` | non |  |
+| `status` | `text` | non | `Queued`, `Running`, `Completed`, `Stopped`, `Failed` |
+| `requested_by` | `text` | non | identifiant de l'administrateur, ou `cli` |
+| `requested_at`, `started_at`, `finished_at` | `timestamp with time zone` | non, oui, oui |  |
+| `max_places`, `min_importance`, `lang`, `auto_publish` | `integer`, `integer`, `text`, `boolean` | non, oui, non, non | paramètres demandés |
+| `budget_usd`, `cost_usd` | `double precision` | non | plafond et coût estimé |
+| `places_total`, `places_done`, `written`, `to_review`, `published`, `failed` | `integer` | non | compteurs en direct |
+| `outcome` | `text` | oui | `completed`, `budget_exhausted`, `provider_unavailable`, `cancelled` |
+| `error` | `text` | oui | échec avant la fin (500 caractères) |
+| `cancel_requested` | `boolean` | non | arrêt demandé par un administrateur |
+| `steps` | `jsonb` | non | étapes et lieux ignorés ou en échec, avec leur raison |
+
+- Index (`requested_at`)
 
 #### `factory.import_run`
 

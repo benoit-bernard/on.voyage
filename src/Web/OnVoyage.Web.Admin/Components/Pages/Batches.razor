@@ -28,6 +28,10 @@
             <input id="limit" type="number" min="1" max="200" @bind="_limit" />
         </div>
         <div>
+            <label for="budget">Plafond de coût (USD, facultatif)</label>
+            <input id="budget" type="number" min="0" step="0.5" @bind="_budget" />
+        </div>
+        <div>
             <label for="lang">Langue</label>
             <select id="lang" @bind="_lang"><option value="fr">Français</option><option value="en">English</option></select>
         </div>
@@ -49,21 +53,49 @@
 
 <section class="card">
     <h2>Lots</h2>
-    @if (_batches.Count == 0)
+    <div class="row">
+        <div>
+            <label for="filter-status">État</label>
+            <select id="filter-status" @bind="_statusFilter">
+                <option value="">Tous</option>
+                <option value="running">En cours</option>
+                <option value="failures">Avec échecs</option>
+                <option value="completed">Terminés sans échec</option>
+                <option value="cancelled">Arrêtés</option>
+            </select>
+        </div>
+        <div>
+            <label for="filter-destination">Destination</label>
+            <select id="filter-destination" @bind="_destinationFilter">
+                <option value="">Toutes</option>
+                @foreach (var destination in _destinations)
+                {
+                    <option value="@destination.Slug">@destination.Name</option>
+                }
+            </select>
+        </div>
+        <a href="/admin/dead-letters">Lettres mortes</a>
+        <a href="/admin/bootstrap">Amorçage d'une destination</a>
+    </div>
+    @if (Visible.Count == 0)
     {
-        <p class="muted">Aucun lot pour l'instant.</p>
+        <p class="muted">@(_batches.Count == 0 ? "Aucun lot pour l'instant." : "Aucun lot ne correspond à ces filtres.")</p>
     }
     else
     {
         <table>
-            <thead><tr><th>Lancé</th><th>Destination</th><th>Avancement</th><th></th></tr></thead>
+            <thead><tr><th>Lancé</th><th>Destination</th><th>État</th><th>Avancement</th><th></th></tr></thead>
             <tbody>
-                @foreach (var batch in _batches)
+                @foreach (var batch in Visible)
                 {
                     <tr>
                         <td>@batch.Batch.CreatedAt.ToString("dd/MM HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
                         <td>@batch.Batch.Criteria.Destination · @batch.Batch.Criteria.Lang · @Labels.Kind(batch.Batch.Criteria.Kind)</td>
-                        <td><BatchSummary Progress="batch" /></td>
+                        <td>@Labels.Batch(Status(batch))</td>
+                        <td>
+                            <BatchSummary Progress="batch" />
+                            <progress max="@batch.Batch.Total" value="@(batch.Succeeded + batch.Failed + batch.Cancelled)" aria-label="Avancement du lot"></progress>
+                        </td>
                         <td><a href="/admin/batches/@batch.Batch.Id">Détail</a></td>
                     </tr>
                 }
@@ -78,6 +110,9 @@
     private string? _destination;
     private int? _minImportance;
     private int _limit = 20;
+    private double? _budget;
+    private string _statusFilter = string.Empty;
+    private string _destinationFilter = string.Empty;
     private string _lang = "fr";
     private string _kind = "Standard";
     private bool _candidates = true;
@@ -91,6 +126,20 @@
         await ReloadAsync();
         _timer = new Timer(_ => _ = InvokeAsync(RefreshWhileRunningAsync), null, TimeSpan.FromSeconds(5), TimeSpan.FromSeconds(5));
     }
+
+    private static string Status(BatchProgressItem batch) =>
+        batch.Status is { Length: > 0 } status ? status : !batch.IsFinished ? "running" : batch.Cancelled > 0 ? "cancelled" : batch.Failed > 0 ? "completed_with_failures" : "completed";
+
+    private IReadOnlyList<BatchProgressItem> Visible => [.. _batches
+        .Where(batch => _destinationFilter.Length == 0 || batch.Batch.Criteria.Destination == _destinationFilter)
+        .Where(batch => _statusFilter switch
+        {
+            "running" => Status(batch) == "running",
+            "failures" => batch.Failed > 0,
+            "completed" => Status(batch) == "completed",
+            "cancelled" => batch.Cancelled > 0,
+            _ => true,
+        })];
 
     private async Task ReloadAsync() => _batches = await LoadAsync(() => Api.ListBatchesAsync(20)) ?? _batches;
 
@@ -116,7 +165,7 @@
             statuses.Add("Published");
         }
 
-        await RunAsync(async () => await Api.CreateBatchAsync(new NewBatch(_destination!, _minImportance, statuses, _lang, _kind, _limit)), "Lot lancé : l'avancement se met à jour tout seul.");
+        await RunAsync(async () => await Api.CreateBatchAsync(new NewBatch(_destination!, _minImportance, statuses, _lang, _kind, _limit, _budget is > 0 ? _budget : null)), "Lot lancé : l'avancement se met à jour tout seul.");
         await ReloadAsync();
     }
 

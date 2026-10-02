@@ -28,7 +28,7 @@ internal sealed record InterestsRequest(Dictionary<string, double> Weights);
 
 internal sealed record DestinationRequest(string Destination);
 
-internal sealed record BootstrapRequest(string Destination, int? MaxPlaces, int? MinImportance, string? Lang, double? BudgetUsd, bool? AutoPublish, bool? ForceImport, bool? SkipImport);
+internal sealed record BootstrapRequest(string Destination, int? MaxPlaces, int? MinImportance, string? Lang, double? BudgetUsd, bool? AutoPublish, bool? ForceImport, bool? SkipImport, bool? AllowUnpriced);
 
 internal sealed record DecideFactRequest(bool Accept, string? Reason);
 
@@ -38,7 +38,7 @@ internal sealed record EditStoryRequest(string Title, string Text);
 
 internal sealed record ApproveStoryRequest(double? EditorialScore);
 
-internal sealed record BatchRequest(string Destination, int? MinImportance, string[]? PlaceStatuses, string? Lang, StoryKind? Kind, int? Limit);
+internal sealed record BatchRequest(string Destination, int? MinImportance, string[]? PlaceStatuses, string? Lang, StoryKind? Kind, int? Limit, double? BudgetUsd);
 
 internal sealed record ResolveReportsRequest(string Status, string? Note);
 
@@ -104,7 +104,7 @@ internal static class FactoryEndpoints
         });
 
         // Opens a destination end to end with the real providers, capped by a budget (docs/runbooks/bootstrap-marseille.md).
-        admin.MapPost("/bootstrap", async (BootstrapRequest request, IMessageBus bus) =>
+        admin.MapPost("/bootstrap", async (BootstrapRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
         {
             if (string.IsNullOrWhiteSpace(request.Destination) || request.BudgetUsd is not > 0)
             {
@@ -112,7 +112,7 @@ internal static class FactoryEndpoints
             }
 
             var defaults = new BootstrapDestinationCommand(request.Destination);
-            await bus.SendAsync(defaults with
+            var queued = await bus.InvokeAsync<Result<BootstrapDestinationCommand>>(new StartBootstrapCommand(defaults with
             {
                 MaxPlaces = request.MaxPlaces ?? defaults.MaxPlaces,
                 MinImportance = request.MinImportance,
@@ -121,9 +121,24 @@ internal static class FactoryEndpoints
                 AutoPublish = request.AutoPublish ?? false,
                 ForceImport = request.ForceImport ?? false,
                 SkipImport = request.SkipImport ?? false,
-            });
-            return Results.Accepted();
+                AllowUnpriced = request.AllowUnpriced ?? false,
+                RequestedBy = http.User.TravelerId()?.ToString() ?? "unknown",
+            }), ct);
+            if (!queued.IsSuccess)
+            {
+                return Problem(queued.Error!);
+            }
+
+            await bus.SendAsync(queued.Value!);
+            return Results.Accepted($"/api/factory/v1/admin/bootstrap-runs/{queued.Value!.RunId}", new { id = queued.Value.RunId });
         });
+
+        admin.MapGet("/bootstrap-runs", (int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<BootstrapRun>>>(new ListBootstrapRunsQuery(limit ?? 20), ct), items => items));
+        admin.MapGet("/bootstrap-runs/{id:guid}", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<BootstrapRun>>(new GetBootstrapRunQuery(id), ct), run => run));
+        admin.MapPost("/bootstrap-runs/{id:guid}/cancel", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new CancelBootstrapRunCommand(id), ct), _ => new { cancelRequested = true }));
 
         admin.MapGet("/places", (string destination, PlaceStatus? status, int? limit, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<PlaceRecord>>>(new ListPlacesQuery(destination, status, limit ?? 50), ct), places => places.Select(PlaceDto.From)));
@@ -195,7 +210,7 @@ internal static class FactoryEndpoints
                 return Results.Problem(title: "Unknown place status.", statusCode: StatusCodes.Status400BadRequest, type: "https://on.voyage/problems/validation");
             }
 
-            var criteria = new BatchCriteria(request.Destination, request.MinImportance, [.. statuses.Select(status => status!.Value)], request.Lang ?? "fr", request.Kind ?? StoryKind.Standard, request.Limit ?? 20);
+            var criteria = new BatchCriteria(request.Destination, request.MinImportance, [.. statuses.Select(status => status!.Value)], request.Lang ?? "fr", request.Kind ?? StoryKind.Standard, request.Limit ?? 20, request.BudgetUsd);
             var result = await bus.InvokeAsync<Result<GenerationBatch>>(new CreateBatchCommand(criteria, http.User.TravelerId()?.ToString() ?? "unknown"), ct);
             return result.IsSuccess
                 ? Results.Accepted($"/api/factory/v1/admin/batches/{result.Value!.Id}", new { id = result.Value.Id, total = result.Value.Total })
@@ -210,6 +225,16 @@ internal static class FactoryEndpoints
 
         admin.MapPost("/batches/{id:guid}/retry", (Guid id, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<int>>(new RetryFailedJobsCommand(id), ct), count => new { requeued = count }));
+
+        admin.MapPost("/batches/{id:guid}/cancel", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<int>>(new CancelBatchCommand(id), ct), count => new { cancelled = count }));
+
+        admin.MapPost("/batch-jobs/{id:guid}/retry", (Guid id, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new RetryJobCommand(id), ct), _ => new { requeued = 1 }));
+
+        // Messages the queue gave up on after their attempts (Wolverine dead letters), linked to their batch job.
+        admin.MapGet("/dead-letters", (int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<DeadLetterEntry>>>(new ListDeadLettersQuery(limit ?? 50), ct), items => items));
     }
 
     private static void MapReferences(RouteGroupBuilder admin)

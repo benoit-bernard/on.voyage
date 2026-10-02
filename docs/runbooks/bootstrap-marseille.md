@@ -47,7 +47,7 @@ ou par l'API d'administration (jeton `admin`), exécuté en arrière-plan par le
 POST /api/factory/v1/admin/bootstrap
 { "destination": "marseille", "maxPlaces": 40, "budgetUsd": 5, "minImportance": 40, "autoPublish": true }
 ```
-(202, puis suivre le journal du worker ; le rapport final y figure.)
+(202 `{ id }`, puis suivre l'exécution : page **Amorçage** du back-office (`/admin/bootstrap`, avancement, coût sur plafond, étapes, bouton « Arrêter ») ou `GET /api/factory/v1/admin/bootstrap-runs/{id}` ; le rapport final est aussi dans le journal du worker. Les lancements en ligne de commande sont enregistrés de la même façon, avec `requested_by = cli`.)
 
 | Option | Défaut | Effet |
 | --- | --- | --- |

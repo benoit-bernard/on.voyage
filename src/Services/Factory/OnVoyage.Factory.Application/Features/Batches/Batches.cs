@@ -13,9 +13,12 @@ public enum JobState
     Running,
     Succeeded,
     Failed,
+    /// <summary>Stopped by an administrator, or because the batch budget was reached; can be put back in the queue by a retry.</summary>
+    Cancelled,
 }
 
-public sealed record BatchCriteria(string Destination, int? MinImportance, IReadOnlyList<PlaceStatus> PlaceStatuses, string Lang, StoryKind Kind, int Limit);
+/// <param name="BudgetUsd">Optional ceiling for the estimated model cost of the batch: once reached, the jobs that did not start are cancelled (<c>budget_exhausted</c>).</param>
+public sealed record BatchCriteria(string Destination, int? MinImportance, IReadOnlyList<PlaceStatus> PlaceStatuses, string Lang, StoryKind Kind, int Limit, double? BudgetUsd = null);
 
 public sealed record GenerationBatch(Guid Id, DateTimeOffset CreatedAt, string CreatedBy, BatchCriteria Criteria, int Total);
 
@@ -24,10 +27,16 @@ public sealed record GenerationJob(
     string? LastError, Guid? StoryId, string? Outcome, DateTimeOffset UpdatedAt);
 
 /// <summary>"87 done, 8 failed, 5 to review" (F-25). <c>Succeeded</c> includes the stories that wait for a person (<c>ToReview</c>).</summary>
-public sealed record BatchProgress(GenerationBatch Batch, int Pending, int Running, int Succeeded, int ToReview, int Failed)
+public sealed record BatchProgress(GenerationBatch Batch, int Pending, int Running, int Succeeded, int ToReview, int Failed, int Cancelled = 0, double CostUsd = 0d)
 {
     public bool IsFinished => Pending + Running == 0;
+
+    /// <summary><c>running</c>, <c>completed</c>, <c>completed_with_failures</c> or <c>cancelled</c> (nothing left to run and some jobs were stopped).</summary>
+    public string Status => !IsFinished ? "running" : Cancelled > 0 ? "cancelled" : Failed > 0 ? "completed_with_failures" : "completed";
 }
+
+/// <summary>A message the queue gave up on (after its attempts) as Wolverine recorded it, linked to the batch job when it was one.</summary>
+public sealed record DeadLetterEntry(Guid Id, string MessageType, DateTimeOffset? At, string? ExceptionType, string? ExceptionMessage, Guid? JobId, Guid? BatchId, string? PlaceName);
 
 public sealed record BatchDetail(BatchProgress Progress, IReadOnlyList<GenerationJob> Jobs);
 
@@ -46,13 +55,30 @@ public interface IBatchStore
 
     Task SaveJobAsync(GenerationJob job, CancellationToken cancellationToken);
 
-    /// <summary>Puts the failed jobs back to pending and queues them again, atomically.</summary>
+    /// <summary>Puts the failed and cancelled jobs back to pending and queues them again, atomically.</summary>
     Task<int> RetryFailedAsync(Guid batchId, CancellationToken cancellationToken);
+
+    /// <summary>Same, for one job (failed or cancelled). False when the job is in another state.</summary>
+    Task<bool> RetryJobAsync(Guid jobId, CancellationToken cancellationToken);
+
+    /// <summary>Cancels the jobs that did not start; a running job finishes its current attempt. Returns how many were cancelled.</summary>
+    Task<int> CancelPendingAsync(Guid batchId, string reason, CancellationToken cancellationToken);
+
+    /// <summary>Estimated cost (<c>factory.llm_call</c>) of the model calls made while the batch was running.</summary>
+    Task<double> CostAsync(GenerationBatch batch, DateTimeOffset? until, CancellationToken cancellationToken);
+
+    Task<IReadOnlyList<DeadLetterEntry>> ListDeadLettersAsync(int limit, CancellationToken cancellationToken);
 }
 
 public sealed record CreateBatchCommand(BatchCriteria Criteria, string Actor);
 
 public sealed record RetryFailedJobsCommand(Guid BatchId);
+
+public sealed record CancelBatchCommand(Guid BatchId);
+
+public sealed record RetryJobCommand(Guid JobId);
+
+public sealed record ListDeadLettersQuery(int Limit);
 
 public sealed record RunBatchJobCommand(Guid JobId);
 
@@ -78,6 +104,11 @@ public static class CreateBatchHandler
         if (criteria.Lang is not ("fr" or "en") || criteria.Limit is < 1 or > MaxJobs || criteria.MinImportance is < 0 or > 100 || criteria.PlaceStatuses.Count == 0)
         {
             return Result.Failure<GenerationBatch>("validation", $"Choose fr or en, 1 to {MaxJobs} places and at least one place status.");
+        }
+
+        if (criteria.BudgetUsd is <= 0 or > 10_000)
+        {
+            return Result.Failure<GenerationBatch>("validation", "The budget must be above zero.");
         }
 
         if (criteria.PlaceStatuses.Any(status => status is PlaceStatus.Merged or PlaceStatus.Rejected or PlaceStatus.Unpublished or PlaceStatus.NeedsReview))
@@ -156,9 +187,17 @@ public static class BatchJobHandler
             return Result.Failure<GenerationJob>("job_not_found", "Job not found.");
         }
 
-        if (job.State == JobState.Succeeded)
+        if (job.State is JobState.Succeeded or JobState.Cancelled)
         {
-            return Result.Success(job); // duplicate delivery
+            return Result.Success(job); // duplicate delivery, or stopped before it started
+        }
+
+        var batch = await batches.FindBatchAsync(job.BatchId, cancellationToken);
+        if (batch?.Criteria.BudgetUsd is { } budget && await batches.CostAsync(batch, null, cancellationToken) >= budget)
+        {
+            var stopped = job with { State = JobState.Cancelled, Step = "cancelled", LastError = "budget_exhausted", UpdatedAt = clock.GetUtcNow() };
+            await batches.SaveJobAsync(stopped, cancellationToken);
+            return Result.Success(stopped);
         }
 
         var attempt = Math.Max(envelope?.Attempts ?? 1, 1);
@@ -240,6 +279,30 @@ public static class BatchAdminHandler
         return count == 0 ? Result.Failure<int>("nothing_to_retry", "No failed job to retry.") : Result.Success(count);
     }
 
+    public static async Task<Result<int>> Handle(CancelBatchCommand command, IBatchStore batches, CancellationToken cancellationToken)
+    {
+        if (await batches.FindBatchAsync(command.BatchId, cancellationToken) is null)
+        {
+            return Result.Failure<int>("batch_not_found", "Batch not found.");
+        }
+
+        var count = await batches.CancelPendingAsync(command.BatchId, "cancelled_by_admin", cancellationToken);
+        return count == 0 ? Result.Failure<int>("nothing_to_cancel", "No job is waiting: the batch is already running its last jobs or finished.") : Result.Success(count);
+    }
+
+    public static async Task<Result<bool>> Handle(RetryJobCommand command, IBatchStore batches, CancellationToken cancellationToken)
+    {
+        if (await batches.FindJobAsync(command.JobId, cancellationToken) is null)
+        {
+            return Result.Failure<bool>("job_not_found", "Job not found.");
+        }
+
+        return await batches.RetryJobAsync(command.JobId, cancellationToken) ? Result.Success(true) : Result.Failure<bool>("not_retryable", "Only a failed or cancelled job can be retried.");
+    }
+
+    public static async Task<Result<IReadOnlyList<DeadLetterEntry>>> Handle(ListDeadLettersQuery query, IBatchStore batches, CancellationToken cancellationToken) =>
+        Result.Success(await batches.ListDeadLettersAsync(Math.Clamp(query.Limit, 1, 200), cancellationToken));
+
     public static async Task<Result<BatchDetail>> Handle(GetBatchQuery query, IBatchStore batches, CancellationToken cancellationToken)
     {
         var batch = await batches.FindBatchAsync(query.BatchId, cancellationToken);
@@ -249,17 +312,20 @@ public static class BatchAdminHandler
         }
 
         var jobs = await batches.ListJobsAsync(batch.Id, cancellationToken);
-        return Result.Success(new BatchDetail(Progress(batch, jobs), jobs));
+        var until = jobs.Count > 0 && jobs.All(job => job.State is not (JobState.Pending or JobState.Running)) ? jobs.Max(job => job.UpdatedAt) : (DateTimeOffset?)null;
+        return Result.Success(new BatchDetail(Progress(batch, jobs, await batches.CostAsync(batch, until, cancellationToken)), jobs));
     }
 
     public static async Task<Result<IReadOnlyList<BatchProgress>>> Handle(ListBatchesQuery query, IBatchStore batches, CancellationToken cancellationToken) =>
         Result.Success(await batches.ListAsync(Math.Clamp(query.Limit, 1, 100), cancellationToken));
 
-    public static BatchProgress Progress(GenerationBatch batch, IReadOnlyList<GenerationJob> jobs) => new(
+    public static BatchProgress Progress(GenerationBatch batch, IReadOnlyList<GenerationJob> jobs, double costUsd = 0d) => new(
         batch,
         jobs.Count(job => job.State == JobState.Pending),
         jobs.Count(job => job.State == JobState.Running),
         jobs.Count(job => job.State == JobState.Succeeded),
         jobs.Count(job => job.State == JobState.Succeeded && job.Outcome == "NeedsReview"),
-        jobs.Count(job => job.State == JobState.Failed));
+        jobs.Count(job => job.State == JobState.Failed),
+        jobs.Count(job => job.State == JobState.Cancelled),
+        costUsd);
 }

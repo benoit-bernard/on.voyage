@@ -23,6 +23,8 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
 
     public DbSet<GenerationJobRow> GenerationJobs => Set<GenerationJobRow>();
 
+    public DbSet<BootstrapRunRow> BootstrapRuns => Set<BootstrapRunRow>();
+
     public DbSet<PlaceVideoRow> PlaceVideos => Set<PlaceVideoRow>();
 
     public DbSet<AuditLogRow> AuditLog => Set<AuditLogRow>();
@@ -141,9 +143,17 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
 
         modelBuilder.Entity<GenerationJobRow>(entity =>
         {
-            entity.ToTable("generation_job", table => table.HasCheckConstraint("ck_generation_job_state", "state in ('Pending', 'Running', 'Succeeded', 'Failed')"));
+            entity.ToTable("generation_job", table => table.HasCheckConstraint("ck_generation_job_state", "state in ('Pending', 'Running', 'Succeeded', 'Failed', 'Cancelled')"));
             entity.HasKey(row => row.Id);
             entity.HasIndex(row => new { row.BatchId, row.State });
+        });
+
+        modelBuilder.Entity<BootstrapRunRow>(entity =>
+        {
+            entity.ToTable("bootstrap_run");
+            entity.HasKey(row => row.Id);
+            entity.Property(row => row.Steps).HasColumnType("jsonb");
+            entity.HasIndex(row => row.RequestedAt);
         });
 
         modelBuilder.Entity<PlaceVideoRow>(entity =>

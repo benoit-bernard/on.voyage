@@ -89,6 +89,23 @@ public interface IAdminApi
 
     Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default);
 
+    /// <summary>Cancels the jobs that did not start; returns how many.</summary>
+    Task<int> CancelBatchAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task RetryJobAsync(Guid jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>Messages the queue gave up on after its attempts.</summary>
+    Task<IReadOnlyList<DeadLetterItem>> ListDeadLettersAsync(int limit, CancellationToken cancellationToken = default);
+
+    // Bootstrap of a destination (ADR-0017): launched from here, run by the worker, followed with these.
+    Task<Guid> StartBootstrapAsync(NewBootstrap bootstrap, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<BootstrapRunItem>> ListBootstrapRunsAsync(int limit, CancellationToken cancellationToken = default);
+
+    Task<BootstrapRunItem> GetBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task CancelBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default);
+
     // KPIs (T-406)
     /// <summary>Null when the Insights service is not deployed or does not answer: the dashboard then says so instead of failing.</summary>
     Task<KpiReport?> GetKpisAsync(DateOnly from, DateOnly to, string? destination, string? cohort, CancellationToken cancellationToken = default);

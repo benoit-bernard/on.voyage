@@ -136,7 +136,9 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 | `POST /stories/{id}/reports` | `{ reason }` — **politique `traveler`** (F-20) | `{ received: true }` |
 | `POST /admin/imports`, `/admin/enrichments`, `/admin/scorings` | `{ destination }` | 202 |
 | `POST /admin/snapshot-imports` | `{ destination }` | 202 : charge le snapshot versionné `data-pipeline/<destination>/` (idempotent, [ADR-0017](adr/0017-snapshot-et-amorcage-d-une-destination.md)) |
-| `POST /admin/bootstrap` | `{ destination, maxPlaces?, minImportance?, lang?, budgetUsd, autoPublish?, forceImport?, skipImport? }` | 202 : amorçage de bout en bout plafonné par `budgetUsd` ([runbook](runbooks/bootstrap-marseille.md)) |
+| `POST /admin/bootstrap` | `{ destination, maxPlaces?, minImportance?, lang?, budgetUsd, autoPublish?, forceImport?, skipImport?, allowUnpriced? }` | 202 `{ id }` : enregistre l'exécution (`Queued`) puis la confie au worker ; amorçage plafonné par `budgetUsd` ([runbook](runbooks/bootstrap-marseille.md)). 400 `validation`, 404 `destination_not_found`, 409 `prices_missing` |
+| `GET /admin/bootstrap-runs?limit=`, `GET /admin/bootstrap-runs/{id}` | — | exécutions d'amorçage (état `Queued/Running/Completed/Stopped/Failed`, compteurs en direct, coût et plafond, étapes) ; les lancements en ligne de commande y figurent aussi |
+| `POST /admin/bootstrap-runs/{id}/cancel` | — | demande l'arrêt avant le prochain lieu (`Stopped`, `outcome = cancelled`) ; 409 `already_finished` |
 | `GET /admin/destinations` | — | destinations configurées |
 | `GET /admin/places` | `destination`, `status?`, `limit` (50) | liste de lieux |
 | `GET /admin/places/{id}` | — | lieu, intérêts, éthique, affluence |
@@ -153,15 +155,17 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 | `POST /admin/stories/{id}/approve` (`{ editorialScore? }`), `/reject` (`{ reason }`), `/publish`, `/suspend` (`{ reason }`), `/resume`, `/correction` | — | histoire |
 | `POST /admin/stories/{id}/audio` (202), `/audio/reset`, `PUT /admin/stories/{id}/voice` (`{ voice }`) | — | histoire |
 | `GET /admin/reports?status=&limit=`, `POST /admin/stories/{id}/reports/resolve` | `{ status, note? }` | file des signalements, clôture |
-| `POST /admin/batches` | `{ destination, minImportance?, placeStatuses?, lang?, kind?, limit? }` | 202 `{ id, total }` |
-| `GET /admin/batches`, `GET /admin/batches/{id}`, `POST /admin/batches/{id}/retry` | — | lots, détail, relance des tâches en échec |
+| `POST /admin/batches` | `{ destination, minImportance?, placeStatuses?, lang?, kind?, limit?, budgetUsd? }` | 202 `{ id, total }` ; `budgetUsd` : plafond de coût estimé du lot (les tâches non démarrées sont alors annulées, `budget_exhausted`) |
+| `GET /admin/batches`, `GET /admin/batches/{id}` | — | lots et détail : par lot `pending/running/succeeded/toReview/failed/cancelled`, `costUsd`, `status` (`running`, `completed`, `completed_with_failures`, `cancelled`) ; par tâche étape, essais, dernière erreur |
+| `POST /admin/batches/{id}/retry`, `POST /admin/batches/{id}/cancel`, `POST /admin/batch-jobs/{id}/retry` | — | relance des tâches en échec ou annulées `{ requeued }`, annulation des tâches en attente `{ cancelled }` (409 `nothing_to_cancel`), relance d'une tâche (409 `not_retryable`) |
+| `GET /admin/dead-letters?limit=` | — | messages abandonnés par la file après leurs essais, liés à leur lot et à leur lieu quand c'est une tâche de lot |
 | `GET /admin/audit?limit=&actor=` | — | journal d'audit de Factory |
 | `GET/PUT/DELETE /admin/pronunciations/{destination}/{term}` | `{ replacement }` | dictionnaire de prononciation |
 | `GET /admin/videos/search?q=`, `GET/POST /admin/places/{id}/videos`, `DELETE /admin/places/{id}/videos/{videoId}` | `{ videoId }` | recherche YouTube côté serveur (seule route qui l'appelle), sélection |
 
 ## Back-office web (`web-admin`)
 
-Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
+Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/bootstrap`, `/admin/dead-letters`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
 
 ## Écarts avec le §12 du cahier des charges
 

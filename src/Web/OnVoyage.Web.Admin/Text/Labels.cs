@@ -36,7 +36,39 @@ public static class Labels
         "Running" => "En cours",
         "Succeeded" => "Terminé",
         "Failed" => "Échec",
+        "Cancelled" => "Annulé",
         _ => state,
+    };
+
+    public static string Batch(string status) => status switch
+    {
+        "running" => "En cours",
+        "completed" => "Terminé",
+        "completed_with_failures" => "Terminé avec échecs",
+        "cancelled" => "Arrêté",
+        _ => status,
+    };
+
+    public static string BootstrapStatus(string status) => status switch
+    {
+        "Queued" => "En file",
+        "Running" => "En cours",
+        "Completed" => "Terminé",
+        "Stopped" => "Arrêté",
+        "Failed" => "Échec",
+        _ => status,
+    };
+
+    /// <summary>Why a bootstrap stopped before the end, or why a job was cancelled.</summary>
+    public static string StopReason(string? reason) => reason switch
+    {
+        null or "" => string.Empty,
+        "completed" => "Terminé",
+        "budget_exhausted" => "Plafond de coût atteint",
+        "provider_unavailable" => "Fournisseur indisponible (3 lieux de suite)",
+        "cancelled" => "Annulé par un administrateur",
+        "cancelled_by_admin" => "Annulé par un administrateur",
+        _ => reason,
     };
 
     public static string Step(string step) => step switch
@@ -46,6 +78,7 @@ public static class Labels
         "facts" => "faits",
         "story" => "rédaction",
         "done" => "terminé",
+        "cancelled" => "annulé",
         _ => step,
     };
 

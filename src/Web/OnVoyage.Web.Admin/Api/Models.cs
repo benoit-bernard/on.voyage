@@ -51,17 +51,28 @@ public sealed record VideoCandidateItem(string VideoId, string Title, string Cha
 
 public sealed record PlaceVideoItem(string VideoId, string Title, string Channel, string ThumbnailPath, string Url, DateTimeOffset SelectedAt);
 
-public sealed record BatchCriteriaItem(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit);
+public sealed record BatchCriteriaItem(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit, double? BudgetUsd = null);
 
 public sealed record BatchHeaderItem(Guid Id, DateTimeOffset CreatedAt, string CreatedBy, BatchCriteriaItem Criteria, int Total);
 
-public sealed record BatchProgressItem(BatchHeaderItem Batch, int Pending, int Running, int Succeeded, int ToReview, int Failed, bool IsFinished);
+public sealed record BatchProgressItem(BatchHeaderItem Batch, int Pending, int Running, int Succeeded, int ToReview, int Failed, bool IsFinished, int Cancelled = 0, double CostUsd = 0d, string Status = "");
 
 public sealed record JobItem(Guid Id, Guid PlaceId, string PlaceName, string State, string Step, int Attempts, string? LastError, Guid? StoryId, string? Outcome, DateTimeOffset UpdatedAt);
 
 public sealed record BatchDetailItem(BatchProgressItem Progress, IReadOnlyList<JobItem> Jobs);
 
-public sealed record NewBatch(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit);
+public sealed record NewBatch(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit, double? BudgetUsd = null);
+
+public sealed record DeadLetterItem(Guid Id, string MessageType, DateTimeOffset? At, string? ExceptionType, string? ExceptionMessage, Guid? JobId, Guid? BatchId, string? PlaceName);
+
+public sealed record BootstrapStepItem(string Step, string Outcome, string? Detail);
+
+public sealed record BootstrapRunItem(
+    Guid Id, string Destination, string Status, string RequestedBy, DateTimeOffset RequestedAt, DateTimeOffset? StartedAt, DateTimeOffset? FinishedAt, int MaxPlaces, int? MinImportance,
+    string Lang, bool AutoPublish, double BudgetUsd, double CostUsd, int PlacesTotal, int PlacesDone, int Written, int ToReview, int Published, int Failed, string? Outcome, string? Error,
+    bool CancelRequested, IReadOnlyList<BootstrapStepItem> Steps, bool IsFinished);
+
+public sealed record NewBootstrap(string Destination, int MaxPlaces, int? MinImportance, string Lang, double BudgetUsd, bool AutoPublish, bool ForceImport, bool SkipImport);
 
 public sealed record PronunciationItem(string Destination, string Term, string Replacement);
 
