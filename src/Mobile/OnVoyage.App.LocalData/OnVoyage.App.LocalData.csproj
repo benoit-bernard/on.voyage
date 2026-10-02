@@ -2,6 +2,7 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" />
     <ProjectReference Include="../OnVoyage.App.Core/OnVoyage.App.Core.csproj" />
+    <ProjectReference Include="../../Shared/OnVoyage.Packs/OnVoyage.Packs.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OnVoyage.App.LocalData.Tests" />

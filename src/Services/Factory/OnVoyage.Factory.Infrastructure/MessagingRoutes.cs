@@ -29,6 +29,7 @@ public static class MessagingRoutes
         options.PublishMessage<RunBatchJobCommand>().ToPostgresqlQueue(JobQueue);
         options.PublishMessage<OnVoyage.Factory.Application.Features.Snapshot.ImportSnapshotCommand>().ToPostgresqlQueue(JobQueue);
         options.PublishMessage<OnVoyage.Factory.Application.Features.Bootstrap.BootstrapDestinationCommand>().ToPostgresqlQueue(JobQueue);
+        options.PublishMessage<OnVoyage.Factory.Application.Features.Packs.BuildPackCommand>().ToPostgresqlQueue(JobQueue);
         return options;
     }
 

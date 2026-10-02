@@ -1,24 +1,8 @@
-using System.Security.Cryptography;
-using System.Text;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Microsoft.Data.Sqlite;
 using OnVoyage.App.Core.Discovery;
+using OnVoyage.Packs;
 
 namespace OnVoyage.App.LocalData.Packs;
-
-public sealed record PackFile(string Path, long Size, string Sha256);
-
-public sealed record PackManifest(
-    string Destination,
-    string Lang,
-    int Version,
-    [property: JsonPropertyName("taxonomyVersion")] string? TaxonomyVersion,
-    string? MinAppVersion,
-    IReadOnlyList<PackFile> Files,
-    long TotalSize);
-
-public sealed class PackIntegrityException(string message) : Exception(message);
 
 public sealed record PackPoi(Guid Id, string Name, string Category, double Lat, double Lng, int Importance, int Crowd, bool Fragile, bool CarAccessible, bool VisibleFromRoad, Guid? StoryId);
 
@@ -30,7 +14,6 @@ public sealed record PackAudioPart(string Part, string Path, int DurationSeconds
 /// </summary>
 public sealed class PackReader : IDisposable
 {
-    private static readonly JsonSerializerOptions ManifestJson = new(JsonSerializerDefaults.Web);
     private readonly SqliteConnection _connection;
 
     private PackReader(string directory, PackManifest manifest, SqliteConnection connection)
@@ -47,40 +30,8 @@ public sealed class PackReader : IDisposable
     /// <summary>Verifies, then opens the pack in <paramref name="directory"/>. Throws <see cref="PackIntegrityException"/> on any mismatch.</summary>
     public static async Task<PackReader> OpenAsync(string directory, CancellationToken cancellationToken = default)
     {
-        var manifestPath = Path.Combine(directory, "manifest.json");
-        if (!File.Exists(manifestPath))
-        {
-            throw new PackIntegrityException("manifest.json is missing.");
-        }
-
-        var manifest = JsonSerializer.Deserialize<PackManifest>(await File.ReadAllTextAsync(manifestPath, cancellationToken), ManifestJson)
-            ?? throw new PackIntegrityException("manifest.json is empty.");
-        if (!manifest.Files.Any(f => f.Path == "pack.db"))
-        {
-            throw new PackIntegrityException("The manifest does not list pack.db.");
-        }
-
-        var root = Path.GetFullPath(directory) + Path.DirectorySeparatorChar;
-        foreach (var file in manifest.Files)
-        {
-            var full = Path.GetFullPath(Path.Combine(directory, file.Path));
-            if (!full.StartsWith(root, StringComparison.Ordinal))
-            {
-                throw new PackIntegrityException($"{file.Path} leaves the pack directory.");
-            }
-
-            if (!File.Exists(full) || new FileInfo(full).Length != file.Size)
-            {
-                throw new PackIntegrityException($"{file.Path} is missing or has the wrong size.");
-            }
-
-            await using var stream = File.OpenRead(full);
-            var hash = Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellationToken));
-            if (!string.Equals(hash, file.Sha256, StringComparison.OrdinalIgnoreCase))
-            {
-                throw new PackIntegrityException($"{file.Path} does not match its SHA-256.");
-            }
-        }
+        var manifest = await PackManifests.ReadAsync(directory, cancellationToken);
+        await PackManifests.VerifyAsync(directory, manifest, cancellationToken);
 
         var connection = new SqliteConnection(new SqliteConnectionStringBuilder
         {
@@ -186,24 +137,4 @@ public sealed class PackReader : IDisposable
         r.GetInt32(8) != 0,
         r.GetInt32(9) != 0,
         r.IsDBNull(10) ? null : Guid.Parse(r.GetString(10)));
-
-    /// <summary>Writes <c>manifest.json</c> for the files of a directory; used by the pack builder and by tests.</summary>
-    public static async Task WriteManifestAsync(string directory, string destination, string lang, int version, CancellationToken cancellationToken = default)
-    {
-        var files = new List<PackFile>();
-        foreach (var path in System.IO.Directory.EnumerateFiles(directory, "*", SearchOption.AllDirectories).Order(StringComparer.Ordinal))
-        {
-            var relative = Path.GetRelativePath(directory, path).Replace('\\', '/');
-            if (relative == "manifest.json")
-            {
-                continue;
-            }
-
-            await using var stream = File.OpenRead(path);
-            files.Add(new PackFile(relative, new FileInfo(path).Length, Convert.ToHexString(await SHA256.HashDataAsync(stream, cancellationToken)).ToLowerInvariant()));
-        }
-
-        var manifest = new PackManifest(destination, lang, version, null, null, files, files.Sum(f => f.Size));
-        await File.WriteAllTextAsync(Path.Combine(directory, "manifest.json"), JsonSerializer.Serialize(manifest, ManifestJson), new UTF8Encoding(false), cancellationToken);
-    }
 }

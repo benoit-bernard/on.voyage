@@ -137,6 +137,7 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 | `POST /stories/{id}/reports` | `{ reason }` — **politique `traveler`** (F-20) | `{ received: true }` |
 | `POST /admin/imports`, `/admin/enrichments`, `/admin/scorings` | `{ destination }` | 202 |
 | `POST /admin/snapshot-imports` | `{ destination }` | 202 : charge le snapshot versionné `data-pipeline/<destination>/` (idempotent, [ADR-0017](adr/0017-snapshot-et-amorcage-d-une-destination.md)) |
+| `POST /admin/packs` | `{ destination, lang? }` (fr par défaut) | 202 : le worker construit le pack hors ligne (F-15, T-307) à partir des lieux et histoires publiés et le publie sous `packs/{destination}/{lang}/` du dossier média : `pack_{destination}_{lang}_v{n}.zip` et `latest.json` (`PackInfo` : version, taille, SHA-256 de l'archive, taille installée). Servis par `GET /media/packs/…` (Range compris). Les fichiers sont publics en MVP-0 ; URL signées et `GET /api/catalog/v1/packs` avec Billing (T-701). [ADR-0020](adr/0020-surprise-recherche-packs-hors-ligne.md) |
 | `POST /admin/bootstrap` | `{ destination, maxPlaces?, minImportance?, lang?, budgetUsd, autoPublish?, forceImport?, skipImport? }` | 202 : amorçage de bout en bout plafonné par `budgetUsd` ([runbook](runbooks/bootstrap-marseille.md)) |
 | `GET /admin/destinations` | — | destinations configurées |
 | `GET /admin/places` | `destination`, `status?`, `limit` (50) | liste de lieux |
