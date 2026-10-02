@@ -656,6 +656,7 @@ Lieux candidats puis publiés : géométrie, tags OSM, Wikidata, scores, classif
 - Index (`osm_type`, `osm_id`) : unique
 - Contrainte `ck_place_crowd` : `crowd_offpeak between 1 and 5 and crowd_shoulder between 1 and 5 and crowd_peak between 1 and 5`
 - Contrainte `ck_place_importance` : `importance_score is null or importance_score between 0 and 100`
+- Lieux d'un snapshot de contenu ([ADR-0017](adr/0017-snapshot-et-amorcage-d-une-destination.md)) : `source = 'snapshot'`, `osm_type = 'snapshot'`, `osm_id` dérivé du slug, empreinte du fichier dans le tag `osm_tags->>'onvoyage:snapshot_sha256'`, `importance_override` = l'importance du fichier. Leurs histoires portent `prompt_version = 'snapshot-1:<empreinte>'` et `model = 'snapshot'`.
 
 #### `factory.place_interest`
 

@@ -23,9 +23,15 @@ builder.Host.UseWolverine(options =>
 {
     options.Discovery.IncludeAssembly(typeof(GetNearbyPoisQuery).Assembly);
     options.AddOnVoyageMessaging(connectionString, "catalog", configureFailures: failures =>
+    {
         // Queues are not ordered against each other: a story may arrive before its place.
         failures.OnException<OnVoyage.Catalog.Application.Ports.PoiNotProjectedException>()
-            .RetryWithCooldown(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2)));
+            .RetryWithCooldown(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2));
+
+        // Two events can race on the same row (a destination, a slug): the second one succeeds when it is replayed a moment later.
+        failures.OnException<Microsoft.EntityFrameworkCore.DbUpdateException>()
+            .RetryWithCooldown(TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(5));
+    });
 
     // After each publication or withdrawal of Factory the catalog announces its view of the place to the services that keep a copy (§13).
     foreach (var subscriber in builder.Configuration.GetSection("Messaging:ProjectionSubscribers").Get<string[]>() ?? ["creators", "discovery"])

@@ -35,7 +35,7 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | Clé | Défaut | Rôle |
 | --- | --- | --- |
 | `Catalog:Migrate` | `true` | Migrations au démarrage. |
-| `Catalog:SeedDemoData` | `false` (`true` en développement via l'AppHost) | Charge le jeu de démonstration de Marseille. |
+| `Catalog:SeedDemoData` | `false` | Charge le petit jeu de démonstration interne de Catalog (tests, staging historique). **Ne pas l'activer avec le snapshot** : ses identifiants sont différents et les lieux seraient en double. |
 | `Media:RootPath` | vide : `/media` n'est pas servi | Dossier des fichiers audio, servi sous `/media`. Doit exister au démarrage. En staging : volume partagé avec le worker Factory (`/media`). |
 | `Media:PublicBaseUrl` | `/media` | Préfixe des adresses audio renvoyées au client. Doit être **publique** et absolue pour une app mobile (`https://<domaine>/media`). |
 
@@ -76,11 +76,18 @@ Les deux hôtes lisent la même section ; le worker exécute les tâches, l'API 
 | `Factory:Audio:BitrateKbps` | `48` | Débit du MP3 produit. |
 | `Factory:Jobs:MaxParallel` | `4` | Tâches simultanées du worker (borne les appels au fournisseur payant). |
 | `Factory:Retry:DelaysSeconds` | `[10, 60, 300]` | Délais de réessai en cas de panne d'un fournisseur, avant la lettre morte. |
-| `Factory:Llm:Provider` | `openai` (`disabled` pour travailler sans modèle, développement) | Avec `openai`, le démarrage **échoue** si une des clés suivantes est vide. |
+| `Factory:Llm:Provider` | `openai` ; `disabled` (aucun modèle, développement) ; `offline` (adaptateurs déterministes pour l'extraction, la rédaction et la vérification, texte Wikipédia servi par le snapshot : voir [ADR-0017](adr/0017-snapshot-et-amorcage-d-une-destination.md)) | Avec `openai`, le démarrage **échoue** si une des clés suivantes est vide. |
 | `OpenAI:ApiKey` | aucun | Clé API OpenAI (secret). Exigée avec le fournisseur `openai`. |
 | `Factory:Llm:ExtractorModel`, `WriterModel`, `VerifierModel`, `ClassifierModel` | aucun | Identifiants des modèles de chaque rôle (exigés avec `openai`). |
 | `Factory:Llm:Pricing:<modèle>:InputPerMillion`, `OutputPerMillion`, `PerMillionCharacters` | `0` | Prix en USD pour le calcul du coût (`onvoyage.llm.cost_usd`, table `factory.llm_call`). Clé hiérarchique : le nom du modèle sert de segment (éviter les points dans le nom côté variables d'environnement). |
 | `Factory:Tts:Model` | `gpt-4o-mini-tts` | Modèle de synthèse vocale. |
+| `Factory:Tts:Provider` | `auto` : `openai` avec le modèle OpenAI, sinon `espeak` | `openai`, `espeak` (`espeak-ng` en développement, voix robotique), `none`. Sans voix disponible, les histoires du snapshot et de l'amorçage sont publiées **sans audio**. |
+| `Factory:Tts:EspeakPath` | `espeak-ng` (PATH) | Binaire `espeak-ng`. |
+| `Factory:Snapshot:Directory` | recherche de `data-pipeline/` depuis le dossier courant vers le haut | Racine du snapshot de contenu (`<racine>/<destination>/destination.json` et `pois.json`). |
+| `Factory:Snapshot:ImportOnStart` | `false` (le lanceur `scripts/dev-local.sh` le met à `true`) | Le worker importe le snapshot de chaque destination après son démarrage (idempotent). |
+| `Factory:Snapshot:Destinations` | toutes les destinations configurées | Limite l'import au démarrage à ces slugs. |
+| `Factory:Offline:Destination` | `marseille` | Destination dont le snapshot sert de « Wikipédia » au fournisseur `offline`. |
+| `Bootstrap:*` (ligne de commande du worker) | voir [runbooks/bootstrap-marseille.md](runbooks/bootstrap-marseille.md) | `MaxPlaces`, `MinImportance`, `Lang`, `BudgetUsd`, `AutoPublish`, `ForceImport`, `SkipImport`, `AllowUnpriced`, `PauseMilliseconds`, `RetryDelaysSeconds`. Lus seulement par `dotnet run --project …Factory.Worker -- bootstrap <destination>`. |
 | `YouTube:ApiKey` | aucun | Clé de l'API YouTube Data pour la recherche de vidéos par l'éditeur ; absente, la recherche répond `503` (`youtube_not_configured`). |
 
 ## Gateway
@@ -115,7 +122,7 @@ L'application mobile n'a pas de fichier de configuration : l'adresse du Gateway 
 | `openai-api-key` | publication seulement | `OpenAI__ApiKey` (worker uniquement : voir l'écart signalé dans [DEPLOYMENT.md](DEPLOYMENT.md)) |
 | `llm-extractor-model`, `llm-writer-model`, `llm-verifier-model`, `llm-classifier-model` | publication seulement | `Factory__Llm__*Model` |
 
-Valeurs fixées par l'AppHost : `Catalog__SeedDemoData=true` (local), `Factory__Llm__Provider=disabled` (local), `Media__RootPath` et `Factory__MediaDirectory` = `<tmp>/onvoyage-media`, `Gateway__TrustForwardedHeaders=true` (publication), `Gateway__BaseUrl` et `Admin__MediaBaseUrl` du back-office.
+Valeurs fixées par l'AppHost : `Catalog__SeedDemoData=false` et `Factory__Snapshot__ImportOnStart=true` (local : le catalogue vient du snapshot, via Factory), `Factory__Llm__Provider=offline` (local), `Media__RootPath` et `Factory__MediaDirectory` = `<tmp>/onvoyage-media`, `Gateway__TrustForwardedHeaders=true` (publication), `Gateway__BaseUrl` et `Admin__MediaBaseUrl` du back-office.
 
 ## Configuration distante (Platform, `platform.remote_config`)
 

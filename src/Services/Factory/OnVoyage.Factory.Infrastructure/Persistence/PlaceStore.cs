@@ -2,6 +2,7 @@ using System.Text.RegularExpressions;
 using Microsoft.EntityFrameworkCore;
 using NetTopologySuite.IO;
 using OnVoyage.Factory.Application;
+using OnVoyage.Factory.Application.Features.Snapshot;
 using OnVoyage.Factory.Application.Ports;
 using OnVoyage.Factory.Domain.Geo;
 using Wolverine.EntityFrameworkCore;
@@ -134,6 +135,95 @@ internal sealed partial class PlaceStore(IDbContextOutbox<FactoryDbContext> outb
 
         taken.Add(candidate);
         return candidate;
+    }
+
+    public async Task<SnapshotPlaceChange> UpsertSnapshotPlaceAsync(SnapshotPlaceInput input, CancellationToken cancellationToken)
+    {
+        var now = clock.GetUtcNow();
+        var row = await Db.Places.Include(place => place.Interests).FirstOrDefaultAsync(place => place.Id == input.Id, cancellationToken);
+        var created = row is null;
+        if (row is not null && ParseTagsOrEmpty(row.OsmTags).TryGetValue(ImportSnapshotHandler.PlaceHashTag, out var stored) && stored == input.ContentSha256)
+        {
+            return SnapshotPlaceChange.Unchanged;
+        }
+
+        if (row is null)
+        {
+            row = new PlaceRow
+            {
+                Id = input.Id,
+                DestinationSlug = input.DestinationSlug,
+                Slug = input.Slug,
+                OsmType = "snapshot",
+                OsmId = SnapshotIds.SyntheticOsmId(input.DestinationSlug, input.Slug),
+                Status = nameof(PlaceStatus.Candidate),
+                Source = "snapshot",
+                SourceLicense = "editorial-snapshot",
+                SourceUrl = $"https://on.voyage/snapshot/{input.DestinationSlug}/{input.Slug}",
+                ImportRunId = SnapshotIds.Document(input.Id, "import-run"),
+                CreatedAt = now,
+            };
+            Db.Places.Add(row);
+        }
+
+        row.Name = input.Name;
+        row.NameEn = input.NameEn;
+        row.Location = PlaceMapper.ToPoint(input.Location);
+        row.OsmTags = System.Text.Json.JsonSerializer.Serialize(input.Tags);
+        row.ImportanceScore = (short)input.Importance;
+        row.ImportanceOverride = (short)input.Importance; // the committed importance is editorial: a scoring run keeps it
+        row.PopularityPercentile = (short)input.Percentile;
+        row.HiddenGem = input.HiddenGem;
+        row.CrowdOffpeak = (short)input.Crowd.Offpeak;
+        row.CrowdShoulder = (short)input.Crowd.Shoulder;
+        row.CrowdPeak = (short)input.Crowd.Peak;
+        row.Fragile = input.Fragile;
+        row.AccessRegulated = input.AccessRegulated;
+        row.ClassificationOutcome = "Editor";
+        row.ClassificationConfidence = 1f;
+        row.RetrievedAt = now;
+        row.UpdatedAt = now;
+
+        // Leaf weights as committed; level 1 is the maximum of its children (§6.1).
+        var weights = new Dictionary<string, double>(input.Interests, StringComparer.Ordinal);
+        foreach (var group in input.Interests.Where(pair => pair.Key.Contains('.', StringComparison.Ordinal)).GroupBy(pair => OnVoyage.Taxonomy.Interests.LevelOneOf(pair.Key)))
+        {
+            weights[group.Key] = Math.Max(weights.GetValueOrDefault(group.Key), group.Max(pair => pair.Value));
+        }
+
+        foreach (var stale in row.Interests.Where(interest => !weights.ContainsKey(interest.TaxonomyCode)).ToList())
+        {
+            Db.PlaceInterests.Remove(stale);
+        }
+
+        foreach (var (code, weight) in weights)
+        {
+            var existing = row.Interests.FirstOrDefault(interest => interest.TaxonomyCode == code);
+            if (existing is null)
+            {
+                Db.PlaceInterests.Add(new PlaceInterestRow { PlaceId = row.Id, TaxonomyCode = code, Weight = (float)weight, Source = "editor" });
+            }
+            else
+            {
+                existing.Weight = (float)weight;
+                existing.Source = "editor";
+            }
+        }
+
+        await Db.SaveChangesAsync(cancellationToken);
+        return created ? SnapshotPlaceChange.Created : SnapshotPlaceChange.Updated;
+    }
+
+    private static IReadOnlyDictionary<string, string> ParseTagsOrEmpty(string json)
+    {
+        try
+        {
+            return PlaceMapper.ParseTags(json);
+        }
+        catch (System.Text.Json.JsonException)
+        {
+            return new Dictionary<string, string>();
+        }
     }
 
     public async Task<IReadOnlyList<PlaceRecord>> ListActiveAsync(string destinationSlug, CancellationToken cancellationToken)
@@ -414,6 +504,7 @@ internal sealed partial class PlaceStore(IDbContextOutbox<FactoryDbContext> outb
         row.Status = nameof(PlaceStatus.Published);
         row.PublishedVersion = version;
         row.UpdatedAt = clock.GetUtcNow();
+        outbox.AllowMultipleFlushes();
         await outbox.PublishAsync(integrationEvent);
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }
@@ -424,6 +515,7 @@ internal sealed partial class PlaceStore(IDbContextOutbox<FactoryDbContext> outb
         row.Status = nameof(PlaceStatus.Unpublished);
         row.PublishedVersion = version;
         row.UpdatedAt = clock.GetUtcNow();
+        outbox.AllowMultipleFlushes();
         await outbox.PublishAsync(integrationEvent);
         await outbox.SaveChangesAndFlushMessagesAsync(cancellationToken);
     }

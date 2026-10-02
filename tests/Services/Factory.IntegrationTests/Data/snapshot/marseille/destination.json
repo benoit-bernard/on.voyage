@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "slug": "marseille",
+  "name": "Marseille",
+  "latitude": 43.2965,
+  "longitude": 5.3698,
+  "snapshotVersion": "test.1",
+  "review": "ai_draft_needs_human_review",
+  "note": "Jeu de test."
+}

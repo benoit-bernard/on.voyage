@@ -1,3 +1,4 @@
+using OnVoyage.Factory.Application.Features.Snapshot;
 using OnVoyage.Factory.Domain.Classification;
 using OnVoyage.Factory.Domain.Geo;
 
@@ -20,6 +21,12 @@ public interface IPlaceStore
 {
     /// <summary>Creates or updates places from the raw OSM table. Existing places keep their scores, status and editorial fields.</summary>
     Task<(int Created, int Updated)> UpsertFromRawAsync(string destinationSlug, string rawTable, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Creates or updates a place of a committed snapshot (no OpenStreetMap row behind it). The editorial importance is kept as an override so a
+    /// later scoring run does not replace it. Reports whether anything changed (<see cref="SnapshotPlaceInput.ContentSha256"/>).
+    /// </summary>
+    Task<SnapshotPlaceChange> UpsertSnapshotPlaceAsync(SnapshotPlaceInput input, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<PlaceRecord>> ListActiveAsync(string destinationSlug, CancellationToken cancellationToken);
 

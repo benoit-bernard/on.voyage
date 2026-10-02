@@ -21,7 +21,8 @@ public sealed record ResumeStoryCommand(Guid StoryId);
 
 public sealed record OpenCorrectionCommand(Guid StoryId);
 
-public sealed record PublishStoryCommand(Guid StoryId);
+/// <summary><paramref name="AllowTextOnly"/> publishes an approved story that has no audio yet (no voice is configured): the app then reads the text aloud on the device.</summary>
+public sealed record PublishStoryCommand(Guid StoryId, bool AllowTextOnly = false);
 
 public sealed record GenerateAudioCommand(Guid StoryId);
 
@@ -260,7 +261,8 @@ public static class StoryPublicationHandler
             return Result.Failure<StoryRecord>("story_not_found", "Story not found.");
         }
 
-        if (!ContentTransitions.CanMove(story.Status, ContentStatus.Published) || story.Status != ContentStatus.AudioReady)
+        var textOnly = command.AllowTextOnly && story.Status == ContentStatus.Approved;
+        if (!textOnly && (!ContentTransitions.CanMove(story.Status, ContentStatus.Published) || story.Status != ContentStatus.AudioReady))
         {
             return Result.Failure<StoryRecord>("invalid_transition", $"A story in state {story.Status} cannot be published.");
         }
@@ -273,7 +275,7 @@ public static class StoryPublicationHandler
         }
 
         var parts = await content.ListAudioPartsAsync(story.Id, cancellationToken);
-        if (parts.All(part => part.Part != "main"))
+        if (!textOnly && parts.All(part => part.Part != "main"))
         {
             return Result.Failure<StoryRecord>("audio_missing", "The story has no audio.");
         }

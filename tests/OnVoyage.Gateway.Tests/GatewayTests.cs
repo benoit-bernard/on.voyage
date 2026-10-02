@@ -33,6 +33,28 @@ public sealed class GatewayTests
     }
 
     [Fact]
+    public async Task Story_audio_is_public_read_only_and_keeps_byte_ranges_so_players_can_seek()
+    {
+        await using var g = await GatewayHarness.StartAsync();
+        const string Url = "/media/audio/6ec53cce/fr/standard/v1_marin_main.mp3";
+
+        var whole = await g.GetAsync(Url);
+        whole.StatusCode.ShouldBe(HttpStatusCode.OK);
+        whole.Content.Headers.ContentType!.MediaType.ShouldBe("audio/mpeg");
+        (await whole.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).Length.ShouldBe(256);
+
+        var request = new HttpRequestMessage(HttpMethod.Get, Url);
+        request.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 99);
+        var partial = await g.Client.SendAsync(request, TestContext.Current.CancellationToken);
+        partial.StatusCode.ShouldBe(HttpStatusCode.PartialContent);
+        (await partial.Content.ReadAsByteArrayAsync(TestContext.Current.CancellationToken)).Length.ShouldBe(100);
+
+        (await g.Client.SendAsync(new HttpRequestMessage(HttpMethod.Head, Url), TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await g.Client.PostAsync(Url, new StringContent("x"), TestContext.Current.CancellationToken)).IsSuccessStatusCode.ShouldBeFalse("media is read-only");
+        g.Stub.AuthorizationSeen.ShouldBeEmpty("media is served without a session and never reaches the API routes");
+    }
+
+    [Fact]
     public async Task Public_platform_routes_are_open_but_the_rest_of_platform_is_not()
     {
         await using var g = await GatewayHarness.StartAsync();

@@ -35,11 +35,6 @@ var catalog = builder.AddProject<Projects.OnVoyage_Catalog_Api>("catalog-api")
     .WithEnvironment("Auth__JwtSecret", jwtSecret)
     .WithHttpHealthCheck("/health");
 
-if (builder.ExecutionContext.IsRunMode)
-{
-    catalog.WithEnvironment("Catalog__SeedDemoData", "true");
-}
-
 // Discovery: interactions, interest vector, onboarding. Reads Factory's publications through its own queue; audio URLs point at the gateway-served media.
 var discovery = builder.AddProject<Projects.OnVoyage_Discovery_Api>("discovery-api")
     .WithReference(database)
@@ -91,8 +86,18 @@ foreach (var service in new IResourceBuilder<ProjectResource>[] { platform, disc
 
 if (builder.ExecutionContext.IsRunMode)
 {
-    // Local runs do not call a language model unless the developer sets Factory:Llm:* and OpenAI:ApiKey in user secrets.
-    factoryWorker.WithEnvironment("Factory__Llm__Provider", "disabled");
+    // Local runs call no external service: deterministic offline adapters (and the espeak-ng voice when installed), and the committed
+    // Marseille snapshot (data-pipeline/marseille/) is imported through Factory, so Catalog, Discovery and Creators receive the usual events.
+    // A developer who wants the real pipeline sets Factory:Llm:* and OpenAI:ApiKey in user secrets (docs/runbooks/bootstrap-marseille.md).
+    factoryWorker.WithEnvironment("Factory__Llm__Provider", "offline");
+    factoryApi.WithEnvironment("Factory__Llm__Provider", "offline"); // the API registers the same clients at start-up and would otherwise demand an OpenAI key
+    factoryWorker.WithEnvironment("Factory__Snapshot__ImportOnStart", "true");
+    factoryWorker.WithEnvironment("Factory__Snapshot__Directory", Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "..", "data-pipeline")));
+    catalog.WithEnvironment("Catalog__SeedDemoData", "false");
+
+    // Clients read the audio at the Gateway's public address (fixed to 5080 in its launchSettings; the PWA and the mobile app assume it).
+    catalog.WithEnvironment("Media__PublicBaseUrl", "http://localhost:5080/media");
+    discovery.WithEnvironment("Media__PublicBaseUrl", "http://localhost:5080/media");
 }
 else
 {

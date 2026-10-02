@@ -10,5 +10,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Data/marseille-sample.osm" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="Data/snapshot/**/*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
