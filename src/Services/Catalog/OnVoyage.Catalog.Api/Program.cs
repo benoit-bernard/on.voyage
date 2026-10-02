@@ -1,6 +1,7 @@
 using FluentValidation;
 using OnVoyage.Catalog.Api.Endpoints;
 using OnVoyage.Catalog.Application.Features.GetNearbyPois;
+using OnVoyage.Catalog.Contracts;
 using OnVoyage.Catalog.Infrastructure;
 using OnVoyage.Messaging;
 using OnVoyage.ServiceDefaults;
@@ -8,6 +9,7 @@ using OnVoyage.ServiceDefaults.Configuration;
 using OnVoyage.ServiceDefaults.Security;
 using Wolverine;
 using Wolverine.ErrorHandling;
+using Wolverine.Postgresql;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -24,6 +26,12 @@ builder.Host.UseWolverine(options =>
         // Queues are not ordered against each other: a story may arrive before its place.
         failures.OnException<OnVoyage.Catalog.Application.Ports.PoiNotProjectedException>()
             .RetryWithCooldown(TimeSpan.FromSeconds(2), TimeSpan.FromSeconds(10), TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(2)));
+
+    // After each publication or withdrawal of Factory the catalog announces its view of the place to the services that keep a copy (§13).
+    foreach (var subscriber in builder.Configuration.GetSection("Messaging:ProjectionSubscribers").Get<string[]>() ?? ["creators", "discovery"])
+    {
+        options.PublishMessage<PoiProjectionChangedV1>().ToPostgresqlQueue(subscriber);
+    }
 });
 
 var app = builder.Build();

@@ -35,6 +35,12 @@ public interface IPoiProjectionWriter
     Task<bool> ApplyStoryPublishedAsync(OnVoyage.Factory.Contracts.StoryPublishedV1 published, CancellationToken cancellationToken);
 
     Task<bool> ApplyStoryUnpublishedAsync(Guid storyId, string status, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// The projection event for the place as the catalog holds it now (<c>IsPublished</c> false once withdrawn), or null when the place is unknown.
+    /// Built from the stored state, so repeating it after a redelivery gives the same event.
+    /// </summary>
+    Task<OnVoyage.Catalog.Contracts.PoiProjectionChangedV1?> ProjectionAsync(Guid poiId, CancellationToken cancellationToken);
 }
 
 /// <summary>A story event arrived before the place it belongs to; events of different queues are not ordered.</summary>

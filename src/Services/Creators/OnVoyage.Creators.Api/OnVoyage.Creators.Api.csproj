@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <ItemGroup>
+    <PackageReference Include="WolverineFx" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="WolverineFx.RuntimeCompilation" />
+    <ProjectReference Include="../OnVoyage.Creators.Application/OnVoyage.Creators.Application.csproj" />
+    <ProjectReference Include="../OnVoyage.Creators.Infrastructure/OnVoyage.Creators.Infrastructure.csproj" />
+    <ProjectReference Include="../OnVoyage.Creators.Contracts/OnVoyage.Creators.Contracts.csproj" />
+    <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
+    <ProjectReference Include="../../../Shared/OnVoyage.Messaging/OnVoyage.Messaging.csproj" />
+  </ItemGroup>
+</Project>

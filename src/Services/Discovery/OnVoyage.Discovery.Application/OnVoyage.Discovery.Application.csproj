@@ -5,6 +5,7 @@
     <ProjectReference Include="../OnVoyage.Discovery.Domain/OnVoyage.Discovery.Domain.csproj" />
     <ProjectReference Include="../OnVoyage.Discovery.Contracts/OnVoyage.Discovery.Contracts.csproj" />
     <ProjectReference Include="../../Factory/OnVoyage.Factory.Contracts/OnVoyage.Factory.Contracts.csproj" />
+    <ProjectReference Include="../../Catalog/OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
     <ProjectReference Include="../../Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>

@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks" />
+    <PackageReference Include="WolverineFx.EntityFrameworkCore" />
+    <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
+    <ProjectReference Include="../OnVoyage.Creators.Application/OnVoyage.Creators.Application.csproj" />
+    <ProjectReference Include="../OnVoyage.Creators.Domain/OnVoyage.Creators.Domain.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Creators.UnitTests" />
+    <InternalsVisibleTo Include="Creators.IntegrationTests" />
+  </ItemGroup>
+</Project>

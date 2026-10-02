@@ -56,6 +56,15 @@ var insights = builder.AddProject<Projects.OnVoyage_Insights_Api>("insights-api"
     .WithEnvironment("Auth__JwtSecret", jwtSecret)
     .WithHttpHealthCheck("/health");
 
+// Creators: founding creators, contents referenced by URL, place associations, follows, moderation. Keeps a name-only copy of the catalog's places
+// (PoiProjectionChangedV1) and answers Platform's deletion and export requests; CreatorTermsAcceptedV1 makes Platform grant the creator role.
+var creators = builder.AddProject<Projects.OnVoyage_Creators_Api>("creators-api")
+    .WithReference(database)
+    .WaitFor(database)
+    .WaitFor(platform)
+    .WithEnvironment("Auth__JwtSecret", jwtSecret)
+    .WithHttpHealthCheck("/health");
+
 // Factory: the worker runs the pipeline jobs (osm2pgsql, Wikimedia, later LLM and TTS); the API is the back-office entry point.
 var factoryWorker = builder.AddProject<Projects.OnVoyage_Factory_Worker>("factory-worker")
     .WithReference(database)
@@ -75,7 +84,7 @@ factoryWorker.WithEnvironment("Factory__MediaDirectory", mediaDirectory);
 
 // Parts of the data exports (T-507): every service writes its part here, Platform assembles the archive.
 var exportsDirectory = Path.Combine(Path.GetTempPath(), "onvoyage-exports");
-foreach (var service in new IResourceBuilder<ProjectResource>[] { platform, discovery, insights, factoryWorker })
+foreach (var service in new IResourceBuilder<ProjectResource>[] { platform, discovery, insights, creators, factoryWorker })
 {
     service.WithEnvironment("Exports__Directory", exportsDirectory);
 }
@@ -105,6 +114,7 @@ var gateway = builder.AddProject<Projects.OnVoyage_Gateway>("gateway")
     .WithReference(factoryApi)
     .WithReference(discovery)
     .WithReference(insights)
+    .WithReference(creators)
     .WaitFor(catalog)
     .WaitFor(platform)
     .WithEnvironment("Auth__JwtSecret", jwtSecret)

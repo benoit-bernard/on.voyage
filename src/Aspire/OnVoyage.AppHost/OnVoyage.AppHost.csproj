@@ -12,6 +12,7 @@
     <ProjectReference Include="../../Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
     <ProjectReference Include="../../Services/Discovery/OnVoyage.Discovery.Api/OnVoyage.Discovery.Api.csproj" />
     <ProjectReference Include="../../Services/Insights/OnVoyage.Insights.Api/OnVoyage.Insights.Api.csproj" />
+    <ProjectReference Include="../../Services/Creators/OnVoyage.Creators.Api/OnVoyage.Creators.Api.csproj" />
     <ProjectReference Include="../../Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj" />
     <ProjectReference Include="../../Web/OnVoyage.Web.Pwa/OnVoyage.Web.Pwa.csproj" />
     <ProjectReference Include="../../Web/OnVoyage.Web.Admin/OnVoyage.Web.Admin.csproj" />

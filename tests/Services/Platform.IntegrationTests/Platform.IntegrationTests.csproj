@@ -6,5 +6,6 @@
     <ProjectReference Include="../../../src/Services/Platform/OnVoyage.Platform.Api/OnVoyage.Platform.Api.csproj" />
     <ProjectReference Include="../../../src/Services/Catalog/OnVoyage.Catalog.Api/OnVoyage.Catalog.Api.csproj" />
     <ProjectReference Include="../../../src/Services/Discovery/OnVoyage.Discovery.Api/OnVoyage.Discovery.Api.csproj" />
+    <ProjectReference Include="../../../src/Services/Creators/OnVoyage.Creators.Api/OnVoyage.Creators.Api.csproj" />
   </ItemGroup>
 </Project>

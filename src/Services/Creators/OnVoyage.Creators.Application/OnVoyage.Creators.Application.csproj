@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <PackageReference Include="WolverineFx" />
+    <ProjectReference Include="../OnVoyage.Creators.Domain/OnVoyage.Creators.Domain.csproj" />
+    <ProjectReference Include="../OnVoyage.Creators.Contracts/OnVoyage.Creators.Contracts.csproj" />
+    <ProjectReference Include="../../Catalog/OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
+    <ProjectReference Include="../../Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="Creators.UnitTests" />
+  </ItemGroup>
+</Project>

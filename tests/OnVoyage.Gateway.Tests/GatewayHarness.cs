@@ -167,6 +167,7 @@ internal sealed class GatewayHarness : IAsyncDisposable
             builder.UseSetting("Gateway:EdgeConfigRefreshSeconds", refreshSeconds.ToString(System.Globalization.CultureInfo.InvariantCulture));
             builder.UseSetting("ReverseProxy:Clusters:catalog:Destinations:primary:Address", stub.Address);
             builder.UseSetting("ReverseProxy:Clusters:platform:Destinations:primary:Address", stub.Address);
+            builder.UseSetting("ReverseProxy:Clusters:creators:Destinations:primary:Address", stub.Address);
             builder.ConfigureLogging(logging =>
             {
                 logging.SetMinimumLevel(LogLevel.Trace);

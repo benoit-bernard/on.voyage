@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using OnVoyage.Catalog.Application.Ports;
+using OnVoyage.Catalog.Contracts;
 using OnVoyage.Factory.Contracts;
 
 namespace OnVoyage.Catalog.Infrastructure.Persistence;
@@ -117,6 +118,56 @@ internal sealed class PoiProjectionWriter(CatalogDbContext db, TimeProvider cloc
         row.UpdatedAt = clock.GetUtcNow();
         await db.SaveChangesAsync(cancellationToken);
         return true;
+    }
+
+    public async Task<PoiProjectionChangedV1?> ProjectionAsync(Guid poiId, CancellationToken cancellationToken)
+    {
+        var row = await db.Pois.AsNoTracking().Include(poi => poi.Destination).Include(poi => poi.Texts).Include(poi => poi.Interests).Include(poi => poi.Ethics)
+            .AsSplitQuery().FirstOrDefaultAsync(poi => poi.Id == poiId, cancellationToken);
+        if (row is null)
+        {
+            return null;
+        }
+
+        var ethics = row.Ethics;
+        var flags = new List<string>();
+        if (ethics?.Fragile == true)
+        {
+            flags.Add("fragile");
+        }
+
+        if (ethics?.AccessRegulated == true)
+        {
+            flags.Add("access_regulated");
+        }
+
+        if (row.HiddenGem)
+        {
+            flags.Add("hidden_gem");
+        }
+
+        // The Catalog has no city or alias of its own yet: the destination stands for the city, and there are no aliases (ADR-0016).
+        return new PoiProjectionChangedV1(
+            Guid.CreateVersion7(),
+            clock.GetUtcNow(),
+            row.Id,
+            row.Version,
+            row.DestinationId,
+            row.Destination.Slug,
+            row.Slug,
+            row.Texts.FirstOrDefault(text => text.Lang == "fr")?.Name ?? row.Texts.FirstOrDefault()?.Name ?? row.Slug,
+            row.Texts.FirstOrDefault(text => text.Lang == "en")?.Name,
+            [],
+            row.Destination.NameFr,
+            row.Location.Y,
+            row.Location.X,
+            row.ImportanceScore,
+            row.HiddenGem,
+            row.ContentQualityScore,
+            ethics?.CrowdProfile.Peak ?? 1,
+            row.Interests.ToDictionary(interest => interest.TaxonomyCode, interest => interest.Weight),
+            flags,
+            row.PublishedAt is not null);
     }
 
     public async Task<bool> ApplyStoryPublishedAsync(StoryPublishedV1 published, CancellationToken cancellationToken)

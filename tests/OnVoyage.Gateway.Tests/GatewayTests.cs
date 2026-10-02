@@ -44,6 +44,27 @@ public sealed class GatewayTests
     }
 
     [Fact]
+    public async Task Creators_admin_routes_need_the_admin_role_and_traveler_routes_any_session()
+    {
+        await using var g = await GatewayHarness.StartAsync();
+        var traveler = TestTokens.Mint();
+        var creator = TestTokens.Mint(roles: ["creator"]);
+        var admin = TestTokens.Mint(roles: ["admin"]);
+
+        // Traveler routes: any session, but a session.
+        (await g.GetAsync("/api/creators/v1/creators/marie")).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await g.GetAsync("/api/creators/v1/creators/marie", traveler)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await g.GetAsync("/api/creators/v1/me/follows", traveler)).StatusCode.ShouldBe(HttpStatusCode.OK);
+
+        // Admin routes: the admin role, stopped at the edge for everyone else.
+        (await g.GetAsync("/api/creators/v1/admin/creators")).StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
+        (await g.GetAsync("/api/creators/v1/admin/creators", traveler)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await g.GetAsync("/api/creators/v1/admin/moderation", creator)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+        (await g.GetAsync("/api/creators/v1/admin/creators", admin)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await g.GetAsync("/api/creators/v1/admin/moderation", admin)).StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
     public async Task Health_endpoints_stay_open()
     {
         await using var g = await GatewayHarness.StartAsync();
