@@ -1,0 +1,19 @@
+# ADR-0018 — Créateurs côté voyageur : projections Discovery, app, web public, lecture sur l'appareil (T-1205, T-1203, T-1204)
+
+- Statut : accepté — MVP-0. Prolonge ADR-0016 (service Creators) et ADR-0011 (Discovery).
+
+## T-1205 — Discovery
+- **Projections** (schéma `discovery`, migration `CreatorsProjection`) : `creator_projection` (profil public et vecteur `c`), `creator_place_link` (liens validés ou retirés, drapeau publicité), `creator_follow` (suivis), colonne `interaction.weights`. Pour chacune, l'événement le plus récent (`OccurredAt`) l'emporte : une redistribution ou un message en désordre ne change rien.
+- **Vecteur créateur** `c = Σ wᵢ·pᵢ / Σ wᵢ` (`CreatorAffinity.Vector`, moteur partagé) sur les lieux publiés validés ; `wᵢ` = 1, + 0,5 si le créateur a un conseil sur ce lieu (lien de nature `tip`). Le + 0,5 « itinéraire » attend les listes (T-1210). Il est recalculé à chaque lien, à chaque publication du créateur **et à chaque publication ou retrait d'un lieu**, pour que l'ordre d'arrivée des événements n'ait pas d'effet.
+- **`CreatorSignal`** (`CreatorAffinity.Endorse`, §6.15) : 1,0 si un créateur suivi a validé le lieu, sinon 0,6 × la meilleure affinité `A(u, c)` ≥ 0,5 parmi les autres ; `w_creator = 0,10` (`RecommendationOptions.CreatorWeight`). Un lieu dont **tous** les liens viennent d'un contenu « Publicité » ne reçoit rien, même d'un créateur suivi. Le signal entre dans le `baseScore` de `/me/candidates` et dans `GET /me/cf-scores`. La cohorte témoin (F-03) ne l'utilise pas (ni signal, ni suivis lus).
+- **Explications** : `creator_followed` (« Recommandé par @marie, que vous suivez ») et `creator_similar` (« Adoré par @marco, créateur proche de vos goûts »), en 2ᵉ position après « un lieu que vous avez aimé » et avant les catégories ; le gabarit porte `creator` (le handle) ; la phrase hors ligne est dans `HomeFeedService.Explain`.
+- **`FollowChangedV1`** : le suivi est stocké (ordre par date) ; le premier suivi écrit une interaction `follow_creator` dont l'identifiant est dérivé du couple (voyageur, créateur) et qui **fige le vecteur `c`** (intensité 0,2, `LearningOptions.FollowCreatorIntensity`) puis rejoue l'historique. Ne pas suivre de nouveau, ne pas annuler en se désabonnant (§6.15). Elle ne compte pas dans la profondeur de profil (§6.13) et n'est pas dans `InteractionKinds.All` (jamais envoyée par un appareil). Un créateur sans lieu validé n'a pas de vecteur : aucune interaction n'est écrite.
+- **Retraits** : `CreatorUnpublishedV1` et les liens `removed` sortent aussitôt le créateur de toutes les lectures (créateur publié, lien validé, lieu publié : une seule requête `CreatorReader.Visible`).
+- **`GET /creators/for-me?destination&limit`** : tri par affinité (en %), puis nombre de lieux, puis handle ; `following` indique les suivis du voyageur ; le vecteur `c` n'est jamais renvoyé. **`GET /me/cf-scores`** : `cf` reste nul (pas de filtrage collaboratif au MVP-0, §6.7), `creatorSignal` est rempli.
+- **Routage** : `Messaging:CreatorSubscribers` vaut `["discovery"]` par défaut ; les gestionnaires existent. `insights` s'y ajoutera avec ses gestionnaires (T-1212).
+- **Droits des données** : l'export de Discovery contient `follows` ; la suppression du voyageur emporte `creator_follow` (cascade). Voir `docs/PRIVACY.md`.
+
+## Écarts
+- Le tri du bloc « Vu par les créateurs » devait se faire sur l'appareil avec les vecteurs `c` renvoyés par Creators (§6.15). Creators ne les a pas ; l'app utilise l'affinité (%) de `GET /creators/for-me` (Discovery, qui détient déjà le profil). Aucune donnée de profil de plus ne quitte l'appareil.
+- Le + 0,5 « présent dans un itinéraire » du vecteur créateur et `CreatorListChangedV1` : avec T-1210.
+- `/me/cf-scores` : `cf` toujours nul.

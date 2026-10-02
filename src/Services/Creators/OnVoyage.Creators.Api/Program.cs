@@ -28,8 +28,8 @@ builder.Host.UseWolverine(options =>
     options.PublishMessage<AdminActionRecordedV1>().ToPostgresqlQueue("platform");
     options.PublishMessage<CreatorTermsAcceptedV1>().ToPostgresqlQueue("platform");
 
-    // Consumers of the creator events (Discovery, T-1205; Insights, T-1212): one queue per subscribed service. None until they handle them.
-    foreach (var subscriber in builder.Configuration.GetSection("Messaging:CreatorSubscribers").Get<string[]>() ?? [])
+    // Consumers of the creator events: one queue per subscribed service. Discovery handles them since T-1205; Insights joins with T-1212 (configuration, not code).
+    foreach (var subscriber in builder.Configuration.GetSection("Messaging:CreatorSubscribers").Get<string[]>() ?? ["discovery"])
     {
         options.PublishMessage<CreatorPublishedV1>().ToPostgresqlQueue(subscriber);
         options.PublishMessage<CreatorUnpublishedV1>().ToPostgresqlQueue(subscriber);

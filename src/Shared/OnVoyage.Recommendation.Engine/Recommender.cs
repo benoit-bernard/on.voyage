@@ -34,7 +34,8 @@ public static class Recommender
             + (wImp * candidate.Importance)
             + (wQ * candidate.Quality)
             + (options.Novelty * (1d / (1d + Math.Max(0, candidate.Impressions7d))))
-            + (options.GemWeight * (candidate.HiddenGem ? 1d : 0d));
+            + (options.GemWeight * (candidate.HiddenGem ? 1d : 0d))
+            + (options.CreatorWeight * (candidate.Creator?.Signal ?? 0d));
     }
 
     /// <summary>Control cohort ranking (F-03): <c>0.7 · Importance + 0.3 · Distance</c>.</summary>
@@ -64,7 +65,8 @@ public static class Recommender
             + (options.Novelty * (1d / (1d + Math.Max(0, candidate.Impressions7d))))
             + (options.Context * 1d)
             - (options.CrowdWeight * crowdPenalty)
-            + (options.GemWeight * (candidate.HiddenGem ? 1d : 0d));
+            + (options.GemWeight * (candidate.HiddenGem ? 1d : 0d))
+            + (options.CreatorWeight * (candidate.Creator?.Signal ?? 0d));
 
         int? compatibility = profile.Depth >= options.ColdStartDepth
             ? Math.Min(options.CompatibilityCap, (int)Math.Round(100d * im01, MidpointRounding.AwayFromZero))
@@ -90,6 +92,12 @@ public static class Recommender
 
     private static Reason Explain(TasteProfile profile, Candidate candidate, RecommendationOptions options)
     {
+        // §6.9: a creator comes second, after "a place you liked" (which Discovery decides) and before the categories.
+        if (candidate.Creator is { Signal: > 0d } endorsement)
+        {
+            return new Reason(endorsement.Followed ? ReasonCode.CreatorFollowed : ReasonCode.CreatorSimilar, [], endorsement.Handle);
+        }
+
         if (profile.Depth >= options.ColdStartDepth)
         {
             var top = candidate.Weights

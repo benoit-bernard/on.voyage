@@ -16,12 +16,14 @@ internal sealed record RankingContext(
     IReadOnlyList<StoryInfo> Stories,
     IReadOnlyDictionary<Guid, double> Ratings,
     IReadOnlyDictionary<Guid, int> Impressions,
+    IReadOnlyDictionary<Guid, IReadOnlyList<CreatorOnPlaceInfo>> CreatorsOnPlaces,
+    IReadOnlySet<Guid> Followed,
     RecommendationOptions Options)
 {
     public bool Control => Traveler.Cohort == "control";
 
     public static async Task<RankingContext> LoadAsync(
-        Guid travelerId, string? destination, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, TimeProvider clock, CancellationToken cancellationToken)
+        Guid travelerId, string? destination, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, TimeProvider clock, CancellationToken cancellationToken)
     {
         var traveler = await travelers.GetAsync(travelerId, cancellationToken)
             ?? new TravelerInfo(travelerId, "fr", "balanced", false, 0, ControlCohort.Contains(travelerId) ? "control" : "personalized");
@@ -33,8 +35,10 @@ internal sealed record RankingContext(
         var all = (await places.PlacesAsync(destination, cancellationToken)).Where(p => withStory.Contains(p.PoiId)).ToArray();
         var ratings = await travelers.RatingsAsync(travelerId, cancellationToken);
         var impressions = await places.ImpressionsSinceAsync(clock.GetUtcNow().AddDays(-7), cancellationToken);
+        var onPlaces = traveler.Cohort == "control" ? new Dictionary<Guid, IReadOnlyList<CreatorOnPlaceInfo>>() : await creators.OnPlacesAsync(destination, cancellationToken);
+        var followed = traveler.Cohort == "control" ? new HashSet<Guid>() : await creators.FollowedAsync(travelerId, cancellationToken);
         var ethical = traveler.EthicalMode switch { "off" => EthicalLevel.Off, "strong" => EthicalLevel.Strong, _ => EthicalLevel.Balanced };
-        return new RankingContext(traveler, new TasteProfile(vector, traveler.ProfileDepth), vector, excluded, all, stories, ratings, impressions, new RecommendationOptions { Ethical = ethical });
+        return new RankingContext(traveler, new TasteProfile(vector, traveler.ProfileDepth), vector, excluded, all, stories, ratings, impressions, onPlaces, followed, new RecommendationOptions { Ethical = ethical });
     }
 
     /// <summary>Hard filters first (§6.6): published, story available, not turned down by the traveler, within the radius.</summary>
@@ -56,7 +60,14 @@ internal sealed record RankingContext(
         remote || latitude is null || longitude is null ? null : Distance(place, latitude.Value, longitude.Value),
         place.CrowdLevel,
         place.HiddenGem,
-        Impressions.GetValueOrDefault(place.PoiId));
+        Impressions.GetValueOrDefault(place.PoiId),
+        EndorsementOf(place));
+
+    /// <summary>The creator signal of §6.15 for one place; none for the control cohort (F-03).</summary>
+    public CreatorEndorsement? EndorsementOf(PlaceInfo place) =>
+        !Control && CreatorsOnPlaces.TryGetValue(place.PoiId, out var onPlace)
+            ? CreatorAffinity.Endorse(Vector, onPlace.Select(c => new CreatorOnPlace(c.Handle, c.Vector, Followed.Contains(c.CreatorId), c.Commercial)))
+            : null;
 
     public IReadOnlyList<ScoredCandidate> Rank(IEnumerable<Candidate> candidates, Recommendation.Engine.TravelMode mode)
     {
@@ -70,7 +81,7 @@ internal sealed record RankingContext(
         return Recommender.Rank(Taste, list, mode, Options);
     }
 
-    /// <summary>Explanation templates of §6.9 in priority order: a place they liked, their categories, an alternative to a crowded place, cold start.</summary>
+    /// <summary>Explanation templates of §6.9 in priority order: a place they liked, a creator, their categories, an alternative to a crowded place, cold start.</summary>
     public WhyDto Why(ScoredCandidate scored, PlaceInfo place, string destinationName)
     {
         if (!Control && Taste.Depth >= Options.ColdStartDepth)
@@ -92,6 +103,8 @@ internal sealed record RankingContext(
         return scored.Reason.Code switch
         {
             ReasonCode.Categories => new WhyDto("categories", new Dictionary<string, string> { ["categories"] = string.Join(',', scored.Reason.Categories) }),
+            ReasonCode.CreatorFollowed => new WhyDto("creator_followed", new Dictionary<string, string> { ["creator"] = scored.Reason.Creator ?? string.Empty }),
+            ReasonCode.CreatorSimilar => new WhyDto("creator_similar", new Dictionary<string, string> { ["creator"] = scored.Reason.Creator ?? string.Empty }),
             ReasonCode.HiddenGem => new WhyDto("hidden_gem", new Dictionary<string, string>()),
             _ => new WhyDto("cold_start", new Dictionary<string, string> { ["destination"] = destinationName }),
         };

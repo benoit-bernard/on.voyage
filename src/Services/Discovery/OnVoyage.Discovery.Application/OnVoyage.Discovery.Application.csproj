@@ -7,6 +7,7 @@
     <ProjectReference Include="../../Factory/OnVoyage.Factory.Contracts/OnVoyage.Factory.Contracts.csproj" />
     <ProjectReference Include="../../Catalog/OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
     <ProjectReference Include="../../Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
+    <ProjectReference Include="../../Creators/OnVoyage.Creators.Contracts/OnVoyage.Creators.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="Discovery.UnitTests" />

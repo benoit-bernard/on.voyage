@@ -17,14 +17,16 @@ public sealed record Candidate(
     double? DistanceMeters,
     int CrowdLevel = 1,
     bool HiddenGem = false,
-    int Impressions7d = 0);
+    int Impressions7d = 0,
+    CreatorEndorsement? Creator = null);
 
 public enum TravelMode { Walk, Bike, Car }
 
 public enum EthicalLevel { Off, Balanced, Strong }
 
-public enum ReasonCode { ColdStart, Categories, HiddenGem }
+public enum ReasonCode { ColdStart, Categories, HiddenGem, CreatorFollowed, CreatorSimilar }
 
-public sealed record Reason(ReasonCode Code, IReadOnlyList<string> Categories);
+/// <summary><paramref name="Creator"/> is the handle of the creator behind <see cref="ReasonCode.CreatorFollowed"/> and <see cref="ReasonCode.CreatorSimilar"/>.</summary>
+public sealed record Reason(ReasonCode Code, IReadOnlyList<string> Categories, string? Creator = null);
 
 public sealed record ScoredCandidate(Candidate Candidate, double Score, int? CompatibilityPercent, Reason Reason);

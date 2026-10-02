@@ -46,6 +46,12 @@ internal static class DiscoveryEndpoints
         group.MapGet("/me/candidates", (string? destination, HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<CandidatesDto>>(new GetCandidatesQuery(Traveler(http), destination ?? "marseille", string.Empty), ct)));
 
+        group.MapGet("/me/cf-scores", (string? destination, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<CfScoresDto>>(new GetCfScoresQuery(Traveler(http), destination ?? "marseille"), ct)));
+
+        group.MapGet("/creators/for-me", (string? destination, int? limit, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<CreatorsForMeDto>>(new GetCreatorsForMeQuery(Traveler(http), destination ?? "marseille", limit ?? 20), ct)));
+
         group.MapGet("/me/saved", (HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<SavedGroupDto>>>(new GetSavedQuery(Traveler(http)), ct)));
 

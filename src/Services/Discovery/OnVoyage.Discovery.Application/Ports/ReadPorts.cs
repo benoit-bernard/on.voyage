@@ -57,3 +57,28 @@ public interface IAffinityStore
     /// <summary>Recomputes the matrix from the vectors of travelers with a rich enough profile; returns how many travelers were used.</summary>
     Task<int> RecomputeAsync(DateTimeOffset now, CancellationToken cancellationToken);
 }
+
+/// <summary>A published creator that validated a place, as seen by the ranking. <c>Commercial</c>: every link to the place is marked "Publicité".</summary>
+public sealed record CreatorOnPlaceInfo(Guid CreatorId, string Handle, IReadOnlyDictionary<string, double> Vector, bool Commercial);
+
+public sealed record CreatorInfo(
+    Guid CreatorId,
+    string Handle,
+    string DisplayName,
+    string? AvatarPath,
+    IReadOnlyList<string> Specialties,
+    IReadOnlyDictionary<string, double> Vector,
+    int PlaceCount);
+
+/// <summary>Read side of the creators projection: only published creators, only validated links to published places.</summary>
+public interface ICreatorReader
+{
+    /// <summary>For every place of the destination (all places when null): the creators who validated it.</summary>
+    Task<IReadOnlyDictionary<Guid, IReadOnlyList<CreatorOnPlaceInfo>>> OnPlacesAsync(string? destination, CancellationToken cancellationToken);
+
+    /// <summary>Creators with at least one validated place in the destination (all when null), with the number of those places.</summary>
+    Task<IReadOnlyList<CreatorInfo>> CreatorsAsync(string? destination, CancellationToken cancellationToken);
+
+    /// <summary>The creators the traveler follows.</summary>
+    Task<IReadOnlySet<Guid>> FollowedAsync(Guid travelerId, CancellationToken cancellationToken);
+}

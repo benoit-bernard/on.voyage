@@ -36,6 +36,15 @@ public interface ITravelerSession
 
     /// <summary>Records that "Surprenez-moi" proposed this place (kept for the "not the last 20" rule).</summary>
     Task RecordSurpriseAsync(Guid poiId, DateTimeOffset at, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Records that the traveler follows or stops following a creator. False when a newer change is already stored (events arrive in any order);
+    /// the stored state is then left alone.
+    /// </summary>
+    Task<bool> SetFollowAsync(Guid creatorId, bool following, DateTimeOffset at, CancellationToken cancellationToken);
+
+    /// <summary>The creator vector <c>c</c> as projected now; empty when the creator is unknown or has no validated place.</summary>
+    Task<IReadOnlyDictionary<string, double>> CreatorVectorAsync(Guid creatorId, CancellationToken cancellationToken);
 }
 
 public interface IDiscoveryStore
@@ -78,6 +87,21 @@ public interface IProjectionWriter
     Task ApplyClipAsync(ClipProjection clip, CancellationToken cancellationToken);
 
     Task RemoveClipAsync(Guid storyId, CancellationToken cancellationToken);
+}
+
+public sealed record CreatorProjection(Guid CreatorId, string Handle, string DisplayName, string? AvatarPath, IReadOnlyList<string> Specialties, bool IsPublished, DateTimeOffset OccurredAt);
+
+/// <summary>One link of a creator to a place; <c>ContentId</c> is null for a tip alone. <c>Validated</c> false means removed.</summary>
+public sealed record CreatorLinkProjection(Guid CreatorId, Guid PoiId, Guid? ContentId, string Kind, bool IsCommercial, bool Validated, DateTimeOffset OccurredAt);
+
+/// <summary>Write side of the creators projection (T-1205). Every method keeps the newest event by <c>OccurredAt</c>, so redelivery and reordering change nothing.</summary>
+public interface ICreatorProjectionWriter
+{
+    /// <summary>Creates or updates a creator (published, or unpublished with the reason dropped) and refreshes its vector.</summary>
+    Task ApplyCreatorAsync(CreatorProjection creator, CancellationToken cancellationToken);
+
+    /// <summary>Stores a validated or removed link and refreshes the vector of the creator.</summary>
+    Task ApplyLinkAsync(CreatorLinkProjection link, CancellationToken cancellationToken);
 }
 
 /// <summary>Public base URL of the media files, so the app can play a clip without going through the Catalog.</summary>

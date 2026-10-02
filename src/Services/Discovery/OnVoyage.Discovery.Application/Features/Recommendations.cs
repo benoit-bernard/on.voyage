@@ -24,7 +24,7 @@ public sealed record GetRecommendationsQuery(Guid TravelerId, double? Latitude, 
 public static class GetRecommendationsHandler
 {
     public static async Task<Result<RecommendationsDto>> Handle(
-        GetRecommendationsQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, IAffinityStore affinity, TimeProvider clock, CancellationToken cancellationToken)
+        GetRecommendationsQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, IAffinityStore affinity, TimeProvider clock, CancellationToken cancellationToken)
     {
         if (query.Limit is < 1 or > 50 || query.RadiusMeters is < 50 or > 200_000 || !Modes.IsKnown(query.Context)
             || (query.Latitude is null != query.Longitude is null) || query.Latitude is < -90 or > 90 || query.Longitude is < -180 or > 180)
@@ -32,7 +32,7 @@ public static class GetRecommendationsHandler
             return Result.Failure<RecommendationsDto>("validation", "limit 1–50, radius 50–200000, context walk|bike|car, lat and lng together");
         }
 
-        var context = await RankingContext.LoadAsync(query.TravelerId, null, store, travelers, places, clock, cancellationToken);
+        var context = await RankingContext.LoadAsync(query.TravelerId, null, store, travelers, places, creators, clock, cancellationToken);
         var eligible = context.Eligible(query.Latitude, query.Longitude, query.RadiusMeters);
         var ranked = context.Rank(eligible.Select(p => context.ToCandidate(p, query.Latitude, query.Longitude, remote: false)), Modes.Parse(query.Context));
         var (lifts, travelersInMatrix) = await affinity.LoadAsync(cancellationToken);
@@ -55,7 +55,7 @@ public static class GetDestinationForMeHandler
     public const double ZoneRadiusMeters = 50_000d;
 
     public static async Task<Result<DestinationForMeDto>> Handle(
-        GetDestinationForMeQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, IAffinityStore affinity, TimeProvider clock, CancellationToken cancellationToken)
+        GetDestinationForMeQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, IAffinityStore affinity, TimeProvider clock, CancellationToken cancellationToken)
     {
         if (query.Days is < 1 or > 4 || !Modes.IsKnown(query.Mobility) || (query.Latitude is null != query.Longitude is null))
         {
@@ -68,7 +68,7 @@ public static class GetDestinationForMeHandler
             return Result.Failure<DestinationForMeDto>("destination_not_found", "Unknown destination.");
         }
 
-        var context = await RankingContext.LoadAsync(query.TravelerId, query.Slug, store, travelers, places, clock, cancellationToken);
+        var context = await RankingContext.LoadAsync(query.TravelerId, query.Slug, store, travelers, places, creators, clock, cancellationToken);
         var remote = query.Latitude is null || query.Longitude is null
             || VisitPlanner.Distance(query.Latitude.Value, query.Longitude.Value, destination.Value.Latitude, destination.Value.Longitude) > ZoneRadiusMeters;
         var mode = Modes.Parse(query.Mobility);
@@ -121,14 +121,14 @@ public static class GetSurpriseHandler
     /// places already proposed, so a repeated call moves on and a test can replay it.
     /// </summary>
     public static async Task<Result<RecommendationItemDto>> Handle(
-        GetSurpriseQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, IAffinityStore affinity, TimeProvider clock, CancellationToken cancellationToken)
+        GetSurpriseQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, IAffinityStore affinity, TimeProvider clock, CancellationToken cancellationToken)
     {
         if (query.RadiusMeters is < 50 or > 200_000 || (query.Latitude is null != query.Longitude is null))
         {
             return Result.Failure<RecommendationItemDto>("validation", "radius 50–200000, lat and lng together");
         }
 
-        var context = await RankingContext.LoadAsync(query.TravelerId, null, store, travelers, places, clock, cancellationToken);
+        var context = await RankingContext.LoadAsync(query.TravelerId, null, store, travelers, places, creators, clock, cancellationToken);
         var recent = await travelers.RecentSurprisesAsync(query.TravelerId, MemoryOfProposed, cancellationToken);
         var eligible = context.Eligible(query.Latitude, query.Longitude, query.RadiusMeters)
             .Where(p => !p.Fragile && !p.AccessRegulated && p.CrowdLevel < 4 && !recent.Contains(p.PoiId))
@@ -180,7 +180,7 @@ public static class GetCandidatesHandler
     /// out Distance, Context and CrowdPenalty (the device knows the position, the hour and the mode). Premium stories are left out.
     /// </summary>
     public static async Task<Result<CandidatesDto>> Handle(
-        GetCandidatesQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, IMediaUrls media, TimeProvider clock, CancellationToken cancellationToken)
+        GetCandidatesQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, IMediaUrls media, TimeProvider clock, CancellationToken cancellationToken)
     {
         var destination = await places.DestinationAsync(query.Destination, cancellationToken);
         if (destination is null)
@@ -188,7 +188,7 @@ public static class GetCandidatesHandler
             return Result.Failure<CandidatesDto>("destination_not_found", "Unknown destination.");
         }
 
-        var context = await RankingContext.LoadAsync(query.TravelerId, query.Destination, store, travelers, places, clock, cancellationToken);
+        var context = await RankingContext.LoadAsync(query.TravelerId, query.Destination, store, travelers, places, creators, clock, cancellationToken);
         var stories = context.Stories.Where(s => !s.IsPremium).ToLookup(s => s.PoiId);
         var items = context.Eligible(null, null, null)
             .Where(p => stories[p.PoiId].Any(s => s.Kind == "standard" && s.AudioParts.ContainsKey("main")))

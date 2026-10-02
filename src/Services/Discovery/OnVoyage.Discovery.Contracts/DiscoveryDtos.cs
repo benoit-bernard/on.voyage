@@ -108,3 +108,13 @@ public sealed record HistoryItemDto(Guid PoiId, string Slug, string Name, DateTi
 public sealed record SettingsDto(string Lang, string EthicalMode);
 
 public sealed record SettingsPatch(string? Lang, string? EthicalMode);
+
+/// <summary>A creator for "Découvrir les créateurs" (§6.15). <see cref="Affinity"/> is <c>A(u, c)</c> in percent; the creator vector is not exposed.</summary>
+public sealed record CreatorForMeDto(Guid CreatorId, string Handle, string DisplayName, string? AvatarPath, IReadOnlyList<string> Specialties, int PlaceCount, int Affinity, bool Following);
+
+public sealed record CreatorsForMeDto(string Destination, IReadOnlyList<CreatorForMeDto> Items, string Cohort);
+
+/// <summary>Precomputed scores for the offline pack: <see cref="Cf"/> is null until collaborative filtering exists; <see cref="CreatorSignal"/> is in [0, 1].</summary>
+public sealed record CfScoreDto(Guid PoiId, double? Cf, double CreatorSignal);
+
+public sealed record CfScoresDto(IReadOnlyList<CfScoreDto> Items, string Cohort, DateTimeOffset GeneratedAt);

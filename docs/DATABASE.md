@@ -336,6 +336,15 @@ Taxonomie des centres d'intérêt (annexe D), publiée par Factory.
 
 Contexte EF : `OnVoyage.Discovery.Infrastructure/Persistence/DiscoveryDbContext.cs`. Migrations : `20261001134224_Initial`.
 
+#### Tables ajoutées par T-1205 (migration `CreatorsProjection`, ADR-0018)
+
+| Table | Clé | Colonnes | Remarques |
+| --- | --- | --- | --- |
+| `discovery.creator_projection` | `creator_id` | `handle`, `display_name`, `avatar_path`, `specialties jsonb`, `is_published`, `vector jsonb` (`c` de §6.15), `occurred_at` | Projection de `CreatorPublishedV1` / `CreatorUnpublishedV1`. Le plus récent `occurred_at` l'emporte. |
+| `discovery.creator_place_link` | (`creator_id`, `poi_id`, `content_id`) | `kind`, `is_commercial`, `validated`, `occurred_at` | Projection de `CreatorPlaceLinkChangedV1` ; `content_id` = GUID nul pour un conseil seul ; index sur `poi_id`. |
+| `discovery.creator_follow` | (`traveler_id`, `creator_id`) | `following`, `changed_at` | Clé étrangère `traveler_id` → `discovery.traveler` (cascade). Ligne gardée après un « ne plus suivre » pour qu'un événement plus ancien ne la ressuscite pas. |
+| `discovery.interaction.weights` | — | `jsonb`, nul | Vecteur figé d'une interaction `follow_creator`. |
+
 #### `discovery.impression`
 
 Cartes de lieux affichées (surface, date) : sert aux signaux d'impression ; conservation courte prévue (`retention.impressions_days`).

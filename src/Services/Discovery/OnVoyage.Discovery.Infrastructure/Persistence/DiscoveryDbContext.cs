@@ -17,6 +17,9 @@ internal sealed class DiscoveryDbContext(DbContextOptions<DiscoveryDbContext> op
     public DbSet<SavedPoiRow> Saved => Set<SavedPoiRow>();
     public DbSet<StoryProjectionRow> Stories => Set<StoryProjectionRow>();
     public DbSet<CategoryAffinityRow> Affinities => Set<CategoryAffinityRow>();
+    public DbSet<CreatorProjectionRow> Creators => Set<CreatorProjectionRow>();
+    public DbSet<CreatorPlaceLinkRow> CreatorLinks => Set<CreatorPlaceLinkRow>();
+    public DbSet<CreatorFollowRow> CreatorFollows => Set<CreatorFollowRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -43,6 +46,7 @@ internal sealed class DiscoveryDbContext(DbContextOptions<DiscoveryDbContext> op
             e.HasKey(r => r.Id);
             e.HasIndex(r => new { r.TravelerId, r.ClientEventId }).IsUnique();
             e.HasIndex(r => new { r.TravelerId, r.OccurredAt });
+            e.Property(r => r.Weights).HasColumnType("jsonb");
             e.HasOne<TravelerRow>().WithMany().HasForeignKey(r => r.TravelerId).OnDelete(DeleteBehavior.Cascade);
         });
 
@@ -103,6 +107,28 @@ internal sealed class DiscoveryDbContext(DbContextOptions<DiscoveryDbContext> op
         {
             e.ToTable("category_affinity");
             e.HasKey(r => new { r.CodeA, r.CodeB });
+        });
+
+        modelBuilder.Entity<CreatorProjectionRow>(e =>
+        {
+            e.ToTable("creator_projection");
+            e.HasKey(r => r.CreatorId);
+            e.Property(r => r.Specialties).HasColumnType("jsonb");
+            e.Property(r => r.Vector).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<CreatorPlaceLinkRow>(e =>
+        {
+            e.ToTable("creator_place_link");
+            e.HasKey(r => new { r.CreatorId, r.PoiId, r.ContentId });
+            e.HasIndex(r => r.PoiId);
+        });
+
+        modelBuilder.Entity<CreatorFollowRow>(e =>
+        {
+            e.ToTable("creator_follow");
+            e.HasKey(r => new { r.TravelerId, r.CreatorId });
+            e.HasOne<TravelerRow>().WithMany().HasForeignKey(r => r.TravelerId).OnDelete(DeleteBehavior.Cascade);
         });
 
         ApplySnakeCaseColumns(modelBuilder);

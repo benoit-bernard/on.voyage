@@ -11,6 +11,8 @@ public sealed record RecommendationOptions
     public double Quality { get; init; } = 0.10;
     public double Novelty { get; init; } = 0.05;
     public double Context { get; init; } = 0.10;
+    /// <summary><c>w_creator</c> of §6.15.</summary>
+    public double CreatorWeight { get; init; } = 0.10;
     public int ColdStartDepth { get; init; } = 5;
     public int CompatibilityCap { get; init; } = 98;
     public EthicalLevel Ethical { get; init; } = EthicalLevel.Balanced;

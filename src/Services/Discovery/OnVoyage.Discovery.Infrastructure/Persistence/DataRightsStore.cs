@@ -30,6 +30,7 @@ internal sealed class DataRightsStore(DiscoveryDbContext db, ExportStorage expor
             saved = await db.Saved.AsNoTracking().Where(s => s.TravelerId == travelerId).OrderBy(s => s.SavedAt).Select(s => new { s.PoiId, s.SavedAt }).ToListAsync(cancellationToken),
             visits = await db.Visits.AsNoTracking().Where(v => v.TravelerId == travelerId).OrderBy(v => v.VisitedOn).Select(v => new { v.PoiId, v.VisitedOn, v.DwellS, v.Confidence }).ToListAsync(cancellationToken),
             ratings = await db.Ratings.AsNoTracking().Where(r => r.TravelerId == travelerId).Select(r => new { r.PoiId, r.Rating, r.Excluded, r.UpdatedAt }).ToListAsync(cancellationToken),
+            follows = await db.CreatorFollows.AsNoTracking().Where(f => f.TravelerId == travelerId && f.Following).OrderBy(f => f.ChangedAt).Select(f => new { f.CreatorId, FollowedAt = f.ChangedAt }).ToListAsync(cancellationToken),
             impressions = await db.Impressions.AsNoTracking().Where(i => i.TravelerId == travelerId).OrderBy(i => i.ShownAt).Select(i => new { i.PoiId, i.Surface, i.ShownAt }).ToListAsync(cancellationToken),
         };
 

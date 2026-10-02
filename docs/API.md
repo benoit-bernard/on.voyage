@@ -89,6 +89,8 @@ Fichiers audio : `GET /media/{chemin}` sur le Gateway (anonyme, GET et HEAD, req
 | `GET /me/profile` | `traveler` | — | `ProfileDto` : `vector`, `profileDepth`, `level`, `taxonomyVersion`, `locks`, `excluded`, `cohort` | |
 | `PATCH /me/profile` | `traveler` | `{ corrections: [{ code, value }] }` | `ProfileDto` | `value` fixe la dimension et la verrouille 30 jours ; `null` retire le verrou. |
 | `POST /me/interactions` | `traveler` | `{ interactions: [InteractionDto] }`, 1 à 200 éléments | `InteractionBatchResponse` : `vector`, `profileDepth`, `taxonomyVersion`, `accepted`, `duplicates`, `excluded` | Types : `onboarding_up`, `onboarding_down`, `onboarding_category`, `like`, `meh`, `dislike_poi`, `dislike_category`, `listen_80`, `replay`, `abandon_early`, `save`, `navigate`, `visit`, `external_link`, `creator_content_opened`, `impression`. Une visite porte `confidence` et `dwellS`, jamais de coordonnées. `occurredAt` ne peut pas dépasser l'heure serveur de plus de 10 min. |
+| `GET /me/cf-scores?destination` | `traveler` | — | `CfScoresDto` : par lieu `cf` (nul tant que le filtrage collaboratif n'existe pas) et `creatorSignal` ∈ [0, 1] | Pour le hors ligne (§6.12, §6.15). 404 si la destination est inconnue. Cohorte témoin : signaux à 0. |
+| `GET /creators/for-me?destination&limit` | `traveler` | `destination` (défaut `marseille`), `limit` 1–50 (défaut 20) | `CreatorsForMeDto` : `items` (`creatorId`, `handle`, `displayName`, `avatarPath`, `specialties`, `placeCount`, `affinity` en %, `following`) | Créateurs publiés ayant validé un lieu publié de la destination, triés par affinité `A(u, c)` (§6.15), puis nombre de lieux, puis handle. Le vecteur `c` n'est jamais renvoyé. Cohorte témoin : ordre sans profil, affinité 0. |
 | `GET /admin/onboarding-clips` | `admin` | requête : `lang` | `AdminClipsDto` (`active`, `candidates`) | |
 | `PUT /admin/onboarding-clips` | `admin` | `{ storyIds }` : exactement 5 extraits de 5 catégories de niveau 1 différentes | `true` | 400 sinon. |
 
@@ -100,7 +102,7 @@ Voyageur (politique `traveler`, sessions anonymes comprises ; aucune route n'acc
 | --- | --- | --- |
 | `GET /creators/{handle}` | `CreatorPageDto` | Insensible à la casse. 404 si le créateur n'est pas publié. Abonnés : `null` sous 20 (`isNew`). Lieux, contenus et liens : validés, en ligne, lieu publié seulement. |
 | `GET /creators?destination&specialty&cursor&limit` | `CreatorListDto` | Tri par nombre de lieux validés ; `cursor` est un décalage ; 20 par page, 50 au plus. |
-| `GET /pois/{poiId}/contents?limit` | `PoiCreatorsDto` | Bloc « Vu par les créateurs » : un élément par créateur, conseil, contenu (lien horodaté si chapitre, drapeau `isCommercial`). Sans vecteur `c` (T-1205). |
+| `GET /pois/{poiId}/contents?limit` | `PoiCreatorsDto` | Bloc « Vu par les créateurs » : un élément par créateur, conseil, contenu (lien horodaté si chapitre, drapeau `isCommercial`). Sans vecteur `c` : l'affinité vient de `GET /api/discovery/v1/creators/for-me` (T-1205). |
 | `PUT` / `DELETE /me/follows/{creatorId}` | `FollowStateDto` | Idempotent ; `FollowChangedV1` publié au premier changement seulement. 404 si le créateur n'est pas publié. |
 | `GET /me/follows` | liste de `FollowedCreatorDto` | Les créateurs publiés que le voyageur suit. |
 | `POST /reports` | 202, `ReportReceiptDto` | `targetType` : `creator`, `content`, `place_link`, `tip` ; `reason` : `inaccurate`, `misleading`, `undeclared_ad`, `inappropriate`, `impersonation`, `other`. Un doublon ouvert renvoie le même dossier. |

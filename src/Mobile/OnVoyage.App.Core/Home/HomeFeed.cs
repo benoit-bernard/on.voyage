@@ -80,6 +80,8 @@ public sealed class HomeFeedService(ICatalogClient catalog, IProfileStore profil
     public static string Explain(Reason reason) => reason.Code switch
     {
         ReasonCode.Categories => $"Vous aimez : {string.Join(" et ", reason.Categories.Select(Label))}.",
+        ReasonCode.CreatorFollowed => $"Recommandé par @{reason.Creator}, que vous suivez.",
+        ReasonCode.CreatorSimilar => $"Adoré par @{reason.Creator}, créateur proche de vos goûts.",
         ReasonCode.HiddenGem => "Moins fréquenté, tout aussi riche.",
         _ => "Un incontournable de la ville.",
     };

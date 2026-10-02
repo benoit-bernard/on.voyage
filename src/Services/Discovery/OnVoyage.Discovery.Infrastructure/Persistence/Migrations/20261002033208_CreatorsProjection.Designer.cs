@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using OnVoyage.Discovery.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using OnVoyage.Discovery.Infrastructure.Persistence;
 namespace OnVoyage.Discovery.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(DiscoveryDbContext))]
-    partial class DiscoveryDbContextModelSnapshot : ModelSnapshot
+    [Migration("20261002033208_CreatorsProjection")]
+    partial class CreatorsProjection
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

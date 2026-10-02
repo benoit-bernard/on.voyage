@@ -130,6 +130,7 @@ internal sealed class DiscoveryStore(DiscoveryDbContext db, TimeProvider clock) 
                     Kind = interaction.Kind,
                     Value = interaction.Value,
                     CategoryCode = interaction.CategoryCode,
+                    Weights = interaction.Weights is { Count: > 0 } frozen ? JsonSerializer.Serialize(frozen) : null,
                     OccurredAt = interaction.OccurredAt,
                 });
 
@@ -159,7 +160,7 @@ internal sealed class DiscoveryStore(DiscoveryDbContext db, TimeProvider clock) 
         public async Task<IReadOnlyList<Interaction>> HistoryAsync(CancellationToken cancellationToken)
         {
             var rows = await db.Interactions.AsNoTracking().Where(r => r.TravelerId == travelerId).OrderBy(r => r.OccurredAt).ThenBy(r => r.ClientEventId).ToListAsync(cancellationToken);
-            return [.. rows.Select(r => new Interaction(r.ClientEventId, r.Kind, r.PoiId?.ToString("D"), r.OccurredAt, r.Value, r.CategoryCode))];
+            return [.. rows.Select(r => new Interaction(r.ClientEventId, r.Kind, r.PoiId?.ToString("D"), r.OccurredAt, r.Value, r.CategoryCode, r.Weights is null ? null : JsonSerializer.Deserialize<Dictionary<string, double>>(r.Weights)))];
         }
 
         public async Task<IReadOnlyDictionary<string, IReadOnlyDictionary<string, double>>> PlaceWeightsAsync(IEnumerable<string> poiIds, CancellationToken cancellationToken)
@@ -204,6 +205,33 @@ internal sealed class DiscoveryStore(DiscoveryDbContext db, TimeProvider clock) 
         {
             db.Impressions.Add(new ImpressionRow { TravelerId = travelerId, ClientEventId = Guid.NewGuid(), PoiId = poiId, Surface = "surprise", ShownAt = at });
             await db.SaveChangesAsync(cancellationToken);
+        }
+
+        public async Task<bool> SetFollowAsync(Guid creatorId, bool following, DateTimeOffset at, CancellationToken cancellationToken)
+        {
+            var row = await db.CreatorFollows.FindAsync([travelerId, creatorId], cancellationToken);
+            if (row is null)
+            {
+                db.CreatorFollows.Add(new CreatorFollowRow { TravelerId = travelerId, CreatorId = creatorId, Following = following, ChangedAt = at });
+            }
+            else if (at >= row.ChangedAt)
+            {
+                row.Following = following;
+                row.ChangedAt = at;
+            }
+            else
+            {
+                return false; // a newer change is already stored
+            }
+
+            await db.SaveChangesAsync(cancellationToken);
+            return true;
+        }
+
+        public async Task<IReadOnlyDictionary<string, double>> CreatorVectorAsync(Guid creatorId, CancellationToken cancellationToken)
+        {
+            var json = await db.Creators.AsNoTracking().Where(c => c.CreatorId == creatorId).Select(c => c.Vector).FirstOrDefaultAsync(cancellationToken);
+            return json is null ? new Dictionary<string, double>() : JsonSerializer.Deserialize<Dictionary<string, double>>(json) ?? [];
         }
 
         public async Task SaveAsync(LearnedProfile learned, Locks locks, CancellationToken cancellationToken)

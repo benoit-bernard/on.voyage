@@ -39,6 +39,7 @@ public static class InterestLearning
         InteractionKinds.Visit => 0.9 * Math.Clamp(interaction.Value, 0d, 1d),
         InteractionKinds.ExternalLink => 0.4,
         InteractionKinds.CreatorContentOpened => 0.3,
+        InteractionKinds.FollowCreator => options.FollowCreatorIntensity,
         _ => null,
     };
 
@@ -167,7 +168,9 @@ public static class InterestLearning
                 continue;
             }
 
-            var weights = interaction.PoiId is { } poi ? placeWeights(poi) : null;
+            var weights = interaction.Kind == InteractionKinds.FollowCreator
+                ? interaction.Weights
+                : interaction.PoiId is { } poi ? placeWeights(poi) : null;
             if (interaction.PoiId is { } ratedPoi && Rating(interaction) is { } rating)
             {
                 ratings[ratedPoi] = rating;

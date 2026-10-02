@@ -77,6 +77,7 @@ internal sealed class ProjectionWriter(DiscoveryDbContext db) : IProjectionWrite
         row.IsPublished = place.IsPublished;
         row.Version = place.Version;
         await db.SaveChangesAsync(cancellationToken);
+        await CreatorVectors.RecomputeForPlaceAsync(db, place.PoiId, cancellationToken); // creators' vectors follow the places they link
     }
 
     public async Task UnpublishPlaceAsync(Guid poiId, int version, CancellationToken cancellationToken)
@@ -93,6 +94,7 @@ internal sealed class ProjectionWriter(DiscoveryDbContext db) : IProjectionWrite
         }
 
         await db.SaveChangesAsync(cancellationToken);
+        await CreatorVectors.RecomputeForPlaceAsync(db, poiId, cancellationToken);
     }
 
     public async Task ApplyStoryAsync(StoryProjection story, CancellationToken cancellationToken)

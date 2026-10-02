@@ -35,6 +35,9 @@ internal sealed class InteractionRow
     public string Kind { get; set; } = "";
     public double Value { get; set; }
     public string? CategoryCode { get; set; }
+
+    /// <summary>JSON vector frozen with a <c>follow_creator</c> (the creator's <c>c</c> at the moment of the follow); null for every other kind.</summary>
+    public string? Weights { get; set; }
     public DateTimeOffset OccurredAt { get; set; }
 }
 
@@ -127,4 +130,38 @@ internal sealed class CategoryAffinityRow
     public string CodeB { get; set; } = "";
     public double Lift { get; set; }
     public DateTimeOffset ComputedAt { get; set; }
+}
+
+/// <summary>A creator as announced by Creators. <see cref="Vector"/> is <c>c</c> of §6.15, recomputed whenever a link or a place changes.</summary>
+internal sealed class CreatorProjectionRow
+{
+    public Guid CreatorId { get; set; }
+    public string Handle { get; set; } = "";
+    public string DisplayName { get; set; } = "";
+    public string? AvatarPath { get; set; }
+    public string Specialties { get; set; } = "[]";
+    public bool IsPublished { get; set; }
+    public string Vector { get; set; } = "{}";
+    public DateTimeOffset OccurredAt { get; set; }
+}
+
+/// <summary>A creator's link to a place. A tip alone has no content: <c>ContentId</c> is then the empty GUID, so the key stays non-null.</summary>
+internal sealed class CreatorPlaceLinkRow
+{
+    public Guid CreatorId { get; set; }
+    public Guid PoiId { get; set; }
+    public Guid ContentId { get; set; }
+    public string Kind { get; set; } = "";
+    public bool IsCommercial { get; set; }
+    public bool Validated { get; set; }
+    public DateTimeOffset OccurredAt { get; set; }
+}
+
+/// <summary>A traveler follows a creator. Kept with <c>Following = false</c> after an unfollow so a late older event cannot revive it. Never exposed to creators.</summary>
+internal sealed class CreatorFollowRow
+{
+    public Guid TravelerId { get; set; }
+    public Guid CreatorId { get; set; }
+    public bool Following { get; set; }
+    public DateTimeOffset ChangedAt { get; set; }
 }

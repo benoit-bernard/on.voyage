@@ -51,7 +51,7 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | Clé | Défaut | Rôle |
 | --- | --- | --- |
 | `Creators:Migrate` | `true` | Migrations au démarrage. |
-| `Messaging:CreatorSubscribers` | `[]` | Files qui reçoivent `CreatorPublishedV1`, `CreatorUnpublishedV1`, `CreatorPlaceLinkChangedV1` et `FollowChangedV1` (Discovery, T-1205 ; Insights, T-1212). Vide tant qu'aucun service ne les traite. `CreatorTermsAcceptedV1`, le journal admin et les réponses aux droits des données vont toujours à `platform`. |
+| `Messaging:CreatorSubscribers` | `["discovery"]` | Files qui reçoivent `CreatorPublishedV1`, `CreatorUnpublishedV1`, `CreatorPlaceLinkChangedV1` et `FollowChangedV1`. Discovery les traite depuis T-1205 ; **n'ajouter `insights` qu'avec ses gestionnaires** (T-1212), sinon les messages seraient mis de côté. `[]` désactive le routage. `CreatorTermsAcceptedV1`, le journal admin et les réponses aux droits des données vont toujours à `platform`. |
 | `Messaging:ProjectionSubscribers` (lue par **Catalog**) | `["creators", "discovery"]` | Files qui reçoivent `PoiProjectionChangedV1`. |
 | `Exports:Directory` | dossier temporaire | Dossier de la partie `creators.json` des exports (comme les autres services). |
 
