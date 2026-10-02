@@ -109,13 +109,32 @@ public sealed class YouTubeClientTests
     }
 
     [Theory]
-    [InlineData(HttpStatusCode.Forbidden)] // quota reached
+    [InlineData(HttpStatusCode.Forbidden)] // a refused key, not a quota
     [InlineData(HttpStatusCode.TooManyRequests)]
     [InlineData(HttpStatusCode.BadGateway)]
     [InlineData(HttpStatusCode.BadRequest)]
     public async Task A_refusal_or_an_outage_is_an_external_service_error(HttpStatusCode status)
     {
         var (client, _) = Client(_ => Json("""{ "error": { "message": "quotaExceeded" } }""", status));
+
+        await Should.ThrowAsync<ExternalServiceException>(() => client.SearchAsync("fort", 8, TestContext.Current.CancellationToken));
+    }
+
+    [Theory]
+    [InlineData("quotaExceeded")]
+    [InlineData("dailyLimitExceeded")]
+    public async Task A_daily_quota_refusal_is_told_apart_from_an_outage(string reason)
+    {
+        var (client, _) = Client(_ => Json($$"""{ "error": { "code": 403, "errors": [ { "domain": "youtube.quota", "reason": "{{reason}}" } ] } }""", HttpStatusCode.Forbidden));
+
+        await Should.ThrowAsync<VideoQuotaExceededException>(() => client.SearchAsync("fort", 8, TestContext.Current.CancellationToken));
+        await Should.ThrowAsync<VideoQuotaExceededException>(() => client.GetAsync("abcdefghijk", TestContext.Current.CancellationToken));
+    }
+
+    [Fact]
+    public async Task A_forbidden_answer_for_another_reason_is_not_a_quota_problem()
+    {
+        var (client, _) = Client(_ => Json("""{ "error": { "code": 403, "errors": [ { "reason": "accessNotConfigured" } ] } }""", HttpStatusCode.Forbidden));
 
         await Should.ThrowAsync<ExternalServiceException>(() => client.SearchAsync("fort", 8, TestContext.Current.CancellationToken));
     }
@@ -170,7 +189,39 @@ public sealed class VideoHandlerTests
     private readonly IMediaStorage _storage = Substitute.For<IMediaStorage>();
     private readonly IDestinationCatalog _destinations = Substitute.For<IDestinationCatalog>();
     private readonly InMemoryVideos _videos = new();
+    private readonly InMemoryQuota _quota = new();
+    private readonly VideoQuotaOptions _options = new();
     private readonly TimeProvider _clock = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(Now);
+
+    private sealed class InMemoryQuota : IVideoQuotaStore
+    {
+        public Dictionary<DateOnly, int> Units { get; } = [];
+
+        public Dictionary<string, (DateTimeOffset At, IReadOnlyList<VideoCandidate> Results)> Searches { get; } = [];
+
+        public Task<int> UnitsUsedAsync(DateOnly day, CancellationToken cancellationToken) => Task.FromResult(Units.GetValueOrDefault(day));
+
+        public Task AddUnitsAsync(DateOnly day, int units, CancellationToken cancellationToken)
+        {
+            Units[day] = Units.GetValueOrDefault(day) + units;
+            return Task.CompletedTask;
+        }
+
+        public Task FillDayAsync(DateOnly day, int dailyUnits, CancellationToken cancellationToken)
+        {
+            Units[day] = Math.Max(Units.GetValueOrDefault(day), dailyUnits);
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<VideoCandidate>?> FindSearchAsync(string key, DateTimeOffset notBefore, CancellationToken cancellationToken) =>
+            Task.FromResult(Searches.TryGetValue(key, out var found) && found.At >= notBefore ? found.Results : null);
+
+        public Task SaveSearchAsync(string key, IReadOnlyList<VideoCandidate> results, DateTimeOffset at, CancellationToken cancellationToken)
+        {
+            Searches[key] = (at, results);
+            return Task.CompletedTask;
+        }
+    }
 
     private sealed class InMemoryVideos : IVideoStore
     {
@@ -183,6 +234,9 @@ public sealed class VideoHandlerTests
             Items.Add(video);
             return Task.CompletedTask;
         }
+
+        public Task<IReadOnlyList<SelectedVideo>> ListAllAsync(int limit, CancellationToken cancellationToken) =>
+            Task.FromResult<IReadOnlyList<SelectedVideo>>([.. Items.Select(item => new SelectedVideo(item, "Lieu", "marseille"))]);
 
         public Task<PlaceVideo?> RemoveAsync(Guid placeId, string videoId, CancellationToken cancellationToken)
         {
@@ -210,7 +264,7 @@ public sealed class VideoHandlerTests
     }
 
     private Task<Result<PlaceVideo>> SelectAsync(string videoId = VideoId) =>
-        VideoHandler.Handle(new SelectVideoCommand(PlaceId, videoId), _places, _videos, _youtube, _storage, _destinations, _clock, CancellationToken.None);
+        VideoHandler.Handle(new SelectVideoCommand(PlaceId, videoId), _places, _videos, _youtube, _storage, _destinations, _quota, _options, _clock, CancellationToken.None);
 
     [Fact]
     public async Task Selecting_a_video_stores_what_youtube_says_and_copies_the_thumbnail_to_our_storage()
@@ -274,8 +328,119 @@ public sealed class VideoHandlerTests
         _youtube.GetAsync(VideoId, Arg.Any<CancellationToken>()).Returns<Task<VideoCandidate?>>(_ => throw new ExternalServiceException("quota"));
 
         (await SelectAsync()).Error!.Code.ShouldBe("youtube_unavailable");
-        (await VideoHandler.Handle(new SearchVideosQuery("fort"), Failing(), CancellationToken.None)).Error!.Code.ShouldBe("youtube_unavailable");
+        (await VideoHandler.Handle(new SearchVideosQuery("fort"), Failing(), _quota, _options, _clock, CancellationToken.None)).Error!.Code.ShouldBe("youtube_unavailable");
     }
+
+    private static readonly DateOnly Today = VideoQuotaClock.DayOf(Now);
+
+    private static VideoCandidate Candidate(string id) => new(id, "Titre " + id, "Chaîne", $"https://i.ytimg.com/vi/{id}/mqdefault.jpg", null);
+
+    [Fact]
+    public async Task A_search_costs_one_hundred_units_and_a_repeated_search_is_free_for_a_day()
+    {
+        _youtube.SearchAsync(Arg.Any<string>(), 8, Arg.Any<CancellationToken>()).Returns([Candidate("abcdefghijk")]);
+
+        var first = await VideoHandler.Handle(new SearchVideosQuery("  Fort  Saint-Jean "), _youtube, _quota, _options, _clock, CancellationToken.None);
+        var again = await VideoHandler.Handle(new SearchVideosQuery("fort saint-jean"), _youtube, _quota, _options, _clock, CancellationToken.None);
+
+        first.Value!.ShouldHaveSingleItem().VideoId.ShouldBe("abcdefghijk");
+        again.Value!.ShouldHaveSingleItem().VideoId.ShouldBe("abcdefghijk");
+        await _youtube.Received(1).SearchAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+        _quota.Units[Today].ShouldBe(100);
+    }
+
+    [Fact]
+    public async Task A_cached_search_is_not_reused_after_the_cache_window()
+    {
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(Now);
+        _youtube.SearchAsync(Arg.Any<string>(), 8, Arg.Any<CancellationToken>()).Returns([Candidate("abcdefghijk")]);
+
+        await VideoHandler.Handle(new SearchVideosQuery("fort"), _youtube, _quota, _options, time, CancellationToken.None);
+        time.Advance(TimeSpan.FromHours(25));
+        await VideoHandler.Handle(new SearchVideosQuery("fort"), _youtube, _quota, _options, time, CancellationToken.None);
+
+        await _youtube.Received(2).SearchAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task A_search_that_would_go_over_the_day_is_refused_before_it_is_sent_and_tomorrow_it_works_again()
+    {
+        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider(Now);
+        _quota.Units[Today] = 9_950;
+        _youtube.SearchAsync(Arg.Any<string>(), 8, Arg.Any<CancellationToken>()).Returns([Candidate("abcdefghijk")]);
+
+        var refused = await VideoHandler.Handle(new SearchVideosQuery("fort"), _youtube, _quota, _options, time, CancellationToken.None);
+
+        refused.Error!.Code.ShouldBe("youtube_quota_exhausted");
+        refused.Error.Message.ShouldContain("9950 of 10000");
+        await _youtube.DidNotReceive().SearchAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+
+        time.Advance(TimeSpan.FromHours(24));
+        (await VideoHandler.Handle(new SearchVideosQuery("fort"), _youtube, _quota, _options, time, CancellationToken.None)).IsSuccess.ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task When_youtube_says_the_quota_is_used_up_the_day_is_marked_full()
+    {
+        _youtube.SearchAsync(Arg.Any<string>(), 8, Arg.Any<CancellationToken>()).Returns<Task<IReadOnlyList<VideoCandidate>>>(_ => throw new VideoQuotaExceededException("full"));
+
+        var result = await VideoHandler.Handle(new SearchVideosQuery("fort"), _youtube, _quota, _options, _clock, CancellationToken.None);
+
+        result.Error!.Code.ShouldBe("youtube_quota_exhausted");
+        _quota.Units[Today].ShouldBe(10_000);
+        _quota.Searches.ShouldBeEmpty("a failed search is not cached");
+        (await VideoHandler.Handle(new SearchVideosQuery("autre"), _youtube, _quota, _options, _clock, CancellationToken.None)).Error!.Code.ShouldBe("youtube_quota_exhausted");
+        await _youtube.Received(1).SearchAsync(Arg.Any<string>(), Arg.Any<int>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task An_outage_costs_nothing_and_is_not_cached()
+    {
+        (await VideoHandler.Handle(new SearchVideosQuery("fort"), Failing(), _quota, _options, _clock, CancellationToken.None)).Error!.Code.ShouldBe("youtube_unavailable");
+
+        _quota.Units.ShouldBeEmpty();
+        _quota.Searches.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Selecting_a_video_costs_one_unit_and_stops_when_the_day_is_full()
+    {
+        (await SelectAsync()).IsSuccess.ShouldBeTrue();
+        _quota.Units[Today].ShouldBe(1);
+
+        _quota.Units[Today] = 10_000;
+        _youtube.GetAsync("ZYXWVUTSRQP", Arg.Any<CancellationToken>()).Returns(Candidate("ZYXWVUTSRQP"));
+        (await SelectAsync("ZYXWVUTSRQP")).Error!.Code.ShouldBe("youtube_quota_exhausted");
+        await _youtube.DidNotReceive().GetAsync("ZYXWVUTSRQP", Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task The_quota_status_says_what_is_left_and_when_it_resets()
+    {
+        _quota.Units[Today] = 2_350;
+
+        var status = (await VideoQuotaHandler.Handle(new GetVideoQuotaQuery(), _quota, _options, _clock, CancellationToken.None)).Value!;
+
+        status.UnitsUsed.ShouldBe(2_350);
+        status.Remaining.ShouldBe(7_650);
+        status.SearchesLeft.ShouldBe(76);
+        status.ResetsAt.ShouldBeGreaterThan(Now);
+        status.ResetsAt.ShouldBeLessThanOrEqualTo(Now.AddHours(25));
+    }
+
+    [Fact]
+    public void The_quota_day_follows_midnight_in_california_not_utc()
+    {
+        // 06:59 UTC on 1 Oct is 23:59 on 30 Sep in Pacific daylight time; one minute later the quota resets.
+        VideoQuotaClock.DayOf(new DateTimeOffset(2026, 10, 1, 6, 59, 0, TimeSpan.Zero)).ShouldBe(new DateOnly(2026, 9, 30));
+        VideoQuotaClock.DayOf(new DateTimeOffset(2026, 10, 1, 7, 0, 0, TimeSpan.Zero)).ShouldBe(new DateOnly(2026, 10, 1));
+        VideoQuotaClock.ResetOf(new DateOnly(2026, 9, 30)).ShouldBe(new DateTimeOffset(2026, 10, 1, 7, 0, 0, TimeSpan.Zero));
+    }
+
+    [Theory]
+    [InlineData("Fort  Saint-Jean ", "fort saint-jean")]
+    [InlineData("  LA GARDE", "la garde")]
+    public void Queries_differing_by_case_and_spaces_share_one_cache_key(string typed, string key) => VideoQuotaClock.Key(typed).ShouldBe(key);
 
     private static IVideoSearch Failing()
     {
@@ -289,7 +454,7 @@ public sealed class VideoHandlerTests
     [InlineData("")]
     [InlineData("a")]
     public async Task A_search_needs_a_few_characters(string query) =>
-        (await VideoHandler.Handle(new SearchVideosQuery(query), _youtube, CancellationToken.None)).Error!.Code.ShouldBe("validation");
+        (await VideoHandler.Handle(new SearchVideosQuery(query), _youtube, _quota, _options, _clock, CancellationToken.None)).Error!.Code.ShouldBe("validation");
 
     [Fact]
     public async Task A_published_place_is_published_again_with_its_wikipedia_and_video_links()

@@ -1,0 +1,170 @@
+@page "/admin/bootstrap"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@implements IDisposable
+@inherits AdminPageBase
+
+<h1>Amorçage d'une destination</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <h2>Nouvel amorçage</h2>
+    <p class="muted">
+        Enchaîne l'import des lieux, les scores, les sources, les faits et les histoires des lieux les plus importants, avec un plafond de coût. Reprenable : relancer continue où l'amorçage s'est arrêté.
+        Sans publication automatique, il s'arrête aux brouillons contrôlés, à relire dans l'atelier.
+    </p>
+    <div class="row">
+        <div>
+            <label for="destination">Destination</label>
+            <select id="destination" @bind="_destination">
+                @foreach (var destination in _destinations)
+                {
+                    <option value="@destination.Slug">@destination.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <label for="max-places">Nombre de lieux (1–500)</label>
+            <input id="max-places" type="number" min="1" max="500" @bind="_maxPlaces" />
+        </div>
+        <div>
+            <label for="min-importance">Importance minimale (0–100)</label>
+            <input id="min-importance" type="number" min="0" max="100" @bind="_minImportance" />
+        </div>
+        <div>
+            <label for="budget">Plafond de coût (USD)</label>
+            <input id="budget" type="number" min="0.1" step="0.5" @bind="_budget" />
+        </div>
+        <div>
+            <label for="lang">Langue</label>
+            <select id="lang" @bind="_lang"><option value="fr">Français</option><option value="en">English</option></select>
+        </div>
+    </div>
+    <div class="row">
+        <label class="check"><input id="auto-publish" type="checkbox" @bind="_autoPublish" /> Publier automatiquement les histoires dont tous les contrôles passent</label>
+        <label class="check"><input id="force-import" type="checkbox" @bind="_forceImport" /> Refaire l'import des lieux</label>
+        <label class="check"><input id="skip-import" type="checkbox" @bind="_skipImport" /> Ne pas toucher aux lieux</label>
+        <button type="button" class="primary" disabled="@(Busy || _destination is null || _budget <= 0)" @onclick="Start">Lancer l'amorçage</button>
+    </div>
+</section>
+
+<section class="card">
+    <h2>Exécutions</h2>
+    @if (_runs.Count == 0)
+    {
+        <p class="muted">Aucun amorçage pour l'instant.</p>
+    }
+    else
+    {
+        <table>
+            <thead><tr><th>Demandé</th><th>Destination</th><th>État</th><th>Avancement</th><th>Coût</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var run in _runs)
+                {
+                    <tr class="@(run.Status == "Failed" ? "refused" : null)">
+                        <td>@run.RequestedAt.ToString("dd/MM HH:mm", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        <td>@run.Destination · @run.Lang</td>
+                        <td>
+                            @Labels.BootstrapStatus(run.Status)
+                            @if (run.CancelRequested && !run.IsFinished)
+                            {
+                                <text> · arrêt demandé</text>
+                            }
+                            @if (run.Outcome is { } outcome && outcome != "completed")
+                            {
+                                <br /><span class="muted">@Labels.StopReason(outcome)</span>
+                            }
+                            @if (run.Error is not null)
+                            {
+                                <br /><span class="bad">@run.Error</span>
+                            }
+                        </td>
+                        <td>
+                            <span class="run-progress">@run.PlacesDone / @run.PlacesTotal lieux · @run.Written écrite(s) · @run.ToReview à relire · @run.Published publiée(s) · <span class="@(run.Failed > 0 ? "bad" : null)">@run.Failed problème(s)</span></span>
+                            <progress max="@Math.Max(run.PlacesTotal, 1)" value="@run.PlacesDone" aria-label="Avancement de l'amorçage"></progress>
+                        </td>
+                        <td class="cost">@Cost(run)</td>
+                        <td>
+                            <button type="button" class="link" @onclick="() => Toggle(run.Id)">@(_open == run.Id ? "Masquer" : "Détail")</button>
+                            @if (!run.IsFinished && !run.CancelRequested)
+                            {
+                                <button type="button" class="danger" disabled="@Busy" @onclick="() => CancelRun(run.Id)">Arrêter</button>
+                            }
+                        </td>
+                    </tr>
+                    @if (_open == run.Id)
+                    {
+                        <tr>
+                            <td colspan="6">
+                                <ul class="steps">
+                                    @foreach (var step in run.Steps)
+                                    {
+                                        <li class="@(step.Outcome is "failed" or "skipped" ? "bad" : null)"><strong>@step.Step</strong> : @step.Outcome@(step.Detail is null ? "" : " — " + step.Detail)</li>
+                                    }
+                                </ul>
+                                @if (run.Steps.Count == 0)
+                                {
+                                    <p class="muted">Aucune étape enregistrée pour l'instant.</p>
+                                }
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+@code {
+    private IReadOnlyList<DestinationItem> _destinations = [];
+    private IReadOnlyList<BootstrapRunItem> _runs = [];
+    private string? _destination;
+    private int _maxPlaces = 40;
+    private int? _minImportance;
+    private double _budget = 5;
+    private string _lang = "fr";
+    private bool _autoPublish;
+    private bool _forceImport;
+    private bool _skipImport;
+    private Guid? _open;
+    private Timer? _timer;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _destinations = await LoadAsync(() => Api.GetDestinationsAsync()) ?? [];
+        _destination = _destinations.FirstOrDefault()?.Slug;
+        await ReloadAsync();
+        _timer = new Timer(_ => _ = InvokeAsync(RefreshWhileRunningAsync), null, TimeSpan.FromSeconds(3), TimeSpan.FromSeconds(3));
+    }
+
+    private static string Cost(BootstrapRunItem run) =>
+        string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{run.CostUsd:0.0000} / {run.BudgetUsd:0.00} USD");
+
+    private async Task ReloadAsync() => _runs = await LoadAsync(() => Api.ListBootstrapRunsAsync(20)) ?? _runs;
+
+    private async Task RefreshWhileRunningAsync()
+    {
+        if (_runs.Any(run => !run.IsFinished))
+        {
+            await ReloadAsync();
+            StateHasChanged();
+        }
+    }
+
+    private void Toggle(Guid id) => _open = _open == id ? null : id;
+
+    private async Task Start()
+    {
+        await RunAsync(
+            async () => await Api.StartBootstrapAsync(new NewBootstrap(_destination!, _maxPlaces, _minImportance, _lang, _budget, _autoPublish, _forceImport, _skipImport)),
+            "Amorçage demandé : le worker le prend en charge, l'avancement se met à jour tout seul.");
+        await ReloadAsync();
+    }
+
+    private async Task CancelRun(Guid id)
+    {
+        await RunAsync(() => Api.CancelBootstrapRunAsync(id), "Arrêt demandé : l'amorçage s'arrête avant le prochain lieu.");
+        await ReloadAsync();
+    }
+
+    public void Dispose() => _timer?.Dispose();
+}

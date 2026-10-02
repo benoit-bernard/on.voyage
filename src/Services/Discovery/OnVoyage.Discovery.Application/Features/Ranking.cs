@@ -15,6 +15,7 @@ internal sealed record RankingContext(
     IReadOnlyList<PlaceInfo> Places,
     IReadOnlyList<StoryInfo> Stories,
     IReadOnlyDictionary<Guid, double> Ratings,
+    IReadOnlyDictionary<Guid, CfScoreInfo> CfScores,
     IReadOnlyDictionary<Guid, int> Impressions,
     IReadOnlyDictionary<Guid, IReadOnlyList<CreatorOnPlaceInfo>> CreatorsOnPlaces,
     IReadOnlySet<Guid> Followed,
@@ -34,11 +35,14 @@ internal sealed record RankingContext(
         var withStory = stories.Where(s => s.Kind == "standard").Select(s => s.PoiId).ToHashSet();
         var all = (await places.PlacesAsync(destination, cancellationToken)).Where(p => withStory.Contains(p.PoiId)).ToArray();
         var ratings = await travelers.RatingsAsync(travelerId, cancellationToken);
+
+        // The control cohort (F-03) gets neither the collaborative term nor the creator signal: importance and distance only.
+        var cf = traveler.Cohort == "control" ? new Dictionary<Guid, CfScoreInfo>() : await travelers.CfScoresAsync(travelerId, destination, cancellationToken);
         var impressions = await places.ImpressionsSinceAsync(clock.GetUtcNow().AddDays(-7), cancellationToken);
         var onPlaces = traveler.Cohort == "control" ? new Dictionary<Guid, IReadOnlyList<CreatorOnPlaceInfo>>() : await creators.OnPlacesAsync(destination, cancellationToken);
         var followed = traveler.Cohort == "control" ? new HashSet<Guid>() : await creators.FollowedAsync(travelerId, cancellationToken);
         var ethical = traveler.EthicalMode switch { "off" => EthicalLevel.Off, "strong" => EthicalLevel.Strong, _ => EthicalLevel.Balanced };
-        return new RankingContext(traveler, new TasteProfile(vector, traveler.ProfileDepth), vector, excluded, all, stories, ratings, impressions, onPlaces, followed, new RecommendationOptions { Ethical = ethical });
+        return new RankingContext(traveler, new TasteProfile(vector, traveler.ProfileDepth), vector, excluded, all, stories, ratings, cf, impressions, onPlaces, followed, new RecommendationOptions { Ethical = ethical });
     }
 
     /// <summary>Hard filters first (§6.6): published, story available, not turned down by the traveler, within the radius.</summary>
@@ -61,7 +65,8 @@ internal sealed record RankingContext(
         place.CrowdLevel,
         place.HiddenGem,
         Impressions.GetValueOrDefault(place.PoiId),
-        EndorsementOf(place));
+        EndorsementOf(place),
+        CfScores.TryGetValue(place.PoiId, out var score) ? new CollaborativeSignal(score.Score, score.Support) : null);
 
     /// <summary>The creator signal of §6.15 for one place; none for the control cohort (F-03).</summary>
     public CreatorEndorsement? EndorsementOf(PlaceInfo place) =>
@@ -105,6 +110,7 @@ internal sealed record RankingContext(
             ReasonCode.Categories => new WhyDto("categories", new Dictionary<string, string> { ["categories"] = string.Join(',', scored.Reason.Categories) }),
             ReasonCode.CreatorFollowed => new WhyDto("creator_followed", new Dictionary<string, string> { ["creator"] = scored.Reason.Creator ?? string.Empty }),
             ReasonCode.CreatorSimilar => new WhyDto("creator_similar", new Dictionary<string, string> { ["creator"] = scored.Reason.Creator ?? string.Empty }),
+            ReasonCode.Collaborative => new WhyDto("collaborative", new Dictionary<string, string>()),
             ReasonCode.HiddenGem => new WhyDto("hidden_gem", new Dictionary<string, string>()),
             _ => new WhyDto("cold_start", new Dictionary<string, string> { ["destination"] = destinationName }),
         };

@@ -76,6 +76,12 @@ public interface IAdminApi
 
     Task<IReadOnlyList<PlaceVideoItem>> ListVideosAsync(Guid placeId, CancellationToken cancellationToken = default);
 
+    /// <summary>YouTube Data API units spent today and left (a search costs 100 of the 10 000 a day).</summary>
+    Task<VideoQuotaItem> GetVideoQuotaAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Every selected video, newest first, with its place.</summary>
+    Task<IReadOnlyList<SelectedVideoItem>> ListSelectedVideosAsync(int limit, CancellationToken cancellationToken = default);
+
     Task SelectVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default);
 
     Task RemoveVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default);
@@ -88,6 +94,23 @@ public interface IAdminApi
     Task<BatchDetailItem> GetBatchAsync(Guid id, CancellationToken cancellationToken = default);
 
     Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default);
+
+    /// <summary>Cancels the jobs that did not start; returns how many.</summary>
+    Task<int> CancelBatchAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task RetryJobAsync(Guid jobId, CancellationToken cancellationToken = default);
+
+    /// <summary>Messages the queue gave up on after its attempts.</summary>
+    Task<IReadOnlyList<DeadLetterItem>> ListDeadLettersAsync(int limit, CancellationToken cancellationToken = default);
+
+    // Bootstrap of a destination (ADR-0017): launched from here, run by the worker, followed with these.
+    Task<Guid> StartBootstrapAsync(NewBootstrap bootstrap, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<BootstrapRunItem>> ListBootstrapRunsAsync(int limit, CancellationToken cancellationToken = default);
+
+    Task<BootstrapRunItem> GetBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default);
+
+    Task CancelBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default);
 
     // KPIs (T-406)
     /// <summary>Null when the Insights service is not deployed or does not answer: the dashboard then says so instead of failing.</summary>
@@ -114,7 +137,7 @@ public interface IAdminApi
     Task<IReadOnlyList<AuditItem>> ListAuditAsync(int limit, string? service = null, CancellationToken cancellationToken = default);
 
     // Report inbox (T-405)
-    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, string? kind, int limit, CancellationToken cancellationToken = default);
 
     Task<int> ResolveReportsAsync(Guid storyId, string status, string? note, CancellationToken cancellationToken = default);
 }

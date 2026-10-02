@@ -37,7 +37,7 @@ Configuration YARP de `appsettings.json` (section `ReverseProxy`). « Politique 
 | `discovery` | `/api/discovery/{**}` | toutes | `traveler` | discovery-api |
 | `platform-public` | `/api/platform/v1/{auth|config}/{**}` | toutes | anonyme | platform-api |
 | `platform` | `/api/platform/{**}` | toutes | `traveler` | platform-api |
-| `insights` | `/api/insights/v1/kpis` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway) |
+| `insights` | `/api/insights/v1/kpis`, `/api/insights/v1/kpis/export` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway ; le tableau de bord le dit au lieu d'échouer). `kpis?from&to&destination&cohort` : `cohort` vaut `control` ou `personalized` (toute autre valeur : 400), au plus 400 jours ; clés calculées : `central_ctr_ratio`, `satisfaction`, `activation`, `stories_per_session`, `completion`, `retention_d1/d7/d30`, `ctr_depth_0_9/10_49/50_plus`, `profile_depth_median_d7`, `crash_rate`, `creator_block_ctr`, `creator_follow_rate`, `creator_attributed_installs` |
 | `creators-admin` | `/api/creators/v1/admin/{**}` | toutes | `admin` | creators-api |
 | `creators` | `/api/creators/{**}` | toutes | `traveler` | creators-api |
 | `factory-story-reports` | `/api/factory/v1/stories/{id}/reports` | POST | `traveler` | factory-api |
@@ -90,8 +90,9 @@ Fichiers audio : `GET /media/{chemin}` sur le Gateway (anonyme, GET et HEAD, req
 | `PATCH /me/profile` | `traveler` | `{ corrections: [{ code, value }] }` | `ProfileDto` | `value` fixe la dimension et la verrouille 30 jours ; `null` retire le verrou. |
 | `POST /me/interactions` | `traveler` | `{ interactions: [InteractionDto] }`, 1 à 200 éléments | `InteractionBatchResponse` : `vector`, `profileDepth`, `taxonomyVersion`, `accepted`, `duplicates`, `excluded` | Types : `onboarding_up`, `onboarding_down`, `onboarding_category`, `like`, `meh`, `dislike_poi`, `dislike_category`, `listen_80`, `replay`, `abandon_early`, `save`, `navigate`, `visit`, `external_link`, `creator_content_opened`, `impression`. Une visite porte `confidence` et `dwellS`, jamais de coordonnées. `occurredAt` ne peut pas dépasser l'heure serveur de plus de 10 min. |
 | `GET /me/candidates?destination` | `traveler` | — | `CandidatesDto` : par lieu les drapeaux, `baseScore` (avec `CreatorSignal`) et les histoires (`audioParts`, `textOnly`) | `textOnly` : histoire sans partie `main` (publiée sans voix de synthèse) ; l'app lit son texte, pris dans le Catalog, avec la voix de l'appareil. Réglage `Discovery:AllowTextOnlyStories`. |
-| `GET /me/cf-scores?destination` | `traveler` | — | `CfScoresDto` : par lieu `cf` (nul tant que le filtrage collaboratif n'existe pas) et `creatorSignal` ∈ [0, 1] | Pour le hors ligne (§6.12, §6.15). 404 si la destination est inconnue. Cohorte témoin : signaux à 0. |
+| `GET /me/cf-scores?destination` | `traveler` | — | `CfScoresDto` : par lieu `cf` (score collaboratif `CF` ∈ [−1, 1]), `support` (nombre de voisins qui l'ont noté) et `creatorSignal` ∈ [0, 1] | Pour le hors ligne (§6.12, §6.15) : l'appareil applique `w_cf · min(1, support / 10) · (cf + 1) / 2`. `cf` et `support` sont nuls quand moins de 3 voisins ont noté le lieu, tant que le job n'a pas tourné, pour un profil de moins de 5 points et pour la cohorte témoin. Aucun voisin n'est identifié. 404 si la destination est inconnue. |
 | `GET /creators/for-me?destination&limit` | `traveler` | `destination` (défaut `marseille`), `limit` 1–50 (défaut 20) | `CreatorsForMeDto` : `items` (`creatorId`, `handle`, `displayName`, `avatarPath`, `specialties`, `placeCount`, `affinity` en %, `following`) | Créateurs publiés ayant validé un lieu publié de la destination, triés par affinité `A(u, c)` (§6.15), puis nombre de lieux, puis handle. Le vecteur `c` n'est jamais renvoyé. Cohorte témoin : ordre sans profil, affinité 0. |
+| `POST /admin/cf-scores/recompute` | `admin` | — | `CfRunSummary` : `outcome` (`computed`, `pool_too_small`), `pool`, `travelers`, `scored`, `rows`, `removed` | Lance à la main le calcul que le job fait toutes les 6 h ([ADR-0020](adr/0020-filtrage-collaboratif.md)). |
 | `GET /admin/onboarding-clips` | `admin` | requête : `lang` | `AdminClipsDto` (`active`, `candidates`) | |
 | `PUT /admin/onboarding-clips` | `admin` | `{ storyIds }` : exactement 5 extraits de 5 catégories de niveau 1 différentes | `true` | 400 sinon. |
 
@@ -133,10 +134,12 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 
 | Méthode et chemin | Corps / paramètres | Réponse |
 | --- | --- | --- |
-| `POST /stories/{id}/reports` | `{ reason }` — **politique `traveler`** (F-20) | `{ received: true }` |
+| `POST /stories/{id}/reports` | `{ reason }` — **politique `traveler`** (F-20) | `{ received: true }` ; `reason` porte le type en préfixe, `[Pronunciation] Le nom…` (sans préfixe connu : fait inexact) ; seuls trois lecteurs distincts signalant un **fait inexact** suspendent l'histoire |
 | `POST /admin/imports`, `/admin/enrichments`, `/admin/scorings` | `{ destination }` | 202 |
 | `POST /admin/snapshot-imports` | `{ destination }` | 202 : charge le snapshot versionné `data-pipeline/<destination>/` (idempotent, [ADR-0017](adr/0017-snapshot-et-amorcage-d-une-destination.md)) |
-| `POST /admin/bootstrap` | `{ destination, maxPlaces?, minImportance?, lang?, budgetUsd, autoPublish?, forceImport?, skipImport? }` | 202 : amorçage de bout en bout plafonné par `budgetUsd` ([runbook](runbooks/bootstrap-marseille.md)) |
+| `POST /admin/bootstrap` | `{ destination, maxPlaces?, minImportance?, lang?, budgetUsd, autoPublish?, forceImport?, skipImport?, allowUnpriced? }` | 202 `{ id }` : enregistre l'exécution (`Queued`) puis la confie au worker ; amorçage plafonné par `budgetUsd` ([runbook](runbooks/bootstrap-marseille.md)). 400 `validation`, 404 `destination_not_found`, 409 `prices_missing` |
+| `GET /admin/bootstrap-runs?limit=`, `GET /admin/bootstrap-runs/{id}` | — | exécutions d'amorçage (état `Queued/Running/Completed/Stopped/Failed`, compteurs en direct, coût et plafond, étapes) ; les lancements en ligne de commande y figurent aussi |
+| `POST /admin/bootstrap-runs/{id}/cancel` | — | demande l'arrêt avant le prochain lieu (`Stopped`, `outcome = cancelled`) ; 409 `already_finished` |
 | `GET /admin/destinations` | — | destinations configurées |
 | `GET /admin/places` | `destination`, `status?`, `limit` (50) | liste de lieux |
 | `GET /admin/places/{id}` | — | lieu, intérêts, éthique, affluence |
@@ -152,16 +155,22 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 | `PUT /admin/stories/{id}/text` | `{ title, text }` | histoire |
 | `POST /admin/stories/{id}/approve` (`{ editorialScore? }`), `/reject` (`{ reason }`), `/publish`, `/suspend` (`{ reason }`), `/resume`, `/correction` | — | histoire |
 | `POST /admin/stories/{id}/audio` (202), `/audio/reset`, `PUT /admin/stories/{id}/voice` (`{ voice }`) | — | histoire |
-| `GET /admin/reports?status=&limit=`, `POST /admin/stories/{id}/reports/resolve` | `{ status, note? }` | file des signalements, clôture |
-| `POST /admin/batches` | `{ destination, minImportance?, placeStatuses?, lang?, kind?, limit? }` | 202 `{ id, total }` |
-| `GET /admin/batches`, `GET /admin/batches/{id}`, `POST /admin/batches/{id}/retry` | — | lots, détail, relance des tâches en échec |
+| `GET /admin/reports?status=&kind=&limit=`, `POST /admin/stories/{id}/reports/resolve` | `{ status, note? }` | file des signalements (par histoire, avec le type de chaque remarque : `InaccurateFact`, `Pronunciation`, `ClosedOrMoved`, `Photo`, `Other` ; 400 si le type ou le statut est inconnu), clôture `Handled` ou `Dismissed` avec note de 300 caractères au plus |
+| `POST /admin/batches` | `{ destination, minImportance?, placeStatuses?, lang?, kind?, limit?, budgetUsd? }` | 202 `{ id, total }` ; `budgetUsd` : plafond de coût estimé du lot (les tâches non démarrées sont alors annulées, `budget_exhausted`) |
+| `GET /admin/batches`, `GET /admin/batches/{id}` | — | lots et détail : par lot `pending/running/succeeded/toReview/failed/cancelled`, `costUsd`, `status` (`running`, `completed`, `completed_with_failures`, `cancelled`) ; par tâche étape, essais, dernière erreur |
+| `POST /admin/batches/{id}/retry`, `POST /admin/batches/{id}/cancel`, `POST /admin/batch-jobs/{id}/retry` | — | relance des tâches en échec ou annulées `{ requeued }`, annulation des tâches en attente `{ cancelled }` (409 `nothing_to_cancel`), relance d'une tâche (409 `not_retryable`) |
+| `GET /admin/dead-letters?limit=` | — | messages abandonnés par la file après leurs essais, liés à leur lot et à leur lieu quand c'est une tâche de lot |
 | `GET /admin/audit?limit=&actor=` | — | journal d'audit de Factory |
 | `GET/PUT/DELETE /admin/pronunciations/{destination}/{term}` | `{ replacement }` | dictionnaire de prononciation |
-| `GET /admin/videos/search?q=`, `GET/POST /admin/places/{id}/videos`, `DELETE /admin/places/{id}/videos/{videoId}` | `{ videoId }` | recherche YouTube côté serveur (seule route qui l'appelle), sélection |
+| `GET /admin/videos/search?q=`, `GET/POST /admin/places/{id}/videos`, `DELETE /admin/places/{id}/videos/{videoId}` | `{ videoId }` | recherche YouTube côté serveur (seule route qui l'appelle), sélection de 0 à 2 vidéos par lieu (409 `too_many_videos`) ; une recherche déjà faite dans les 24 h est servie par le cache sans coût de quota |
+| `GET /admin/videos/quota` | — | quota YouTube du jour : `unitsUsed`, `dailyUnits`, `remaining`, `searchesLeft`, `resetsAt` (minuit Pacifique) |
+| `GET /admin/videos?limit=` | — | toutes les vidéos choisies, avec leur lieu (page `/admin/videos`) |
+
+Recherche et sélection répondent `429` `youtube_quota_exhausted` quand le quota du jour est épuisé (compté ici, ou signalé par YouTube : 403 `quotaExceeded`), `503` `youtube_not_configured` sans clé, `502` `youtube_unavailable` si YouTube est en panne.
 
 ## Back-office web (`web-admin`)
 
-Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
+Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/kpis` (indicateurs, comparaison « Pour vous » / témoin, export CSV), `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/videos`, `/admin/bootstrap`, `/admin/dead-letters`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
 
 ## Écarts avec le §12 du cahier des charges
 

@@ -90,12 +90,13 @@ public interface IContentStore
 
     Task<bool> AddReportAsync(StoryReport report, CancellationToken cancellationToken);
 
-    Task<int> CountDistinctReportersAsync(Guid storyId, CancellationToken cancellationToken);
+    /// <summary>Distinct readers with an open report on the story; <paramref name="inaccurateFactOnly"/> keeps the reports that count toward the suspension.</summary>
+    Task<int> CountDistinctReportersAsync(Guid storyId, bool inaccurateFactOnly, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<StoryReport>> ListReportsAsync(Guid storyId, CancellationToken cancellationToken);
 
-    /// <summary>Stories that have reports, newest first. <paramref name="status"/> keeps the stories that have at least one report in that status.</summary>
-    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken);
+    /// <summary>Stories that have reports, newest first. <paramref name="status"/> keeps the stories that have at least one report in that status, <paramref name="kind"/> the stories with at least one report of that kind.</summary>
+    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, string? kind, int limit, CancellationToken cancellationToken);
 
     /// <summary>Closes the story's open reports with a status and a note; returns how many were open.</summary>
     Task<int> ResolveReportsAsync(Guid storyId, string status, string? resolution, DateTimeOffset at, CancellationToken cancellationToken);

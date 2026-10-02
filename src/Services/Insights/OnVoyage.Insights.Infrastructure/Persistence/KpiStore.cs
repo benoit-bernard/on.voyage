@@ -60,9 +60,11 @@ internal sealed class KpiStore(InsightsDbContext db) : IKpiStore
                 when 'poi_liked' then 'poi_liked'
                 when 'poi_disliked' then 'poi_disliked'
                 when 'audio_started' then 'audio_started'
-                when 'audio_completed' then 'audio_completed_80' end as metric
+                when 'audio_completed' then 'audio_completed_80'
+                else name end as metric
             from kpi_event
-            where name in ('recommendation_viewed', 'recommendation_clicked', 'poi_liked', 'poi_disliked', 'audio_started', 'audio_completed')
+            where name in ('recommendation_viewed', 'recommendation_clicked', 'poi_liked', 'poi_disliked', 'audio_started', 'audio_completed',
+                           'creator_card_viewed', 'creator_content_opened', 'creator_profile_viewed', 'creator_followed', 'install_attributed')
               and (name <> 'audio_completed' or coalesce((props->>'percent')::numeric, 100) >= 80)
         ) x group by day, cohort, metric
         """,

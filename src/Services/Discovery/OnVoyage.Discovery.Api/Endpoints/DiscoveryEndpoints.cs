@@ -75,6 +75,10 @@ internal static class DiscoveryEndpoints
         admin.MapPut("/onboarding-clips", (ActiveClipsRequest request, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<bool>>(new SetActiveClipsCommand(request.StoryIds), ct)));
 
+        // The six-hourly job runs this on its own; the endpoint lets an operator rerun it (after an import, or to check a threshold).
+        admin.MapPost("/cf-scores/recompute", (IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<CfRunSummary>>(new RecomputeCfScoresCommand(), ct)));
+
         return app;
     }
 

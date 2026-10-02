@@ -69,8 +69,40 @@ public static class ReportStatus
 
 public sealed record StoryReport(Guid Id, Guid StoryId, Guid TravelerId, string Reason, DateTimeOffset CreatedAt, string Status = ReportStatus.Open, DateTimeOffset? HandledAt = null, string? Resolution = null);
 
-/// <summary>A reader's remark as the back office sees it: the text only, never who wrote it.</summary>
-public sealed record ReportRemark(string Reason, DateTimeOffset CreatedAt, string Status, string? Resolution);
+/// <summary>
+/// The kinds of report a reader can send (F-20). The apps send the kind in front of the text, <c>[Pronunciation] Le nom se prononce…</c>;
+/// a report without a known prefix (an older app, a hand-written call) is read as an inaccurate fact, which is what it was before kinds existed.
+/// </summary>
+public static class ReportKinds
+{
+    public const string InaccurateFact = "InaccurateFact";
+    public const string Pronunciation = "Pronunciation";
+    public const string ClosedOrMoved = "ClosedOrMoved";
+    public const string Photo = "Photo";
+    public const string Other = "Other";
+
+    public static IReadOnlyList<string> All { get; } = [InaccurateFact, Pronunciation, ClosedOrMoved, Photo, Other];
+
+    public static bool IsKnown(string kind) => All.Contains(kind);
+
+    public static (string Kind, string Text) Parse(string reason)
+    {
+        var text = reason.Trim();
+        if (text.StartsWith('[') && text.IndexOf(']') is var end and > 1)
+        {
+            var kind = text[1..end];
+            return IsKnown(kind) ? (kind, text[(end + 1)..].Trim()) : (Other, text);
+        }
+
+        return (InaccurateFact, text);
+    }
+
+    /// <summary>Only "inaccurate fact" reports count toward the automatic suspension (F-20): a mispronounced name does not unpublish a story.</summary>
+    public static bool SuspendsStory(string kind) => kind == InaccurateFact;
+}
+
+/// <summary>A reader's remark as the back office sees it: the kind and the text only, never who wrote it.</summary>
+public sealed record ReportRemark(string Reason, DateTimeOffset CreatedAt, string Status, string? Resolution, string Kind = ReportKinds.InaccurateFact);
 
 /// <summary>All the reports of one story, for the inbox (F-25).</summary>
 public sealed record ReportInboxItem(

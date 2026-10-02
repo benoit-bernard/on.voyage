@@ -124,6 +124,20 @@ internal sealed class StoryProjectionRow
     public int Version { get; set; }
 }
 
+/// <summary>
+/// The collaborative score of a place for a traveler (§6.5), computed by the periodic job from the ratings of the nearest neighbours. It holds a score and
+/// how many neighbours stand behind it, never who they are. Deleted with the traveler.
+/// </summary>
+internal sealed class CfScoreRow
+{
+    public Guid TravelerId { get; set; }
+    public Guid PoiId { get; set; }
+    public string Destination { get; set; } = "";
+    public float Score { get; set; }
+    public int Support { get; set; }
+    public DateTimeOffset ComputedAt { get; set; }
+}
+
 internal sealed class CategoryAffinityRow
 {
     public string CodeA { get; set; } = "";

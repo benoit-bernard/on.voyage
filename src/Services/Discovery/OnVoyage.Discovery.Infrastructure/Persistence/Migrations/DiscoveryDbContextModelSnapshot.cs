@@ -46,6 +46,43 @@ namespace OnVoyage.Discovery.Infrastructure.Persistence.Migrations
                     b.ToTable("category_affinity", "discovery");
                 });
 
+            modelBuilder.Entity("OnVoyage.Discovery.Infrastructure.Persistence.CfScoreRow", b =>
+                {
+                    b.Property<Guid>("TravelerId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("traveler_id");
+
+                    b.Property<Guid>("PoiId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("poi_id");
+
+                    b.Property<DateTimeOffset>("ComputedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("computed_at");
+
+                    b.Property<string>("Destination")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("destination");
+
+                    b.Property<float>("Score")
+                        .HasColumnType("real")
+                        .HasColumnName("score");
+
+                    b.Property<int>("Support")
+                        .HasColumnType("integer")
+                        .HasColumnName("support");
+
+                    b.HasKey("TravelerId", "PoiId");
+
+                    b.HasIndex("TravelerId", "Destination");
+
+                    b.ToTable("cf_score", "discovery", t =>
+                        {
+                            t.HasCheckConstraint("ck_cf_score_range", "score between -1 and 1 and support > 0");
+                        });
+                });
+
             modelBuilder.Entity("OnVoyage.Discovery.Infrastructure.Persistence.CreatorFollowRow", b =>
                 {
                     b.Property<Guid>("TravelerId")
@@ -575,6 +612,15 @@ namespace OnVoyage.Discovery.Infrastructure.Persistence.Migrations
                         .IsUnique();
 
                     b.ToTable("visit", "discovery");
+                });
+
+            modelBuilder.Entity("OnVoyage.Discovery.Infrastructure.Persistence.CfScoreRow", b =>
+                {
+                    b.HasOne("OnVoyage.Discovery.Infrastructure.Persistence.TravelerRow", null)
+                        .WithMany()
+                        .HasForeignKey("TravelerId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("OnVoyage.Discovery.Infrastructure.Persistence.CreatorFollowRow", b =>

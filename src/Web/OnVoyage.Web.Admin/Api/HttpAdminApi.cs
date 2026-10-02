@@ -103,6 +103,11 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
     public Task<IReadOnlyList<PlaceVideoItem>> ListVideosAsync(Guid placeId, CancellationToken cancellationToken = default) =>
         GetAsync<IReadOnlyList<PlaceVideoItem>>($"{Factory}/places/{placeId}/videos", cancellationToken);
 
+    public Task<VideoQuotaItem> GetVideoQuotaAsync(CancellationToken cancellationToken = default) => GetAsync<VideoQuotaItem>($"{Factory}/videos/quota", cancellationToken);
+
+    public Task<IReadOnlyList<SelectedVideoItem>> ListSelectedVideosAsync(int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<SelectedVideoItem>>($"{Factory}/videos?limit={limit}", cancellationToken);
+
     public Task SelectVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default) =>
         WriteAsync(HttpMethod.Post, $"{Factory}/places/{placeId}/videos", new { videoId }, cancellationToken);
 
@@ -110,7 +115,7 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
         WriteAsync(HttpMethod.Delete, $"{Factory}/places/{placeId}/videos/{Uri.EscapeDataString(videoId)}", null, cancellationToken);
 
     public async Task<Guid> CreateBatchAsync(NewBatch batch, CancellationToken cancellationToken = default) =>
-        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches", new { batch.Destination, batch.MinImportance, batch.PlaceStatuses, batch.Lang, batch.Kind, batch.Limit }, cancellationToken)).GetProperty("id").GetGuid();
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches", new { batch.Destination, batch.MinImportance, batch.PlaceStatuses, batch.Lang, batch.Kind, batch.Limit, batch.BudgetUsd }, cancellationToken)).GetProperty("id").GetGuid();
 
     public Task<IReadOnlyList<BatchProgressItem>> ListBatchesAsync(int limit, CancellationToken cancellationToken = default) =>
         GetAsync<IReadOnlyList<BatchProgressItem>>($"{Factory}/batches?limit={limit}", cancellationToken);
@@ -119,6 +124,24 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
 
     public async Task<int> RetryBatchAsync(Guid id, CancellationToken cancellationToken = default) =>
         (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches/{id}/retry", null, cancellationToken)).GetProperty("requeued").GetInt32();
+
+    public async Task<int> CancelBatchAsync(Guid id, CancellationToken cancellationToken = default) =>
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/batches/{id}/cancel", null, cancellationToken)).GetProperty("cancelled").GetInt32();
+
+    public Task RetryJobAsync(Guid jobId, CancellationToken cancellationToken = default) => WriteAsync(HttpMethod.Post, $"{Factory}/batch-jobs/{jobId}/retry", null, cancellationToken);
+
+    public Task<IReadOnlyList<DeadLetterItem>> ListDeadLettersAsync(int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<DeadLetterItem>>($"{Factory}/dead-letters?limit={limit}", cancellationToken);
+
+    public async Task<Guid> StartBootstrapAsync(NewBootstrap bootstrap, CancellationToken cancellationToken = default) =>
+        (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/bootstrap", new { bootstrap.Destination, bootstrap.MaxPlaces, bootstrap.MinImportance, bootstrap.Lang, bootstrap.BudgetUsd, bootstrap.AutoPublish, bootstrap.ForceImport, bootstrap.SkipImport }, cancellationToken)).GetProperty("id").GetGuid();
+
+    public Task<IReadOnlyList<BootstrapRunItem>> ListBootstrapRunsAsync(int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<BootstrapRunItem>>($"{Factory}/bootstrap-runs?limit={limit}", cancellationToken);
+
+    public Task<BootstrapRunItem> GetBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default) => GetAsync<BootstrapRunItem>($"{Factory}/bootstrap-runs/{id}", cancellationToken);
+
+    public Task CancelBootstrapRunAsync(Guid id, CancellationToken cancellationToken = default) => WriteAsync(HttpMethod.Post, $"{Factory}/bootstrap-runs/{id}/cancel", null, cancellationToken);
 
     public async Task<KpiReport?> GetKpisAsync(DateOnly from, DateOnly to, string? destination, string? cohort, CancellationToken cancellationToken = default)
     {
@@ -158,8 +181,8 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
     public Task<IReadOnlyList<AuditItem>> ListAuditAsync(int limit, string? service = null, CancellationToken cancellationToken = default) =>
         GetAsync<IReadOnlyList<AuditItem>>($"{Platform}/audit?limit={limit}{(string.IsNullOrEmpty(service) ? string.Empty : $"&service={Uri.EscapeDataString(service)}")}", cancellationToken);
 
-    public Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken = default) =>
-        GetAsync<IReadOnlyList<ReportInboxItem>>($"{Factory}/reports?limit={limit}{(string.IsNullOrEmpty(status) ? string.Empty : $"&status={Uri.EscapeDataString(status)}")}", cancellationToken);
+    public Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, string? kind, int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<ReportInboxItem>>($"{Factory}/reports?limit={limit}{(string.IsNullOrEmpty(status) ? string.Empty : $"&status={Uri.EscapeDataString(status)}")}{(string.IsNullOrEmpty(kind) ? string.Empty : $"&kind={Uri.EscapeDataString(kind)}")}", cancellationToken);
 
     public async Task<int> ResolveReportsAsync(Guid storyId, string status, string? note, CancellationToken cancellationToken = default) =>
         (await WriteAsync<JsonElement>(HttpMethod.Post, $"{Factory}/stories/{storyId}/reports/resolve", new { status, note }, cancellationToken)).GetProperty("closed").GetInt32();

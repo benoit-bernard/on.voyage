@@ -38,7 +38,7 @@
 ## Non vérifié
 - **Bout en bout entre processus** (Platform → file → Insights réels sous Aspire) : seuls les deux bouts sont testés (Platform publie dans la file `insights` ; Insights traite les messages invoqués dans le test). Platform n'a pas encore de gestionnaire pour `TravelerDataDeletedV1` / `TravelerExportPartReadyV1` (T-507) : ces messages attendent dans la file `platform`. Platform ne publie pas encore `TravelerDeletionRequestedV1` / `TravelerExportRequestedV1` vers `insights` (T-507).
 - **App** : le code MAUI n'est pas compilé ici ; rien n'appelle encore `AnalyticsConsent.Set` (T-618), donc, par défaut, aucun événement non essentiel ne quitte l'appareil ; pas de `IAnalyticsStore` SQLite (la file ne survit à un redémarrage que si l'hôte en fournit un) ; aucun événement du catalogue autre que ceux de l'audio et du mode découverte n'est encore émis par l'app.
-- Le contrat du `GET /kpis` est vérifié par la forme JSON, pas en désérialisant avec les types de `Web.Admin`.
+- Le contrat du `GET /kpis` est vérifié par la forme JSON, pas en désérialisant avec les types de `Web.Admin` (depuis l'[ADR-0019](0019-suivi-des-lots-signalements-videos-et-kpi-dans-l-admin.md), les tests de `Web.Admin` désérialisent le `KpiReportDto` d'Insights avec les types de l'admin, et vérifient que le catalogue de l'admin correspond à `KpiCalculator`). Trois indicateurs créateurs s'y ajoutent : `creator_block_ctr`, `creator_follow_rate`, `creator_attributed_installs`.
 - Pas de test de charge de la requête de reconstruction des KPI (volumes MVP-0 : quelques milliers de voyageurs).
 
 ## Vérification

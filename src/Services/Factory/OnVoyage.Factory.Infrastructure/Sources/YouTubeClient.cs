@@ -82,6 +82,11 @@ internal sealed class YouTubeClient(HttpClient http, IConfiguration configuratio
         try
         {
             using var response = await http.SendAsync(request, cancellationToken);
+            if (response.StatusCode == HttpStatusCode.Forbidden && await IsDailyQuotaAsync(response, cancellationToken))
+            {
+                throw new VideoQuotaExceededException("YouTube answered that the daily quota is used up.");
+            }
+
             if (response.StatusCode is HttpStatusCode.Forbidden or HttpStatusCode.TooManyRequests or >= HttpStatusCode.InternalServerError)
             {
                 throw new ExternalServiceException($"YouTube answered {(int)response.StatusCode}.");
@@ -103,6 +108,24 @@ internal sealed class YouTubeClient(HttpClient http, IConfiguration configuratio
             throw new ExternalServiceException("YouTube sent an unreadable answer.", exception);
         }
     }
+
+    /// <summary>A 403 whose reason is <c>quotaExceeded</c> or <c>dailyLimitExceeded</c> (Google error format). Any other 403 (bad key, API disabled) is not a quota problem.</summary>
+    internal static async Task<bool> IsDailyQuotaAsync(HttpResponseMessage response, CancellationToken cancellationToken)
+    {
+        try
+        {
+            using var document = await JsonDocument.ParseAsync(await response.Content.ReadAsStreamAsync(cancellationToken), cancellationToken: cancellationToken);
+            return IsDailyQuota(document.RootElement);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+    }
+
+    internal static bool IsDailyQuota(JsonElement root) =>
+        root.TryGetProperty("error", out var error) && error.TryGetProperty("errors", out var errors) && errors.ValueKind == JsonValueKind.Array
+        && errors.EnumerateArray().Any(item => item.TryGetProperty("reason", out var reason) && reason.GetString() is "quotaExceeded" or "dailyLimitExceeded");
 
     /// <summary>Reads both answer shapes: <c>search</c> (<c>id.videoId</c>) and <c>videos</c> (<c>id</c> is the id).</summary>
     internal static IReadOnlyList<VideoCandidate> Parse(JsonElement root, bool searchResult)

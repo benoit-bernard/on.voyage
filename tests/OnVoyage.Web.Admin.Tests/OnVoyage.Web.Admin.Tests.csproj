@@ -5,5 +5,8 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Testing" />
     <ProjectReference Include="../../src/Web/OnVoyage.Web.Admin/OnVoyage.Web.Admin.csproj" />
+    <!-- The dashboard is tested against what Insights really computes and sends, so the two cannot drift apart. -->
+    <ProjectReference Include="../../src/Services/Insights/OnVoyage.Insights.Domain/OnVoyage.Insights.Domain.csproj" />
+    <ProjectReference Include="../../src/Services/Insights/OnVoyage.Insights.Contracts/OnVoyage.Insights.Contracts.csproj" />
   </ItemGroup>
 </Project>

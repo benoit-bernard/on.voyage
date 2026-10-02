@@ -21,6 +21,9 @@ public sealed record TravelerInfo(Guid Id, string Lang, string EthicalMode, bool
 
 public sealed record HistoryEntry(Guid PoiId, DateTimeOffset LastAt, bool Listened, bool Visited);
 
+/// <summary>The precomputed collaborative score of one place for one traveler (§6.5): <c>CF</c> in [−1, 1] and the number of neighbours behind it.</summary>
+public sealed record CfScoreInfo(double Score, int Support);
+
 /// <summary>Read side over the projection of published places and stories.</summary>
 public interface IPlaceReader
 {
@@ -40,6 +43,9 @@ public interface ITravelerReader
 
     /// <summary>Ratings of §6.2 by place (−1 … 1).</summary>
     Task<IReadOnlyDictionary<Guid, double>> RatingsAsync(Guid travelerId, CancellationToken cancellationToken);
+
+    /// <summary>The traveler's precomputed collaborative scores (<c>discovery.cf_score</c>) for a destination (all when null); empty until the job has run.</summary>
+    Task<IReadOnlyDictionary<Guid, CfScoreInfo>> CfScoresAsync(Guid travelerId, string? destination, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<(Guid PoiId, DateTimeOffset SavedAt)>> SavedAsync(Guid travelerId, CancellationToken cancellationToken);
 

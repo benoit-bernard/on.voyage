@@ -67,6 +67,113 @@ namespace OnVoyage.Factory.Infrastructure.Persistence.Migrations
                     b.ToTable("audit_log", "factory");
                 });
 
+            modelBuilder.Entity("OnVoyage.Factory.Infrastructure.Persistence.BootstrapRunRow", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("AutoPublish")
+                        .HasColumnType("boolean")
+                        .HasColumnName("auto_publish");
+
+                    b.Property<double>("BudgetUsd")
+                        .HasColumnType("double precision")
+                        .HasColumnName("budget_usd");
+
+                    b.Property<bool>("CancelRequested")
+                        .HasColumnType("boolean")
+                        .HasColumnName("cancel_requested");
+
+                    b.Property<double>("CostUsd")
+                        .HasColumnType("double precision")
+                        .HasColumnName("cost_usd");
+
+                    b.Property<string>("Destination")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("destination");
+
+                    b.Property<string>("Error")
+                        .HasColumnType("text")
+                        .HasColumnName("error");
+
+                    b.Property<int>("Failed")
+                        .HasColumnType("integer")
+                        .HasColumnName("failed");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("Lang")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("lang");
+
+                    b.Property<int>("MaxPlaces")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_places");
+
+                    b.Property<int?>("MinImportance")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_importance");
+
+                    b.Property<string>("Outcome")
+                        .HasColumnType("text")
+                        .HasColumnName("outcome");
+
+                    b.Property<int>("PlacesDone")
+                        .HasColumnType("integer")
+                        .HasColumnName("places_done");
+
+                    b.Property<int>("PlacesTotal")
+                        .HasColumnType("integer")
+                        .HasColumnName("places_total");
+
+                    b.Property<int>("Published")
+                        .HasColumnType("integer")
+                        .HasColumnName("published");
+
+                    b.Property<DateTimeOffset>("RequestedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("requested_at");
+
+                    b.Property<string>("RequestedBy")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("requested_by");
+
+                    b.Property<DateTimeOffset?>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Steps")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("steps");
+
+                    b.Property<int>("ToReview")
+                        .HasColumnType("integer")
+                        .HasColumnName("to_review");
+
+                    b.Property<int>("Written")
+                        .HasColumnType("integer")
+                        .HasColumnName("written");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("RequestedAt");
+
+                    b.ToTable("bootstrap_run", "factory");
+                });
+
             modelBuilder.Entity("OnVoyage.Factory.Infrastructure.Persistence.DedupLinkRow", b =>
                 {
                     b.Property<Guid>("Id")
@@ -282,7 +389,7 @@ namespace OnVoyage.Factory.Infrastructure.Persistence.Migrations
 
                     b.ToTable("generation_job", "factory", t =>
                         {
-                            t.HasCheckConstraint("ck_generation_job_state", "state in ('Pending', 'Running', 'Succeeded', 'Failed')");
+                            t.HasCheckConstraint("ck_generation_job_state", "state in ('Pending', 'Running', 'Succeeded', 'Failed', 'Cancelled')");
                         });
                 });
 
@@ -1052,6 +1159,41 @@ namespace OnVoyage.Factory.Infrastructure.Persistence.Migrations
                     b.HasKey("Qid");
 
                     b.ToTable("wikidata_entity", "factory_raw");
+                });
+
+            modelBuilder.Entity("OnVoyage.Factory.Infrastructure.Persistence.YouTubeSearchRow", b =>
+                {
+                    b.Property<string>("QueryKey")
+                        .HasColumnType("text")
+                        .HasColumnName("query_key");
+
+                    b.Property<DateTimeOffset>("FetchedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fetched_at");
+
+                    b.Property<string>("Results")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("results");
+
+                    b.HasKey("QueryKey");
+
+                    b.ToTable("youtube_search", "factory");
+                });
+
+            modelBuilder.Entity("OnVoyage.Factory.Infrastructure.Persistence.YouTubeUsageRow", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int>("Units")
+                        .HasColumnType("integer")
+                        .HasColumnName("units");
+
+                    b.HasKey("Day");
+
+                    b.ToTable("youtube_usage", "factory");
                 });
 
             modelBuilder.Entity("OnVoyage.Factory.Infrastructure.Persistence.PlaceInterestRow", b =>

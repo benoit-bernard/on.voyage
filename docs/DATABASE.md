@@ -5,7 +5,7 @@ Source : les `DbContext` et les instantanés de modèle EF Core des quatre servi
 ## Organisation
 
 - **Une base PostgreSQL** (`onvoyage`, image `postgis/postgis:16-3.4`), **un schéma par service**, une `DbContext` par service. Aucun service ne lit le schéma d'un autre : ils échangent des événements d'intégration (voir [ARCHITECTURE.md](ARCHITECTURE.md)).
-- Extensions utilisées : `postgis` (Catalog, Factory), `pg_trgm` (Catalog, Factory, Creators), `unaccent` (Catalog), `citext` (Creators). Les migrations les créent (`CREATE EXTENSION IF NOT EXISTS`) : le rôle de connexion doit pouvoir le faire. **pgvector n'est pas utilisé** (le vecteur d'intérêts est un `real[]`, ADR-0011).
+- Extensions utilisées : `postgis` (Catalog, Factory), `pg_trgm` (Catalog, Factory, Creators), `unaccent` (Catalog), `citext` (Creators). Les migrations les créent (`CREATE EXTENSION IF NOT EXISTS`) : le rôle de connexion doit pouvoir le faire. **pgvector n'est pas utilisé** (le vecteur d'intérêts est un `real[]`, ADR-0011 ; la recherche de voisins du filtrage collaboratif est exacte, en mémoire, derrière le port `INeighborSearch`, [ADR-0020](adr/0020-filtrage-collaboratif.md)).
 - **Un seul rôle de connexion** est utilisé par tous les services (chaîne `ConnectionStrings:onvoyage`). Le rôle par service et par schéma exigé par SEC-07 n'est **pas encore en place** (en staging, l'utilisateur `POSTGRES_USER` est super-utilisateur).
 - Les migrations sont appliquées **au démarrage de chaque hôte** (`Platform:Migrate`, `Catalog:Migrate`, `Discovery:Migrate`, `Factory:Migrate`, `Creators:Migrate`, vrais par défaut), avant qu'il accepte des requêtes. Elles doivent rester rétrocompatibles d'une version (§21).
 - Identifiants : UUID v7 (`Guid.CreateVersion7()`), dates en `timestamptz` (UTC).
@@ -33,7 +33,7 @@ Les durées du §16.2 sont **configurées** dans la clé de configuration distan
 | Schéma | Tables à données personnelles | Nature |
 | --- | --- | --- |
 | `platform` | `account`, `otp_challenge`, `refresh_token`, `consent` | e-mail (facultatif), identifiant voyageur, empreintes de codes et de jetons, consentements |
-| `discovery` | `traveler`, `interest_vector`, `interaction`, `poi_rating`, `visit`, `impression` | profil de goûts et historique de lieux (donnée de localisation au sens du RGPD, §16.2), sans coordonnées |
+| `discovery` | `traveler`, `interest_vector`, `interaction`, `poi_rating`, `cf_score`, `visit`, `impression` | profil de goûts et historique de lieux (donnée de localisation au sens du RGPD, §16.2), sans coordonnées |
 | `factory` | `story_report` | identifiant voyageur et motif du signalement |
 | `creators` | `follow`, `moderation_case` (référence du voyageur qui signale), `creator` (profil public d'un créateur, identifiant de compte, référence du consentement signé) | abonnements (jamais exposés), signalements, profil publié avec consentement |
 | `catalog` | aucune | contenu éditorial |
@@ -431,6 +431,23 @@ Projection des lieux publiés lue par le moteur (poids, importance, qualité, fr
 | `version` | `integer` | non |  |
 | `weights` | `jsonb` | non |  |
 
+#### `discovery.cf_score`
+
+Score collaboratif d'un lieu pour un voyageur (§6.5), calculé par le job périodique à partir des notes de ses voisins les plus proches ([ADR-0020](adr/0020-filtrage-collaboratif.md)). Ne contient ni voisin ni note individuelle : un score et le nombre de voisins derrière lui.
+
+| Colonne | Type | Nul | Remarque |
+| --- | --- | --- | --- |
+| `traveler_id` | `uuid` | non | clé primaire (composite) |
+| `poi_id` | `uuid` | non | clé primaire (composite) |
+| `destination` | `text` | non | pour la lecture par destination (`/me/cf-scores`) |
+| `score` | `real` | non | `CF` ∈ [−1, 1] |
+| `support` | `integer` | non | voisins ayant noté le lieu, au moins 3 |
+| `computed_at` | `timestamp with time zone` | non |  |
+
+- Clé primaire : (`traveler_id`, `poi_id`) ; index (`traveler_id`, `destination`)
+- Clé étrangère (`traveler_id`) → `discovery.traveler`, suppression : Cascade
+- Contrainte `ck_cf_score_range` : `score between -1 and 1 and support > 0`
+
 #### `discovery.poi_rating`
 
 Dernier avis du voyageur sur un lieu (note, lieu écarté).
@@ -577,7 +594,39 @@ Tâche d'un lot : étape, état, tentatives, dernière erreur, lieu, histoire pr
 | `updated_at` | `timestamp with time zone` | non |  |
 
 - Index (`batch_id`, `state`)
-- Contrainte `ck_generation_job_state` : `state in ('Pending', 'Running', 'Succeeded', 'Failed')`
+- Contrainte `ck_generation_job_state` : `state in ('Pending', 'Running', 'Succeeded', 'Failed', 'Cancelled')`
+
+Le plafond de coût d'un lot (`budgetUsd`) est dans `generation_batch.criteria` ; le coût dépensé n'est pas stocké : il est calculé à la lecture (somme de `factory.llm_call.cost_usd` entre la création du lot et la fin de sa dernière tâche).
+
+#### `factory.youtube_usage` et `factory.youtube_search`
+
+Quota de l'API YouTube Data et cache des recherches de l'éditeur ([ADR-0019](adr/0019-suivi-des-lots-signalements-videos-et-kpi-dans-l-admin.md)). Aucune donnée voyageur.
+
+| Table | Colonnes | Remarque |
+| --- | --- | --- |
+| `youtube_usage` | `day date` (clé primaire, jour de quota en heure du Pacifique), `units integer` | unités dépensées ce jour-là |
+| `youtube_search` | `query_key text` (clé primaire : requête en minuscules, espaces réduits), `results jsonb` (candidats : identifiant, titre, chaîne, vignette, date), `fetched_at timestamp with time zone` | réponse de la dernière recherche |
+
+#### `factory.bootstrap_run`
+
+Exécution d'amorçage d'une destination ([ADR-0019](adr/0019-suivi-des-lots-et-signalements-dans-l-admin.md)) : demandée par l'administration ou la ligne de commande, suivie pendant qu'elle tourne (compteurs, coût), puis son rapport final. Aucune donnée voyageur.
+
+| Colonne | Type | Nul | Remarque |
+| --- | --- | --- | --- |
+| `id` | `uuid` | non | clé primaire |
+| `destination` | `text` | non |  |
+| `status` | `text` | non | `Queued`, `Running`, `Completed`, `Stopped`, `Failed` |
+| `requested_by` | `text` | non | identifiant de l'administrateur, ou `cli` |
+| `requested_at`, `started_at`, `finished_at` | `timestamp with time zone` | non, oui, oui |  |
+| `max_places`, `min_importance`, `lang`, `auto_publish` | `integer`, `integer`, `text`, `boolean` | non, oui, non, non | paramètres demandés |
+| `budget_usd`, `cost_usd` | `double precision` | non | plafond et coût estimé |
+| `places_total`, `places_done`, `written`, `to_review`, `published`, `failed` | `integer` | non | compteurs en direct |
+| `outcome` | `text` | oui | `completed`, `budget_exhausted`, `provider_unavailable`, `cancelled` |
+| `error` | `text` | oui | échec avant la fin (500 caractères) |
+| `cancel_requested` | `boolean` | non | arrêt demandé par un administrateur |
+| `steps` | `jsonb` | non | étapes et lieux ignorés ou en échec, avec leur raison |
+
+- Index (`requested_at`)
 
 #### `factory.import_run`
 

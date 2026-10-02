@@ -15,20 +15,39 @@ else
     var progress = _detail.Progress;
     <h1>Lot du @progress.Batch.CreatedAt.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)</h1>
     <p><BatchSummary Progress="progress" /></p>
-    <progress max="@progress.Batch.Total" value="@(progress.Succeeded + progress.Failed)" aria-label="Avancement"></progress>
-
-    @if (progress.Failed > 0)
+    <progress max="@progress.Batch.Total" value="@(progress.Succeeded + progress.Failed + progress.Cancelled)" aria-label="Avancement"></progress>
+    @if (progress.Batch.Criteria.BudgetUsd is { } budget)
     {
-        <div class="row">
-            <button type="button" class="primary" disabled="@Busy" @onclick="Retry">Relancer les @progress.Failed échec(s)</button>
-        </div>
+        <meter min="0" max="@budget.ToString(System.Globalization.CultureInfo.InvariantCulture)" value="@Math.Min(progress.CostUsd, budget).ToString(System.Globalization.CultureInfo.InvariantCulture)" aria-label="Coût dépensé sur le plafond"></meter>
     }
+
+    <div class="row">
+        <div>
+            <label for="job-filter">Afficher</label>
+            <select id="job-filter" @bind="_filter">
+                <option value="">Tous les lieux</option>
+                <option value="Failed">Échecs</option>
+                <option value="Cancelled">Annulés</option>
+                <option value="Pending">En attente ou en cours</option>
+                <option value="review">À relire</option>
+                <option value="Succeeded">Terminés</option>
+            </select>
+        </div>
+        @if (progress.Failed + progress.Cancelled > 0)
+        {
+            <button type="button" class="primary" disabled="@Busy" @onclick="Retry">Relancer les @(progress.Failed + progress.Cancelled) échec(s) ou annulation(s)</button>
+        }
+        @if (progress.Pending > 0)
+        {
+            <button type="button" class="danger" disabled="@Busy" @onclick="Cancel">Annuler les @progress.Pending lieu(x) en attente</button>
+        }
+    </div>
 
     <section class="card">
         <table>
-            <thead><tr><th>Lieu</th><th>État</th><th>Étape</th><th>Essais</th><th>Détail</th></tr></thead>
+            <thead><tr><th>Lieu</th><th>État</th><th>Étape</th><th>Essais</th><th>Détail</th><th></th></tr></thead>
             <tbody>
-                @foreach (var job in _detail.Jobs.OrderBy(job => job.State == "Failed" ? 0 : job.State == "Succeeded" && job.Outcome == "NeedsReview" ? 1 : 2).ThenBy(job => job.PlaceName, StringComparer.Ordinal))
+                @foreach (var job in Jobs)
                 {
                     <tr class="@(job.State == "Failed" ? "refused" : null)">
                         <td><a href="/admin/workshop/place/@job.PlaceId">@job.PlaceName</a></td>
@@ -42,13 +61,23 @@ else
                             }
                             else if (job.LastError is not null)
                             {
-                                <span class="muted">@job.LastError</span>
+                                <span class="muted">@Labels.StopReason(job.LastError)</span>
+                            }
+                        </td>
+                        <td>
+                            @if (job.State is "Failed" or "Cancelled")
+                            {
+                                <button type="button" class="link" disabled="@Busy" @onclick="() => RetryJob(job.Id)">Relancer</button>
                             }
                         </td>
                     </tr>
                 }
             </tbody>
         </table>
+        @if (Jobs.Count == 0)
+        {
+            <p class="muted">Aucun lieu ne correspond à ce filtre.</p>
+        }
     </section>
 }
 
@@ -57,6 +86,18 @@ else
 
     private BatchDetailItem? _detail;
     private Timer? _timer;
+    private string _filter = string.Empty;
+
+    private IReadOnlyList<JobItem> Jobs => _detail is null ? [] : [.. _detail.Jobs
+        .Where(job => _filter switch
+        {
+            "" => true,
+            "Pending" => job.State is "Pending" or "Running",
+            "review" => job.State == "Succeeded" && job.Outcome == "NeedsReview",
+            var state => job.State == state,
+        })
+        .OrderBy(job => job.State == "Failed" ? 0 : job.State == "Succeeded" && job.Outcome == "NeedsReview" ? 1 : 2)
+        .ThenBy(job => job.PlaceName, StringComparer.Ordinal)];
 
     protected override async Task OnParametersSetAsync()
     {
@@ -77,7 +118,19 @@ else
 
     private async Task Retry()
     {
-        await RunAsync(async () => await Api.RetryBatchAsync(Id), "Les jobs en échec sont relancés.");
+        await RunAsync(async () => await Api.RetryBatchAsync(Id), "Les jobs en échec ou annulés sont relancés.");
+        await ReloadAsync();
+    }
+
+    private async Task RetryJob(Guid jobId)
+    {
+        await RunAsync(() => Api.RetryJobAsync(jobId), "Le job est relancé.");
+        await ReloadAsync();
+    }
+
+    private async Task Cancel()
+    {
+        await RunAsync(async () => await Api.CancelBatchAsync(Id), "Les lieux en attente sont annulés ; ceux en cours finissent leur essai.");
         await ReloadAsync();
     }
 

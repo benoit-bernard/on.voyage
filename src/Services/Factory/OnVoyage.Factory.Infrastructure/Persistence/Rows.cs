@@ -260,6 +260,21 @@ internal sealed class GenerationJobRow
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
+/// <summary>YouTube quota units spent in a quota day (it resets at midnight Pacific time).</summary>
+internal sealed class YouTubeUsageRow
+{
+    public DateOnly Day { get; set; }
+    public int Units { get; set; }
+}
+
+/// <summary>The answer of a recent YouTube search, so asking again does not spend 100 more units.</summary>
+internal sealed class YouTubeSearchRow
+{
+    public string QueryKey { get; set; } = string.Empty;
+    public string Results { get; set; } = "[]";
+    public DateTimeOffset FetchedAt { get; set; }
+}
+
 internal sealed class PlaceVideoRow
 {
     public Guid PlaceId { get; set; }
@@ -269,4 +284,31 @@ internal sealed class PlaceVideoRow
     public string ThumbnailPath { get; set; } = string.Empty;
     public string Url { get; set; } = string.Empty;
     public DateTimeOffset SelectedAt { get; set; }
+}
+
+internal sealed class BootstrapRunRow
+{
+    public Guid Id { get; set; }
+    public string Destination { get; set; } = string.Empty;
+    public string Status { get; set; } = "Queued";
+    public string RequestedBy { get; set; } = string.Empty;
+    public DateTimeOffset RequestedAt { get; set; }
+    public DateTimeOffset? StartedAt { get; set; }
+    public DateTimeOffset? FinishedAt { get; set; }
+    public int MaxPlaces { get; set; }
+    public int? MinImportance { get; set; }
+    public string Lang { get; set; } = "fr";
+    public bool AutoPublish { get; set; }
+    public double BudgetUsd { get; set; }
+    public double CostUsd { get; set; }
+    public int PlacesTotal { get; set; }
+    public int PlacesDone { get; set; }
+    public int Written { get; set; }
+    public int ToReview { get; set; }
+    public int Published { get; set; }
+    public int Failed { get; set; }
+    public string? Outcome { get; set; }
+    public string? Error { get; set; }
+    public bool CancelRequested { get; set; }
+    public string Steps { get; set; } = "[]";
 }

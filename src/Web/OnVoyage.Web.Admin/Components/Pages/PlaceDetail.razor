@@ -114,6 +114,7 @@ else
             </ul>
         }
 
+        <VideoQuotaNote Quota="_quota" />
         <div class="row">
             <input aria-label="Recherche de vidéos" placeholder="Recherche (ex. @place.Name Marseille)" @bind="_videoQuery" @bind:event="oninput" @onkeydown="SearchOnEnter" />
             <button type="button" disabled="@(Busy || _videoQuery.Trim().Length < 2)" @onclick="SearchVideos">Chercher sur YouTube</button>
@@ -153,6 +154,7 @@ else
     private string _videoQuery = string.Empty;
     private IReadOnlyList<PlaceVideoItem> _videos = [];
     private IReadOnlyList<VideoCandidateItem> _candidates = [];
+    private VideoQuotaItem? _quota;
     private readonly Dictionary<string, double> _weights = new(StringComparer.Ordinal);
 
     protected override Task OnParametersSetAsync() => ReloadAsync();
@@ -170,6 +172,7 @@ else
         _fragile = _detail.Ethics.Fragile;
         _regulated = _detail.Ethics.AccessRegulated;
         _videos = await LoadAsync(() => Api.ListVideosAsync(Id)) ?? [];
+        await RefreshQuotaAsync();
         _weights.Clear();
         foreach (var interest in _detail.Interests.Where(interest => interest.Code.Contains('.', StringComparison.Ordinal)))
         {
@@ -206,6 +209,20 @@ else
     private async Task SearchVideos()
     {
         await RunAsync(async () => _candidates = await Api.SearchVideosAsync(_videoQuery.Trim()));
+        await RefreshQuotaAsync();
+    }
+
+    /// <summary>The quota line is a help, not a requirement: if it cannot be read, the search still works.</summary>
+    private async Task RefreshQuotaAsync()
+    {
+        try
+        {
+            _quota = await Api.GetVideoQuotaAsync();
+        }
+        catch (Exception exception) when (exception is AdminApiException or HttpRequestException)
+        {
+            _quota = null;
+        }
     }
 
     private async Task SearchOnEnter(KeyboardEventArgs args)

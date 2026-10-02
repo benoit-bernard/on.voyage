@@ -40,6 +40,9 @@ public static class DependencyInjection
         services.AddHttpClient<IOsmImporter, OsmImporter>(client => client.Timeout = TimeSpan.FromHours(2));
         services.AddHttpClient<WikimediaRequester>(client => client.Timeout = TimeSpan.FromSeconds(90));
         services.AddScoped<OnVoyage.Factory.Application.Features.Videos.IVideoStore, VideoStore>();
+        services.AddScoped<OnVoyage.Factory.Application.Features.Videos.IVideoQuotaStore, VideoQuotaStore>();
+        services.AddSingleton(new OnVoyage.Factory.Application.Features.Videos.VideoQuotaOptions(
+            configuration.GetValue("YouTube:DailyQuotaUnits", 10_000), 100, 1, configuration.GetValue("YouTube:SearchCacheHours", 24)));
         services.AddHttpClient<OnVoyage.Factory.Application.Features.Videos.IVideoSearch, YouTubeClient>(client => client.Timeout = TimeSpan.FromSeconds(20))
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler { AllowAutoRedirect = false });
         services.AddScoped<IWikidataClient, WikidataSparqlClient>();
@@ -58,6 +61,7 @@ public static class DependencyInjection
         services.AddScoped<IContentStore, ContentStore>();
         services.AddScoped<OnVoyage.Factory.Application.Features.Batches.IBatchStore, BatchStore>();
         services.AddScoped<OnVoyage.Factory.Application.Features.Admin.IAdminStore, AdminStore>();
+        services.AddScoped<OnVoyage.Factory.Application.Features.Bootstrap.IBootstrapRunStore, BootstrapRunStore>();
         services.AddScoped<IWikipediaTextClient, WikipediaTextClient>();
         services.AddSingleton<IContentSettingsProvider>(new ConfiguredContentSettings(configuration.GetSection("Factory:Content").Get<ContentSettings>() ?? new ContentSettings()));
         services.AddSingleton<IAudioProcessor, FfmpegAudioProcessor>();

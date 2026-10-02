@@ -2,12 +2,23 @@
     <strong>@Progress.Succeeded</strong> terminé(s) sur @Progress.Batch.Total
     · <span class="@(Progress.Failed > 0 ? "bad" : null)">@Progress.Failed échec(s)</span>
     · @Progress.ToReview à relire
+    @if (Progress.Cancelled > 0)
+    {
+        <text> · @Progress.Cancelled annulé(s)</text>
+    }
     @if (!Progress.IsFinished)
     {
         <text> · @(Progress.Pending + Progress.Running) en cours</text>
     }
+    · <span class="cost @(OverBudget ? "bad" : null)">@Cost</span>
 </span>
 
 @code {
     [Parameter, EditorRequired] public BatchProgressItem Progress { get; set; } = default!;
+
+    private bool OverBudget => Progress.Batch.Criteria.BudgetUsd is { } budget && Progress.CostUsd >= budget;
+
+    private string Cost => Progress.Batch.Criteria.BudgetUsd is { } budget
+        ? string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Progress.CostUsd:0.0000} / {budget:0.00} USD")
+        : string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{Progress.CostUsd:0.0000} USD");
 }

@@ -30,6 +30,18 @@ public static class DependencyInjection
         services.AddScoped<ITravelerReader, TravelerReader>();
         services.AddScoped<IAffinityStore, AffinityStore>();
         services.AddHostedService<CategoryAffinityJob>();
+        services.AddScoped<OnVoyage.Discovery.Application.Features.ICollaborativeStore, CollaborativeStore>();
+        services.AddScoped<OnVoyage.Discovery.Application.Features.INeighborSearch, ExactCosineNeighborSearch>();
+        services.AddSingleton(new OnVoyage.Discovery.Application.Features.CfOptions(
+            Neighbors: configuration.GetValue("Discovery:Cf:Neighbors", 50),
+            MinNeighborDepth: configuration.GetValue("Discovery:Cf:MinNeighborDepth", 10),
+            ActiveDays: configuration.GetValue("Discovery:Cf:ActiveDays", 365),
+            Lambda: configuration.GetValue("Discovery:Cf:Lambda", 5d),
+            MaxScoresPerTraveler: configuration.GetValue("Discovery:Cf:MaxScoresPerTraveler", 200),
+            MinSupport: configuration.GetValue("Discovery:Cf:MinSupport", 3),
+            MinPool: configuration.GetValue("Discovery:Cf:MinPool", 20),
+            TargetMinDepth: configuration.GetValue("Discovery:Cf:TargetMinDepth", 5)));
+        services.AddHostedService<CollaborativeScoresJob>();
         services.AddSingleton<IMediaUrls, ConfiguredMediaUrls>();
         services.AddSingleton(new OnVoyage.Discovery.Application.DiscoveryOptions(configuration.GetValue("Discovery:AllowTextOnlyStories", true)));
         services.AddSingleton(TimeProvider.System);
@@ -72,6 +84,61 @@ public static class DependencyInjection
                 {
                     logger.LogError(ex, "The category_affinity job failed; it will try again at the next tick.");
                 }
+            }
+        }
+    }
+
+    /// <summary>
+    /// The job of §6.5: recomputes the collaborative scores every <c>Discovery:Cf:IntervalHours</c> hours (6), the first time
+    /// <c>Discovery:Cf:StartupDelayMinutes</c> minutes (2) after the start. <c>Discovery:Cf:Enabled</c> = false stops it (the endpoint still works).
+    /// It goes through the Wolverine bus like any other command.
+    /// </summary>
+    private sealed class CollaborativeScoresJob(IServiceProvider services, IConfiguration configuration, TimeProvider clock, IHostApplicationLifetime lifetime, ILogger<CollaborativeScoresJob> logger) : BackgroundService
+    {
+        protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+        {
+            if (!configuration.GetValue("Discovery:Cf:Enabled", true))
+            {
+                return;
+            }
+
+            var interval = TimeSpan.FromHours(configuration.GetValue("Discovery:Cf:IntervalHours", 6d));
+            var delay = TimeSpan.FromMinutes(configuration.GetValue("Discovery:Cf:StartupDelayMinutes", 2d));
+            try
+            {
+                // The message bus is not usable before every hosted service has started, whatever the delay.
+                var started = new TaskCompletionSource();
+                await using (lifetime.ApplicationStarted.Register(() => started.TrySetResult()))
+                await using (stoppingToken.Register(() => started.TrySetCanceled(stoppingToken)))
+                {
+                    await started.Task;
+                }
+
+                await Task.Delay(delay, clock, stoppingToken);
+                using var timer = new PeriodicTimer(interval, clock);
+                do
+                {
+                    await RunOnceAsync(stoppingToken);
+                }
+                while (await timer.WaitForNextTickAsync(stoppingToken));
+            }
+            catch (OperationCanceledException)
+            {
+                // Shutting down.
+            }
+        }
+
+        private async Task RunOnceAsync(CancellationToken stoppingToken)
+        {
+            try
+            {
+                await using var scope = services.CreateAsyncScope();
+                var bus = scope.ServiceProvider.GetRequiredService<Wolverine.IMessageBus>();
+                await bus.InvokeAsync<OnVoyage.Discovery.Application.Result<OnVoyage.Discovery.Application.Features.CfRunSummary>>(new OnVoyage.Discovery.Application.Features.RecomputeCfScoresCommand(), stoppingToken);
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                logger.LogError(ex, "The collaborative filtering job failed; it will try again at the next interval.");
             }
         }
     }

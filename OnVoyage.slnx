@@ -84,6 +84,7 @@
     <Project Path="tests/Services/Creators.UnitTests/Creators.UnitTests.csproj" />
     <Project Path="tests/Services/Discovery.IntegrationTests/Discovery.IntegrationTests.csproj" />
     <Project Path="tests/Services/Discovery.UnitTests/Discovery.UnitTests.csproj" />
+    <Project Path="tests/Services/Factory.IntegrationTests/Factory.IntegrationTests.csproj" />
     <Project Path="tests/Services/Factory.UnitTests/Factory.UnitTests.csproj" />
     <Project Path="tests/Services/Insights.IntegrationTests/Insights.IntegrationTests.csproj" />
     <Project Path="tests/Services/Insights.UnitTests/Insights.UnitTests.csproj" />

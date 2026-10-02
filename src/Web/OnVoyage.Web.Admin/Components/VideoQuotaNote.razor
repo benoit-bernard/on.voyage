@@ -1,0 +1,15 @@
+@if (Quota is not null)
+{
+    <p class="quota @(Quota.Remaining == 0 ? "bad" : "muted")" role="status">
+        Quota YouTube du jour : @Quota.UnitsUsed.ToString("N0", Culture) / @Quota.DailyUnits.ToString("N0", Culture) unités
+        · @(Quota.SearchesLeft == 0 ? "plus aucune recherche possible" : $"{Quota.SearchesLeft} recherche(s) possible(s)")
+        · remis à zéro à @Quota.ResetsAt.ToString("HH:mm", Culture) UTC.
+        Une recherche déjà faite dans les dernières 24 h ne coûte rien.
+    </p>
+}
+
+@code {
+    private static readonly System.Globalization.CultureInfo Culture = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+
+    [Parameter] public VideoQuotaItem? Quota { get; set; }
+}

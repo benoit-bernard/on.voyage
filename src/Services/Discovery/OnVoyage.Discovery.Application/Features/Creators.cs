@@ -49,7 +49,9 @@ public static class GetCfScoresHandler
 {
     /// <summary>
     /// What the device downloads with a pack for offline ranking (§6.12, §6.15): per place, the collaborative score and the creator signal.
-    /// Collaborative filtering is not part of MVP-0 (its weight goes to importance and quality, §6.7), so <c>cf</c> is null.
+    /// <c>cf</c> is the neighbours' score <c>CF</c> in [−1, 1] and <c>support</c> the number of neighbours behind it, so the device can apply
+    /// <c>w_cf · min(1, support / 10) · (cf + 1) / 2</c> offline; both are null for a place no one rated enough (fewer than the minimum number
+    /// of neighbours), and for the control cohort. No neighbour is ever identified.
     /// </summary>
     public static async Task<Result<CfScoresDto>> Handle(
         GetCfScoresQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, TimeProvider clock, CancellationToken cancellationToken)
@@ -62,7 +64,9 @@ public static class GetCfScoresHandler
         var context = await RankingContext.LoadAsync(query.TravelerId, query.Destination, store, travelers, places, creators, clock, cancellationToken);
         var items = context.Eligible(null, null, null)
             .OrderBy(p => p.PoiId)
-            .Select(p => new CfScoreDto(p.PoiId, null, Math.Round(context.EndorsementOf(p)?.Signal ?? 0d, 4)))
+            .Select(p => context.CfScores.TryGetValue(p.PoiId, out var cf)
+                ? new CfScoreDto(p.PoiId, Math.Round(cf.Score, 4), Math.Round(context.EndorsementOf(p)?.Signal ?? 0d, 4), cf.Support)
+                : new CfScoreDto(p.PoiId, null, Math.Round(context.EndorsementOf(p)?.Signal ?? 0d, 4)))
             .ToArray();
         return Result.Success(new CfScoresDto(items, context.Traveler.Cohort, clock.GetUtcNow()));
     }

@@ -17,6 +17,16 @@
             </select>
         </div>
         <div>
+            <label for="kind">Type</label>
+            <select id="kind" @onchange="OnKindChanged">
+                <option value="" selected="@(_kind == string.Empty)">Tous les types</option>
+                @foreach (var kind in Kinds)
+                {
+                    <option value="@kind" selected="@(_kind == kind)">@Labels.ReportKind(kind)</option>
+                }
+            </select>
+        </div>
+        <div>
             <label for="sort">Tri</label>
             <select id="sort" @bind="_sort">
                 <option value="recent">Plus récents d'abord</option>
@@ -25,7 +35,7 @@
             </select>
         </div>
     </div>
-    <p class="muted">Un lecteur peut signaler une erreur dans une histoire publiée ; trois lecteurs différents suspendent l'histoire. Le texte seul est affiché : jamais l'identité du lecteur.</p>
+    <p class="muted">Un lecteur peut signaler une erreur dans une histoire publiée ; trois lecteurs différents qui signalent un fait inexact suspendent l'histoire (les autres types, prononciation, lieu fermé, photo, n'y comptent pas). Le texte seul est affiché : jamais l'identité du lecteur.</p>
 </section>
 
 @if (_items.Count == 0)
@@ -36,12 +46,18 @@
 @foreach (var item in Sorted)
 {
     <section class="card report">
-        <h2><a href="/admin/workshop/story/@item.StoryId">@(string.IsNullOrEmpty(item.StoryTitle) ? "(sans titre)" : item.StoryTitle)</a> <span class="muted">· @item.PlaceName · @item.Lang · v@(item.Version) · @Labels.Story(item.StoryStatus)</span></h2>
+        <h2><a href="/admin/workshop/story/@item.StoryId">@(string.IsNullOrEmpty(item.StoryTitle) ? "(sans titre)" : item.StoryTitle)</a> <span class="muted">· <a href="/admin/workshop/place/@item.PlaceId">@item.PlaceName</a> · @item.Lang · v@(item.Version) · @Labels.Story(item.StoryStatus)</span></h2>
+        <p class="kinds">
+            @foreach (var group in item.Remarks.Where(remark => remark.Status == "Open").GroupBy(remark => remark.Kind).OrderByDescending(group => group.Count()))
+            {
+                <span class="tag" data-kind="@group.Key">@Labels.ReportKind(group.Key) : @group.Count()</span>
+            }
+        </p>
         <ul>
             @foreach (var remark in item.Remarks)
             {
                 <li class="@(remark.Status == "Open" ? null : "muted")">
-                    @remark.CreatedAt.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) — @remark.Reason
+                    @remark.CreatedAt.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture) — <span class="tag">@Labels.ReportKind(remark.Kind)</span> @remark.Reason
                     @if (remark.Status != "Open")
                     {
                         <span class="tag">@(remark.Status == "Handled" ? "traité" : "écarté")@(remark.Resolution is null ? "" : $" : {remark.Resolution}")</span>
@@ -75,6 +91,8 @@
 
     private string _status = "Open";
     private string _sort = "recent";
+    private string _kind = string.Empty;
+    private static readonly string[] Kinds = ["InaccurateFact", "Pronunciation", "ClosedOrMoved", "Photo", "Other"];
     private IReadOnlyList<ReportInboxItem> _items = [];
     private readonly Dictionary<Guid, string> _notes = [];
 
@@ -89,7 +107,7 @@
 
     private async Task ReloadAsync()
     {
-        _items = await LoadAsync(() => Api.ListReportInboxAsync(_status, 100)) ?? [];
+        _items = await LoadAsync(() => Api.ListReportInboxAsync(_status, string.IsNullOrEmpty(_kind) ? null : _kind, 100)) ?? [];
         foreach (var item in _items)
         {
             _notes.TryAdd(item.StoryId, string.Empty);
@@ -99,6 +117,12 @@
     private async Task OnStatusChanged(ChangeEventArgs args)
     {
         _status = args.Value?.ToString() ?? string.Empty;
+        await ReloadAsync();
+    }
+
+    private async Task OnKindChanged(ChangeEventArgs args)
+    {
+        _kind = args.Value?.ToString() ?? string.Empty;
         await ReloadAsync();
     }
 

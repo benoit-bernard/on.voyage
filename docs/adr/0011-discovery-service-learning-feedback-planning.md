@@ -14,7 +14,7 @@
 - Extraits d'onboarding : la sélection automatique prend, par catégorie de niveau 1 dominante, le meilleur extrait (qualité, puis importance), puis garde les cinq catégories aux meilleurs extraits. Le choix d'un éditeur (`PUT`) doit être exactement cinq extraits de cinq catégories de niveau 1 différentes, sinon 400.
 
 ## Écarts au cahier
-- **pgvector** : le vecteur est un `real[]` de D = 74 valeurs (ordre figé de la taxonomie). L'index HNSW n'a de sens qu'avec la recherche de voisins (T-504) et l'extension n'est ni dans l'image `postgis/postgis` de l'AppHost ni dans la base de test.
+- **pgvector** : le vecteur est un `real[]` de D = 74 valeurs (ordre figé de la taxonomie). L'index HNSW n'a de sens qu'avec la recherche de voisins (T-504) et l'extension n'est ni dans l'image `postgis/postgis` de l'AppHost ni dans la base de test. Décision de T-504 : voir [ADR-0020](0020-filtrage-collaboratif.md) (recherche exacte derrière un port, écart assumé).
 - **Projection** : Discovery lit directement `PoiPublishedV1`, `PoiUnpublishedV1` et `StoryPublishedV1` (`kind = onboarding_clip`) de Factory, sur sa propre file `discovery`, au lieu de `PoiProjectionChangedV1` du Catalog (T-502). Même donnée, idempotente par version.
 - `interaction` n'est pas partitionnée par mois ; pas de `config_snapshot` ni de contrôle de version minimale d'app dans ce service (les paramètres d'apprentissage sont les valeurs par défaut du cahier). Photos des extraits : pas de champ image dans l'événement publié, l'app n'en affiche pas.
 - L'app garde son profil local et le remplace par celui du serveur à chaque réponse (le serveur fait foi, §6.4). Les anciens profils locaux d'avant l'envoi ne sont pas rejoués côté serveur.
