@@ -4,9 +4,9 @@
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
   <ItemGroup>
-    <!-- The synthetic GPS traces of §20.4 and the places they pass; the tests read them next to the test assembly. -->
+    <!-- The GPS traces of §20.4 (synthetic, then the real ones of H-001), their candidate places and expected-places files; the tests read them next to the test assembly. -->
     <None Include="../../data-pipeline/gpx/*.gpx" Link="gpx/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="../../data-pipeline/gpx/candidates.json" Link="gpx/candidates.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../data-pipeline/gpx/*.json" Link="gpx/%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
     <None Include="../../src/Services/Platform/OnVoyage.Platform.Infrastructure/Seed/default-config.json" Link="default-config.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

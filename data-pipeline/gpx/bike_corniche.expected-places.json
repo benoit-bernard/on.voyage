@@ -1,0 +1,21 @@
+{
+  "$schema": "./expected-places.schema.json",
+  "schemaVersion": 1,
+  "trace": "bike_corniche",
+  "scenario": "bike",
+  "status": "approved",
+  "synthetic": true,
+  "candidates": "candidates.json",
+  "mustTrigger": [
+    {
+      "place": "Vallon des Auffes",
+      "reason": "sur la trajectoire"
+    },
+    {
+      "place": "Plage du Prophète",
+      "reason": "fin du parcours"
+    }
+  ],
+  "mustNotTrigger": [],
+  "notes": "Trace synthétique (generate_synthetic.py) : attentes tirées des critères F-09 / F-10, pas d'un enregistrement de terrain."
+}

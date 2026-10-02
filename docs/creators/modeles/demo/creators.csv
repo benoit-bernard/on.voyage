@@ -1,0 +1,3 @@
+﻿key;handle;display_name;bio;avatar_path;languages;specialties;destination_ids;link_instagram;link_youtube;link_tiktok;link_website;consent_document_ref;consent_accepted_at;account_id;publish
+demo_a;demo_createur_a;Créateur de démonstration A;Jeu de démonstration : personne réelle, rien à importer.;;fr|en;nature.coast|history.local;;https://www.instagram.com/demo_createur_a;https://www.youtube.com/@demo_createur_a;;;DEMO-0000-non-signe;2026-10-01;;non
+demo_b;demo_createur_b;Créateur de démonstration B;Deuxième profil fictif, sans consentement : non publiable.;;fr;gastronomy.markets;;;;https://www.tiktok.com/@demo_createur_b;;;;;non

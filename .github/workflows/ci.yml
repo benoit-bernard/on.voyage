@@ -80,4 +80,20 @@ jobs:
       - name: Shell scripts are valid
         run: |
           sudo apt-get update && sudo apt-get install -y shellcheck
-          shellcheck --severity=warning deploy/staging/backup/*.sh deploy/staging/postgres/*.sh deploy/staging/smoke-test.sh
+          shellcheck --severity=warning deploy/staging/backup/*.sh deploy/staging/postgres/*.sh deploy/staging/smoke-test.sh deploy/check-secrets.sh deploy/check-secrets.test.sh
+      - name: Secret checker tests (H-003)
+        run: bash deploy/check-secrets.test.sh
+
+  # Human-task tooling (H-001 GPX validator, H-009 founder creators importer): standard library only, no install.
+  tools:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: gpx-check
+        run: python3 -m unittest discover -s tools/gpx-check -v
+      - name: import-founder-creators
+        run: python3 -m unittest discover -s tools/import-founder-creators -v

@@ -1,0 +1,19 @@
+{
+  "$schema": "./expected-places.schema.json",
+  "schemaVersion": 1,
+  "trace": "real_walk_vieux_port",
+  "scenario": "walk",
+  "status": "draft",
+  "synthetic": false,
+  "candidates": "candidates.json",
+  "expectedMode": "Walk",
+  "minTriggers": 3,
+  "maxTriggers": 8,
+  "mustTrigger": [
+    { "place": "Mucem", "reason": "EXEMPLE : longé de près, visible du chemin", "afterSeconds": 0, "beforeSeconds": 3600 }
+  ],
+  "mustNotTrigger": [
+    { "place": "Petit oratoire sans importance", "reason": "EXEMPLE : importance trop faible pour la marche" }
+  ],
+  "notes": "Copier ce fichier en data-pipeline/gpx/<trace>.expected-places.json, remplacer tout ce qui est marqué EXEMPLE, passer status à approved après relecture. Voir docs/field/h001-traces-gpx.md."
+}

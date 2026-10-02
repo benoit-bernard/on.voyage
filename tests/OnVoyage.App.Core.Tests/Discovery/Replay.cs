@@ -13,7 +13,7 @@ internal static class GpxReader
 
     public static IReadOnlyList<LocationFix> Read(string name)
     {
-        var document = XDocument.Load(Path.Combine(AppContext.BaseDirectory, "gpx", $"{name}.gpx"));
+        var document = XDocument.Load(Path.Combine(TraceDirectory, $"{name}.gpx"));
         XNamespace ns = "http://www.topografix.com/GPX/1/1";
         return [.. document.Descendants(ns + "trkpt").Select(point => new LocationFix(
             double.Parse(point.Attribute("lat")!.Value, CultureInfo.InvariantCulture),
@@ -24,9 +24,11 @@ internal static class GpxReader
             DateTimeOffset.Parse(point.Element(ns + "time")!.Value, CultureInfo.InvariantCulture, DateTimeStyles.AssumeUniversal)))];
     }
 
-    public static IReadOnlyList<Place> ReadPlaces()
+    public static string TraceDirectory => Path.Combine(AppContext.BaseDirectory, "gpx");
+
+    public static IReadOnlyList<Place> ReadPlaces(string file = "candidates.json")
     {
-        using var stream = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "gpx", "candidates.json"));
+        using var stream = File.OpenRead(Path.Combine(TraceDirectory, file));
         return JsonSerializer.Deserialize<List<Place>>(stream, Web)!;
     }
 
@@ -52,10 +54,10 @@ internal static class Replay
 {
     public const double AnnouncementSeconds = 8;
 
-    public static ReplayResult Run(string track, TriggerSettings? settings = null, Func<GpxReader.Place, bool>? only = null, InMemoryTriggerHistory? history = null)
+    public static ReplayResult Run(string track, TriggerSettings? settings = null, Func<GpxReader.Place, bool>? only = null, InMemoryTriggerHistory? history = null, string candidatesFile = "candidates.json")
     {
         var fixes = GpxReader.Read(track);
-        var places = GpxReader.ReadPlaces().Where(place => only?.Invoke(place) ?? true).ToList();
+        var places = GpxReader.ReadPlaces(candidatesFile).Where(place => only?.Invoke(place) ?? true).ToList();
         var byId = places.ToDictionary(place => place.PoiId);
         history ??= new InMemoryTriggerHistory();
         var engine = new TriggerEngine(settings ?? new TriggerSettings(), history);

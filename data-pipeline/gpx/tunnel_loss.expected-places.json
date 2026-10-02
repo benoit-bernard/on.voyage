@@ -1,0 +1,18 @@
+{
+  "$schema": "./expected-places.schema.json",
+  "schemaVersion": 1,
+  "trace": "tunnel_loss",
+  "scenario": "tunnel",
+  "status": "approved",
+  "synthetic": true,
+  "candidates": "candidates.json",
+  "maxTriggers": 0,
+  "mustTrigger": [],
+  "mustNotTrigger": [
+    {
+      "place": "Place dans le tunnel (test)",
+      "reason": "au milieu de 2 min sans signal : aucune position extrapolée"
+    }
+  ],
+  "notes": "Trace synthétique (generate_synthetic.py) : attentes tirées des critères F-09 / F-10, pas d'un enregistrement de terrain."
+}

@@ -10,3 +10,9 @@ publish/
 .env
 .claude/worktrees/
 .local/
+
+# H-009 (créateurs fondateurs) et H-001 (traces GPX) : données de personnes réelles, jamais dans le dépôt
+docs/creators/prive/
+gpx-bruts/
+data-pipeline/gpx/brut/
+__pycache__/

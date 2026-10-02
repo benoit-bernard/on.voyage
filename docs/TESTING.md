@@ -75,6 +75,8 @@ UPDATE_APPROVED=1 dotnet test --project tests/OnVoyage.App.Core.Tests -c Release
 
 puis relire le diff des fichiers approuvés avant de les commiter. Les traces réelles de la tâche H-001 ne sont pas encore là : `min_trigger_score` (0,45) reste à recalibrer dessus (ADR-0010).
 
+**Corpus de traces (H-001).** `GpxCorpusTests` rejoue **tous** les `data-pipeline/gpx/*.gpx` contre leur `<trace>.expected-places.json` (format : `expected-places.schema.json`, modèle : `expected-places.template.json`) : lieux à déclencher, lieux interdits, bornes, mode, fenêtre horaire ; `status: draft` ne vérifie que la structure, `approved` rejoue le moteur. Une trace est **synthétique** quand l'attribut `creator` de son GPX le dit ; toute autre trace sans fichier de lieux attendus fait échouer le test. Protocole d'enregistrement, validation et nettoyage (`tools/gpx-check`) : [field/h001-traces-gpx.md](field/h001-traces-gpx.md). Tests des outils Python : `python3 -m unittest discover -s tools/gpx-check` et `-s tools/import-founder-creators` ; script de secrets : `bash deploy/check-secrets.test.sh` (tâche CI `tools` et `deploy-config`).
+
 ## Intégration continue
 
 `.github/workflows/ci.yml`, à chaque PR et à chaque fusion sur `main` : restauration, compilation (avertissements en erreurs), `dotnet format --verify-no-changes`, **tests d'architecture** (étape à part, pour échouer vite), puis tous les tests, audit des paquets vulnérables (échec sur gravité haute ou critique), publication de la PWA. Une seconde tâche valide les fichiers de déploiement (`docker compose config`, shellcheck). `osm2pgsql` est installé sur le runner pour les tests de Factory.

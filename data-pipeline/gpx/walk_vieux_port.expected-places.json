@@ -1,0 +1,33 @@
+{
+  "$schema": "./expected-places.schema.json",
+  "schemaVersion": 1,
+  "trace": "walk_vieux_port",
+  "scenario": "walk",
+  "status": "approved",
+  "synthetic": true,
+  "candidates": "candidates.json",
+  "expectedMode": "Walk",
+  "minTriggers": 3,
+  "maxTriggers": 6,
+  "mustTrigger": [
+    {
+      "place": "Ombrière du Vieux-Port",
+      "reason": "au départ, importance 70"
+    },
+    {
+      "place": "Hôtel de Ville",
+      "reason": "pause de 45 s devant"
+    },
+    {
+      "place": "Mucem",
+      "reason": "fin du parcours, importance 72"
+    }
+  ],
+  "mustNotTrigger": [
+    {
+      "place": "Petit oratoire sans importance",
+      "reason": "importance 20 < seuil de marche 50"
+    }
+  ],
+  "notes": "Trace synthétique (generate_synthetic.py) : attentes tirées des critères F-09 / F-10, pas d'un enregistrement de terrain."
+}

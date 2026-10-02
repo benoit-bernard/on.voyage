@@ -1,0 +1,23 @@
+{
+  "$schema": "./expected-places.schema.json",
+  "schemaVersion": 1,
+  "trace": "gps_jitter_urban_canyon",
+  "scenario": "canyon",
+  "status": "approved",
+  "synthetic": true,
+  "candidates": "candidates.json",
+  "expectedMode": "Walk",
+  "maxTriggers": 3,
+  "mustTrigger": [
+    {
+      "place": "Hôtel de Ville",
+      "reason": "fixes précis rares mais suffisants"
+    },
+    {
+      "place": "Maison Diamantée",
+      "reason": "idem"
+    }
+  ],
+  "mustNotTrigger": [],
+  "notes": "Trace synthétique (generate_synthetic.py) : attentes tirées des critères F-09 / F-10, pas d'un enregistrement de terrain."
+}

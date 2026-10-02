@@ -91,6 +91,8 @@ Le jeton du registre est celui du workflow (`GITHUB_TOKEN`, `packages: write`) ;
 
 ## Préparer le VPS (une fois, H-003)
 
+Version détaillée, avec tous les comptes (Apple, Google, OpenAI, Resend, DNS, stockage UE) et la liste exacte des secrets : [runbooks/h003-comptes-et-secrets.md](runbooks/h003-comptes-et-secrets.md). Vérification sans afficher de valeur : `deploy/check-secrets.sh`. Attention : `STAGING_MAP_TILES_URL` est lue par le job d'images, qui n'a pas d'environnement : la créer comme variable de **dépôt**, pas de l'environnement `staging`.
+
 1. VPS européen (≥ 4 vCPU, 16 Go), Docker Engine et le plugin Compose, pare-feu : 22, 80, 443 (et 443/udp) seulement.
 2. Enregistrements DNS `A`/`AAAA` pour `<domaine>`, `admin.<domaine>` et `api.<domaine>` (Caddy ne peut pas obtenir de certificat pour un nom absent du DNS : retirer le bloc `api.` du `Caddyfile` si on n'en veut pas).
 3. Compte `deploy` dans le groupe `docker`, clé SSH dédiée ; relever l'empreinte du serveur pour `STAGING_SSH_KNOWN_HOSTS`.

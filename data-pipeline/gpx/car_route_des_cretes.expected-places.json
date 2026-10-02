@@ -1,0 +1,27 @@
+{
+  "$schema": "./expected-places.schema.json",
+  "schemaVersion": 1,
+  "trace": "car_route_des_cretes",
+  "scenario": "car50",
+  "status": "approved",
+  "synthetic": true,
+  "candidates": "candidates.json",
+  "expectedMode": "Car",
+  "mustTrigger": [
+    {
+      "place": "Belvédère des Crêtes (test)",
+      "reason": "devant le véhicule, visible de la route"
+    }
+  ],
+  "mustNotTrigger": [
+    {
+      "place": "Point de vue derrière (test)",
+      "reason": "derrière le véhicule, hors du cône"
+    },
+    {
+      "place": "Calanque fragile (test)",
+      "reason": "un lieu fragile n'est jamais annoncé"
+    }
+  ],
+  "notes": "Trace synthétique (generate_synthetic.py) : attentes tirées des critères F-09 / F-10, pas d'un enregistrement de terrain."
+}

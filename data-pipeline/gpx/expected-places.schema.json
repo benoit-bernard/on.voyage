@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://on.voyage/schemas/expected-places.schema.json",
+  "title": "Lieux attendus sur une trace GPX (H-001, cahier des charges §20.4)",
+  "description": "Un fichier <trace>.expected-places.json à côté de <trace>.gpx. Le test GpxCorpusTests (OnVoyage.App.Core.Tests) rejoue la trace dans le moteur de déclenchement et compare. status = draft : structure vérifiée seulement ; approved : comportement vérifié.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "trace", "scenario", "status", "synthetic"],
+  "properties": {
+    "$schema": { "type": "string" },
+    "schemaVersion": { "const": 1 },
+    "trace": { "type": "string", "pattern": "^[a-z0-9_]+$", "description": "Nom du fichier GPX sans extension ; doit être celui du fichier." },
+    "scenario": { "enum": ["walk", "bike", "car50", "highway110", "tunnel", "canyon"], "description": "Scénario de tools/gpx-check." },
+    "status": { "enum": ["draft", "approved"], "description": "draft tant que la liste n'est pas relue sur le terrain ; approved ensuite." },
+    "synthetic": { "type": "boolean", "description": "true pour une trace générée par generate_synthetic.py ; doit correspondre à l'attribut creator du GPX. Toujours false pour un enregistrement de terrain." },
+    "candidates": { "type": "string", "default": "candidates.json", "description": "Fichier des lieux candidats (même dossier). Par défaut candidates.json ; pour une trace réelle, <trace>.candidates.json produit par `gpx_check.py candidates`." },
+    "expectedMode": { "enum": ["Walk", "Bike", "Car"], "description": "Si renseigné, tout déclenchement doit avoir ce mode de déplacement." },
+    "minTriggers": { "type": "integer", "minimum": 0 },
+    "maxTriggers": { "type": "integer", "minimum": 0 },
+    "mustTrigger": {
+      "type": "array",
+      "description": "Lieux que le voyageur a réellement vus ou longés, et qui doivent déclencher une histoire.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["place", "reason"],
+        "properties": {
+          "place": { "type": "string", "description": "Nom exact dans le fichier des candidats." },
+          "reason": { "type": "string", "minLength": 3, "description": "Ce que vous avez vu sur place (jamais de donnée personnelle)." },
+          "afterSeconds": { "type": "number", "description": "Le déclenchement ne doit pas avoir lieu avant (secondes depuis le début de la trace)." },
+          "beforeSeconds": { "type": "number", "description": "Le déclenchement doit avoir eu lieu avant." }
+        }
+      }
+    },
+    "mustNotTrigger": {
+      "type": "array",
+      "description": "Lieux qui ne doivent pas déclencher : derrière le véhicule, fragiles, peu importants, dans un trou de signal…",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["place", "reason"],
+        "properties": {
+          "place": { "type": "string" },
+          "reason": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

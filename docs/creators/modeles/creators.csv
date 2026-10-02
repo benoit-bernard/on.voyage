@@ -1,0 +1,2 @@
+﻿key;handle;display_name;bio;avatar_path;languages;specialties;destination_ids;link_instagram;link_youtube;link_tiktok;link_website;consent_document_ref;consent_accepted_at;account_id;publish
+#EXEMPLE (ligne ignorée);[À COMPLÉTER pseudonyme];[À COMPLÉTER nom affiché];[À COMPLÉTER bio, 300 caractères au plus];;fr|en;nature.coast|history.local;;https://www.instagram.com/[À COMPLÉTER];;;;[À COMPLÉTER référence du document signé];2026-10-15;;non
