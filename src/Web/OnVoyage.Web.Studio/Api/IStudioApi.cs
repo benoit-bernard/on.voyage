@@ -36,6 +36,20 @@ public interface IStudioApi
 
     Task RemovePlaceLinkAsync(Guid linkId, CancellationToken cancellationToken = default);
 
+    /// <summary>The places the assistant found in the creator's contents and proposes, by destination (F-28). Nothing in it is published.</summary>
+    Task<PlaceProposalsDto> GetProposalsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Validates the given proposals, or (« Tout valider ») every proposal from <paramref name="minConfidence"/> up, which the service never lets go below its threshold.</summary>
+    Task<ReviewResultDto> ValidateProposalsAsync(IReadOnlyList<Guid>? linkIds, double? minConfidence, CancellationToken cancellationToken = default);
+
+    Task<ReviewResultDto> RejectProposalsAsync(IReadOnlyList<Guid> linkIds, CancellationToken cancellationToken = default);
+
+    /// <summary>Replaces the place of a proposal by the one the creator chooses (validated).</summary>
+    Task<AdminPlaceLinkDto> CorrectProposalAsync(Guid linkId, Guid poiId, CancellationToken cancellationToken = default);
+
+    /// <summary>Asks for the contents not analysed yet (or all of them with <paramref name="force"/>) to be analysed.</summary>
+    Task<AnalysisRequestedDto> AnalyzeAsync(bool force, CancellationToken cancellationToken = default);
+
     Task<ConnectionsDto> GetConnectionsAsync(CancellationToken cancellationToken = default);
 
     /// <summary>The address of the platform's authorization page: the browser is sent there (F-27).</summary>

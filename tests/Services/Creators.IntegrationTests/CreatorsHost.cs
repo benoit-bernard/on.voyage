@@ -63,6 +63,8 @@ public sealed class CreatorsHost : IAsyncDisposable
                     builder.UseSetting($"Creators:Social:{platform}:RedirectUri", $"https://studio.onvoyage.test/studio/connections/{platform.ToLowerInvariant()}/callback");
                 }
 
+                // The reader of the places mentioned in contents is the offline deterministic one: no model, no network.
+                builder.UseSetting("Creators:GeoAssociation:Provider", "offline");
                 builder.UseSetting("Creators:DataProtection:KeysDirectory", Path.Combine(exports, "keys"));
                 builder.UseSetting("Creators:Social:MediaDirectory", Path.Combine(exports, "media"));
             });

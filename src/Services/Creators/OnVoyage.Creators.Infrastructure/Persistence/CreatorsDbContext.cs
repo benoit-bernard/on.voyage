@@ -20,6 +20,7 @@ internal sealed class CreatorsDbContext(DbContextOptions<CreatorsDbContext> opti
     public DbSet<PoiDirectoryRow> Pois => Set<PoiDirectoryRow>();
     public DbSet<ModerationCaseRow> Cases => Set<ModerationCaseRow>();
     public DbSet<ConnectedAccountRow> ConnectedAccounts => Set<ConnectedAccountRow>();
+    public DbSet<UnmatchedMentionRow> UnmatchedMentions => Set<UnmatchedMentionRow>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,8 +53,19 @@ internal sealed class CreatorsDbContext(DbContextOptions<CreatorsDbContext> opti
             e.HasIndex(r => new { r.Platform, r.ExternalId }).IsUnique().HasDatabaseName(ContentIndex);
             e.HasIndex(r => r.CreatorId);
             e.HasIndex(r => r.ConnectedAccountId);
+            e.HasIndex(r => new { r.CreatorId, r.GeotaggedAt });
             e.HasOne<ConnectedAccountRow>().WithMany().HasForeignKey(r => r.ConnectedAccountId).OnDelete(DeleteBehavior.SetNull);
             e.Property(r => r.Chapters).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<UnmatchedMentionRow>(e =>
+        {
+            e.ToTable("unmatched_mention");
+            e.HasKey(r => r.Id);
+            e.HasOne<CreatorRow>().WithMany().HasForeignKey(r => r.CreatorId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<ContentRow>().WithMany().HasForeignKey(r => r.ContentId).OnDelete(DeleteBehavior.Cascade);
+            e.HasIndex(r => new { r.ContentId, r.Key }).IsUnique();
+            e.HasIndex(r => r.CreatorId);
         });
 
         modelBuilder.Entity<ConnectedAccountRow>(e =>

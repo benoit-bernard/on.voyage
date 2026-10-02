@@ -50,6 +50,9 @@ public interface IContentRepository
     /// <summary>The contents that a connected account brought in (online, hidden or removed).</summary>
     Task<IReadOnlyList<ContentItem>> ListContentsOfAccountAsync(Guid connectedAccountId, CancellationToken cancellationToken);
 
+    /// <summary>Online contents the assistant has not looked at yet (or all of them with <paramref name="all"/>), most recent first.</summary>
+    Task<IReadOnlyList<Guid>> ListContentIdsToAnalyzeAsync(Guid creatorId, bool all, int limit, CancellationToken cancellationToken);
+
     Task StageContentAsync(ContentItem content, CancellationToken cancellationToken);
 
     Task<PlaceLink?> FindLinkAsync(Guid id, CancellationToken cancellationToken);
@@ -79,6 +82,12 @@ public interface IPoiDirectory
     Task<PoiEntry?> FindAsync(Guid poiId, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<PoiSearchResultDto>> SearchAsync(string query, string? destinationSlug, int limit, CancellationToken cancellationToken);
+
+    /// <summary>The places whose names may be what a mention says (substring or trigram match on every name and alias), best first. <paramref name="normalizedName"/> comes from <c>PlaceMatcher.Normalize</c>.</summary>
+    Task<IReadOnlyList<PoiEntry>> FindCandidatesAsync(string normalizedName, int limit, CancellationToken cancellationToken);
+
+    /// <summary>The destinations of these places.</summary>
+    Task<IReadOnlySet<Guid>> DestinationsOfAsync(IReadOnlyCollection<Guid> poiIds, CancellationToken cancellationToken);
 }
 
 public interface IPoiDirectoryWriter
@@ -105,6 +114,13 @@ public interface IFollowRepository
     Task<bool> StageAsync(Guid travelerId, Guid creatorId, bool following, DateTimeOffset at, CancellationToken cancellationToken);
 }
 
+/// <summary>Mentions of places the catalog does not have, already suggested to the editorial team: one suggestion per content and name, however many times a content is analysed.</summary>
+public interface IUnmatchedMentionRepository
+{
+    /// <summary>Stages the mention. False when it was already suggested for that content.</summary>
+    Task<bool> StageIfNewAsync(Guid creatorId, Guid contentId, string key, string name, string? city, string? excerpt, DateTimeOffset at, CancellationToken cancellationToken);
+}
+
 /// <summary>The version of the creator terms (CGU créateurs, H-010) that a new creator accepts. Configuration, so a new version is a deployment, not a release.</summary>
 public interface ICreatorTerms
 {
@@ -127,6 +143,9 @@ public interface ICreatorQueries
     Task<IReadOnlyList<AdminCreatorSummaryDto>> ListAdminAsync(string? status, string? search, int limit, CancellationToken cancellationToken);
 
     Task<AdminCreatorDetailDto?> GetAdminDetailAsync(Guid creatorId, CancellationToken cancellationToken);
+
+    /// <summary>The proposals of the assistant waiting for the creator, by destination, best first (F-28).</summary>
+    Task<PlaceProposalsDto> ListProposalsAsync(Guid creatorId, double bulkThreshold, CancellationToken cancellationToken);
 
     Task<IReadOnlyList<ModerationCaseDto>> ListModerationAsync(string? status, int limit, CancellationToken cancellationToken);
 

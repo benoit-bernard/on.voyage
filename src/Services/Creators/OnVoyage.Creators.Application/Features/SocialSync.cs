@@ -2,6 +2,7 @@ using Microsoft.Extensions.Logging;
 using OnVoyage.Creators.Application.Ports;
 using OnVoyage.Creators.Contracts;
 using OnVoyage.Creators.Domain;
+using Wolverine;
 
 namespace OnVoyage.Creators.Application.Features;
 
@@ -15,7 +16,7 @@ public static class SocialSyncHandler
     /// <summary>The 200 most recent contents of an account (F-27).</summary>
     public const int ImportLimit = 200;
 
-    public static async Task<Result<SyncReportDto>> Handle(SyncConnectedAccountCommand command, IConnectedAccountRepository accounts, IContentRepository contents, ISocialConnector connector, IThumbnailStore thumbnails, ICreatorsUnitOfWork unit, TimeProvider clock, ILogger<SyncConnectedAccountCommand> logger, CancellationToken cancellationToken)
+    public static async Task<Result<SyncReportDto>> Handle(SyncConnectedAccountCommand command, IConnectedAccountRepository accounts, IContentRepository contents, ISocialConnector connector, IThumbnailStore thumbnails, ICreatorsUnitOfWork unit, IMessageBus bus, TimeProvider clock, ILogger<SyncConnectedAccountCommand> logger, CancellationToken cancellationToken)
     {
         if (await accounts.FindAsync(command.ConnectedAccountId, cancellationToken) is not { IsActive: true } account)
         {
@@ -42,6 +43,7 @@ public static class SocialSyncHandler
 
         List<object> events = [];
         int created = 0, updated = 0, removed = 0;
+        List<Guid> toAnalyze = [];
         HashSet<string> seen = new(StringComparer.Ordinal);
         foreach (var remote in fetch.Items)
         {
@@ -68,6 +70,7 @@ public static class SocialSyncHandler
                 var id = Guid.CreateVersion7();
                 var cover = remote.ThumbnailUrl is { } url ? await thumbnails.SaveAsync(account.CreatorId, id, url, cancellationToken) : null;
                 await contents.StageContentAsync(new ContentItem(id, account.CreatorId, account.Platform, externalId, remote.Permalink, title, excerpt, remote.PublishedAt, remote.DurationSeconds, kind, cover, chapters, commercial, ContentStatuses.Imported, account.Id), cancellationToken);
+                toAnalyze.Add(id);
                 created++;
                 continue;
             }
@@ -134,6 +137,13 @@ public static class SocialSyncHandler
 
         await accounts.StageAsync(account.Synced(now), cancellationToken);
         await unit.CommitAsync(events, cancellationToken);
+
+        // New contents go to the assistant that looks for the places they talk about (F-28): proposals only, in the background.
+        foreach (var contentId in toAnalyze)
+        {
+            await bus.PublishAsync(new AnalyzeContentCommand(contentId));
+        }
+
         logger.LogInformation("Synchronised {Platform} account {AccountId}: {Created} created, {Updated} updated, {Removed} removed.", account.Platform, account.Id, created, updated, removed);
         return Result.Success(new SyncReportDto(created, updated, removed, ConnectionStatuses.Active));
     }

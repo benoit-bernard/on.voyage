@@ -50,6 +50,11 @@ internal sealed class ContentRepository(CreatorsDbContext db, TimeProvider clock
     public async Task<IReadOnlyList<ContentItem>> ListContentsOfAccountAsync(Guid connectedAccountId, CancellationToken cancellationToken) =>
         [.. (await db.Contents.Where(content => content.ConnectedAccountId == connectedAccountId).ToListAsync(cancellationToken)).Select(row => row.ToDomain())];
 
+    public async Task<IReadOnlyList<Guid>> ListContentIdsToAnalyzeAsync(Guid creatorId, bool all, int limit, CancellationToken cancellationToken) =>
+        await db.Contents.AsNoTracking()
+            .Where(content => content.CreatorId == creatorId && content.Status == ContentStatuses.Imported && (all || content.GeotaggedAt == null))
+            .OrderByDescending(content => content.PublishedAt).ThenByDescending(content => content.CreatedAt).Select(content => content.Id).Take(limit).ToListAsync(cancellationToken);
+
     public async Task StageContentAsync(ContentItem content, CancellationToken cancellationToken)
     {
         var row = await db.Contents.FindAsync([content.Id], cancellationToken);
@@ -241,6 +246,25 @@ internal sealed class PoiDirectory(CreatorsDbContext db, TimeProvider clock) : I
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PoiEntry>> FindCandidatesAsync(string normalizedName, int limit, CancellationToken cancellationToken)
+    {
+        if (normalizedName.Length < 3)
+        {
+            return [];
+        }
+
+        // Substring on the folded names (hyphens and apostrophes read as spaces, like the matcher does) or a trigram word match, best first.
+        var pattern = "%" + normalizedName.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("%", "\\%", StringComparison.Ordinal).Replace("_", "\\_", StringComparison.Ordinal) + "%";
+        var rows = await db.Pois.AsNoTracking()
+            .Where(poi => EF.Functions.Like(poi.SearchText.Replace("-", " ").Replace("'", " "), pattern) || EF.Functions.TrigramsAreWordSimilar(normalizedName, poi.SearchText))
+            .OrderByDescending(poi => EF.Functions.TrigramsWordSimilarity(normalizedName, poi.SearchText)).ThenByDescending(poi => poi.ImportanceScore)
+            .Take(limit).ToListAsync(cancellationToken);
+        return [.. rows.Select(row => row.ToDomain())];
+    }
+
+    public async Task<IReadOnlySet<Guid>> DestinationsOfAsync(IReadOnlyCollection<Guid> poiIds, CancellationToken cancellationToken) =>
+        new HashSet<Guid>(await db.Pois.AsNoTracking().Where(poi => poiIds.Contains(poi.PoiId)).Select(poi => poi.DestinationId).Distinct().ToListAsync(cancellationToken));
+
     public async Task<bool> ApplyAsync(PoiEntry entry, CancellationToken cancellationToken)
     {
         var row = await db.Pois.FindAsync([entry.PoiId], cancellationToken);
@@ -267,6 +291,20 @@ internal sealed class PoiDirectory(CreatorsDbContext db, TimeProvider clock) : I
             return false;
         }
 
+        return true;
+    }
+}
+
+internal sealed class UnmatchedMentionRepository(CreatorsDbContext db) : IUnmatchedMentionRepository
+{
+    public async Task<bool> StageIfNewAsync(Guid creatorId, Guid contentId, string key, string name, string? city, string? excerpt, DateTimeOffset at, CancellationToken cancellationToken)
+    {
+        if (key.Length == 0 || await db.UnmatchedMentions.AnyAsync(row => row.ContentId == contentId && row.Key == key, cancellationToken) || db.UnmatchedMentions.Local.Any(row => row.ContentId == contentId && row.Key == key))
+        {
+            return false;
+        }
+
+        db.UnmatchedMentions.Add(new UnmatchedMentionRow { Id = Guid.CreateVersion7(), CreatorId = creatorId, ContentId = contentId, Key = key, Name = name, City = city, Excerpt = excerpt, SuggestedAt = at });
         return true;
     }
 }

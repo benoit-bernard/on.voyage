@@ -51,6 +51,21 @@ internal sealed class HttpStudioApi(IHttpClientFactory clients, StudioSession se
     public Task RemovePlaceLinkAsync(Guid linkId, CancellationToken cancellationToken = default) =>
         _gateway.WriteAsync(HttpMethod.Delete, $"{Studio}/place-links/{linkId}", null, cancellationToken);
 
+    public Task<PlaceProposalsDto> GetProposalsAsync(CancellationToken cancellationToken = default) =>
+        _gateway.GetAsync<PlaceProposalsDto>($"{Studio}/place-links?status=proposed", cancellationToken);
+
+    public Task<ReviewResultDto> ValidateProposalsAsync(IReadOnlyList<Guid>? linkIds, double? minConfidence, CancellationToken cancellationToken = default) =>
+        _gateway.WriteAsync<ReviewResultDto>(HttpMethod.Post, $"{Studio}/place-links/validate", new ReviewPlaceLinksRequest(linkIds, minConfidence), cancellationToken);
+
+    public Task<ReviewResultDto> RejectProposalsAsync(IReadOnlyList<Guid> linkIds, CancellationToken cancellationToken = default) =>
+        _gateway.WriteAsync<ReviewResultDto>(HttpMethod.Post, $"{Studio}/place-links/reject", new ReviewPlaceLinksRequest(linkIds, null), cancellationToken);
+
+    public Task<AdminPlaceLinkDto> CorrectProposalAsync(Guid linkId, Guid poiId, CancellationToken cancellationToken = default) =>
+        _gateway.WriteAsync<AdminPlaceLinkDto>(HttpMethod.Post, $"{Studio}/place-links/{linkId}/correct", new CorrectPlaceLinkRequest(poiId), cancellationToken);
+
+    public Task<AnalysisRequestedDto> AnalyzeAsync(bool force, CancellationToken cancellationToken = default) =>
+        _gateway.WriteAsync<AnalysisRequestedDto>(HttpMethod.Post, $"{Studio}/place-links/analyze?force={(force ? "true" : "false")}", new { }, cancellationToken);
+
     public Task<ConnectionsDto> GetConnectionsAsync(CancellationToken cancellationToken = default) =>
         _gateway.GetAsync<ConnectionsDto>($"{Studio}/connections", cancellationToken);
 

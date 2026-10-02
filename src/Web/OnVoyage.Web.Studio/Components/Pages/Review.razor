@@ -1,0 +1,180 @@
+@page "/studio/review"
+@attribute [Authorize(Policy = StudioClaims.PolicyName)]
+@inherits StudioPageBase
+
+<h1>Lieux trouvés dans vos contenus</h1>
+<p class="muted">Un assistant lit le titre, la description et les chapitres de vos contenus et propose les lieux dont ils parlent. <strong>Rien n'est publié sans votre accord</strong> : un lieu n'apparaît sur votre page, dans l'app et dans les recommandations qu'une fois validé ici. Aucune donnée de voyageur n'est utilisée.</p>
+<Status Message="@Message" Error="@Error" />
+
+@if (_proposals is null)
+{
+    @if (Error is null)
+    {
+        <p>Chargement…</p>
+    }
+}
+else
+{
+    <section class="card" id="summary">
+        @if (_proposals.Total == 0)
+        {
+            <h2 id="headline">Aucune proposition en attente</h2>
+        }
+        else
+        {
+            <h2 id="headline">Nous avons trouvé @_proposals.Total lieu@(_proposals.Total > 1 ? "x" : string.Empty) dans vos contenus</h2>
+            <div class="row">
+                <button type="button" id="validate-all" class="primary" disabled="@(Busy || _proposals.ReadyCount == 0)" @onclick="ValidateAllAsync">Tout valider (@_proposals.ReadyCount à @Percent(_proposals.BulkThreshold) % ou plus)</button>
+                <span class="muted">Les propositions en dessous de @Percent(_proposals.BulkThreshold) % se valident une par une.</span>
+            </div>
+        }
+
+        @if (_proposals.Pending > 0)
+        {
+            <p class="muted" id="pending">@_proposals.Pending contenu(s) pas encore analysé(s).</p>
+        }
+
+        <div class="row">
+            <button type="button" id="analyze" disabled="@Busy" @onclick="() => AnalyzeAsync(false)">Analyser mes contenus</button>
+            <button type="button" id="reanalyze" class="ghost" disabled="@Busy" @onclick="() => AnalyzeAsync(true)">Tout réanalyser</button>
+        </div>
+    </section>
+
+    @foreach (var group in _proposals.Groups)
+    {
+        <section class="card group" id="@($"group-{group.Destination}")">
+            <h2>@group.Destination <span class="tag">@group.Items.Count</span></h2>
+            <table>
+                <thead><tr><th>Lieu</th><th>Contenu</th><th>Confiance</th><th>Pourquoi</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var item in group.Items)
+                    {
+                        <tr class="proposal @(item.Confidence >= _proposals.BulkThreshold ? "sure" : "review")">
+                            <td>@item.PoiName@if (!string.IsNullOrEmpty(item.City)) { <span class="muted"> · @item.City</span> }</td>
+                            <td>
+                                @if (item.ContentUrl is { } url)
+                                {
+                                    <a href="@url" target="_blank" rel="noopener noreferrer">@item.ContentTitle</a>
+                                    @if (item.StartSeconds is { } start) { <span class="muted"> à @ChapterText.FormatTime(start)</span> }
+                                }
+                                else
+                                {
+                                    <span class="muted">—</span>
+                                }
+                            </td>
+                            <td class="confidence">
+                                @Percent(item.Confidence) %
+                                @if (item.Confidence < _proposals.BulkThreshold)
+                                {
+                                    <span class="tag">à vérifier</span>
+                                }
+                                @if (item.Signals.Contains("ambiguous"))
+                                {
+                                    <span class="tag">nom ambigu</span>
+                                }
+                            </td>
+                            <td class="muted">@item.Evidence</td>
+                            <td class="actions">
+                                <button type="button" class="accept" disabled="@Busy" @onclick="() => ValidateAsync(item)">Valider</button>
+                                <button type="button" class="reject" disabled="@Busy" @onclick="() => RejectAsync(item)">Refuser</button>
+                                <button type="button" class="ghost correct" disabled="@Busy" @onclick="() => StartCorrection(item)">Corriger</button>
+                            </td>
+                        </tr>
+                        @if (_correcting == item.LinkId)
+                        {
+                            <tr class="correction">
+                                <td colspan="5">
+                                    <div class="row">
+                                        <div>
+                                            <label for="correct-query">Le bon lieu</label>
+                                            <input id="correct-query" @bind="_query" @bind:event="oninput" placeholder="Nom du lieu" />
+                                        </div>
+                                        <button type="button" id="correct-search" disabled="@(Busy || _query.Trim().Length < 2)" @onclick="SearchAsync">Chercher</button>
+                                    </div>
+                                    @if (_results.Count > 0)
+                                    {
+                                        <ul class="candidates" id="correct-results">
+                                            @foreach (var place in _results)
+                                            {
+                                                <li>
+                                                    <span>@place.Name <span class="muted">· @place.City</span></span>
+                                                    <button type="button" disabled="@Busy" @onclick="() => CorrectAsync(item, place)">C'est celui-ci</button>
+                                                </li>
+                                            }
+                                        </ul>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    }
+                </tbody>
+            </table>
+        </section>
+    }
+}
+
+@code {
+    private PlaceProposalsDto? _proposals;
+    private Guid? _correcting;
+    private string _query = string.Empty;
+    private IReadOnlyList<PoiSearchResultDto> _results = [];
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync() => _proposals = await LoadAsync(() => Api.GetProposalsAsync()) ?? _proposals;
+
+    private static int Percent(double value) => (int)Math.Round(value * 100, MidpointRounding.AwayFromZero);
+
+    private async Task ValidateAllAsync()
+    {
+        ReviewResultDto? result = null;
+        await RunAsync(async () => result = await Api.ValidateProposalsAsync(null, _proposals!.BulkThreshold));
+        if (result is not null)
+        {
+            Message = $"{result.Validated} lieu(x) validé(s) : ils sont publiés sur votre page.";
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ValidateAsync(PlaceProposalDto item)
+    {
+        await RunAsync(async () => await Api.ValidateProposalsAsync([item.LinkId], null), $"{item.PoiName} est validé : il est publié sur votre page.");
+        await ReloadAsync();
+    }
+
+    private async Task RejectAsync(PlaceProposalDto item)
+    {
+        await RunAsync(async () => await Api.RejectProposalsAsync([item.LinkId]), $"{item.PoiName} est refusé : il ne sera plus proposé.");
+        await ReloadAsync();
+    }
+
+    private void StartCorrection(PlaceProposalDto item)
+    {
+        _correcting = _correcting == item.LinkId ? null : item.LinkId;
+        _query = string.Empty;
+        _results = [];
+    }
+
+    private Task SearchAsync() => RunAsync(async () => _results = await Api.SearchPlacesAsync(_query.Trim()));
+
+    private async Task CorrectAsync(PlaceProposalDto item, PoiSearchResultDto place)
+    {
+        await RunAsync(async () => await Api.CorrectProposalAsync(item.LinkId, place.PoiId), $"C'est {place.Name} : le lieu est corrigé et validé.");
+        if (Error is null)
+        {
+            _correcting = null;
+            _results = [];
+            await ReloadAsync();
+        }
+    }
+
+    private async Task AnalyzeAsync(bool force)
+    {
+        AnalysisRequestedDto? requested = null;
+        await RunAsync(async () => requested = await Api.AnalyzeAsync(force));
+        if (requested is not null)
+        {
+            Message = requested.Contents == 0 ? "Aucun contenu à analyser." : $"Analyse demandée pour {requested.Contents} contenu(s) : les propositions arrivent dans un instant.";
+        }
+    }
+}

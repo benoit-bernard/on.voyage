@@ -38,7 +38,21 @@ internal sealed class ContentRow
     public bool IsCommercial { get; set; }
     public string Status { get; set; } = "imported";
     public Guid? ConnectedAccountId { get; set; }
+    public DateTimeOffset? GeotaggedAt { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>A place a content mentions that the catalog does not have, already suggested to the editorial team (one per content and name).</summary>
+internal sealed class UnmatchedMentionRow
+{
+    public Guid Id { get; set; }
+    public Guid CreatorId { get; set; }
+    public Guid ContentId { get; set; }
+    public string Key { get; set; } = "";
+    public string Name { get; set; } = "";
+    public string? City { get; set; }
+    public string? Excerpt { get; set; }
+    public DateTimeOffset SuggestedAt { get; set; }
 }
 
 /// <summary>

@@ -862,4 +862,12 @@ Migration `ConnectedAccounts` (T-1207/1208, [ADR-0020](adr/0020-imports-instagra
 | `creators.connected_account` | `id` | `creator_id` (cascade), `platform`, `external_user_id`, `username`, **`access_token_protected`**, **`refresh_token_protected`** (chiffrés par Data Protection, nuls une fois le compte à reconnecter), `expires_at`, `scopes text[]`, `last_sync_at`, `status` (`active`, `needs_reauth`), `last_error`, `created_at` | unique (`creator_id`, `platform`) ; unique (`platform`, `external_user_id`) : un compte de plateforme, un créateur ; `platform in (instagram, youtube, tiktok)` ; seules colonnes de jeton de tout le schéma (test) |
 | `creators.content_item` (colonne ajoutée) | | `connected_account_id` (null pour un contenu saisi à la main ; `ON DELETE SET NULL`) | index |
 
+Migration `GeoAssociation` (T-1209, [ADR-0021](adr/0021-geo-association.md)) :
+
+| Table | Clé | Colonnes principales | Index et contraintes |
+| --- | --- | --- | --- |
+| `creators.content_item` (colonne ajoutée) | | `geotagged_at` (nulle tant que le contenu n'a pas été analysé) | (`creator_id`, `geotagged_at`) |
+| `creators.unmatched_mention` | `id` | `creator_id` (cascade), `content_id` (cascade), `key` (nom normalisé), `name`, `city`, `excerpt` (≤ 200), `suggested_at` | unique (`content_id`, `key`) : un lieu inconnu n'est suggéré qu'une fois par contenu ; supprimée avec le créateur |
+| `creators.place_link` (usage) | | les propositions de l'assistant sont des lignes `status = proposed` avec `confidence` et `signals jsonb` (`source`, `signals`, `evidence`, `mention`, `alternatives`) ; une correction du créateur est `signals.source = creator_correction` | seules les lignes `validated` sont publiées |
+
 Hors de cette livraison : `creator_list`, `creator_list_item`, `creator_stats_daily` du §11.5.

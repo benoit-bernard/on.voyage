@@ -1,6 +1,8 @@
+using System.ClientModel;
 using System.Security.Cryptography.X509Certificates;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
@@ -8,8 +10,10 @@ using Microsoft.Extensions.Options;
 using OnVoyage.Creators.Application.Features;
 using OnVoyage.Creators.Application.Ports;
 using OnVoyage.Creators.Domain;
+using OnVoyage.Creators.Infrastructure.GeoAssociation;
 using OnVoyage.Creators.Infrastructure.Persistence;
 using OnVoyage.Creators.Infrastructure.Social;
+using OpenAI;
 using Wolverine.EntityFrameworkCore;
 
 namespace OnVoyage.Creators.Infrastructure;
@@ -17,6 +21,8 @@ namespace OnVoyage.Creators.Infrastructure;
 public static class DependencyInjection
 {
     public const string ConnectionName = "onvoyage";
+
+    private static readonly string[] RequiredModelSettings = ["OpenAI:ApiKey", "Creators:Llm:GeotagModel"];
 
     public static IServiceCollection AddCreatorsInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
@@ -38,6 +44,7 @@ public static class DependencyInjection
         services.AddSingleton(TimeProvider.System);
         services.AddSingleton<ICreatorTerms>(new ConfiguredCreatorTerms(configuration["Creators:Terms:CurrentVersion"] is { Length: > 0 } version ? version : "2026-10"));
         AddSocial(services, configuration);
+        AddGeoAssociation(services, configuration);
         services.AddHealthChecks().AddCheck<CreatorsDatabaseHealthCheck>("creators-db", tags: ["ready"]);
         return services;
     }
@@ -81,6 +88,39 @@ public static class DependencyInjection
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { AllowAutoRedirect = false })
             .RemoveAllLoggers();
         services.AddSingleton(Options.Create(social));
+    }
+
+    /// <summary>
+    /// The reader of F-28 (<c>Creators:GeoAssociation:Provider</c>): <c>disabled</c> (default, nothing is analysed), <c>offline</c> (deterministic, no network) or
+    /// <c>openai</c> (needs <c>OpenAI:ApiKey</c> and <c>Creators:Llm:GeotagModel</c>: the service refuses to start without them rather than fail on the first content).
+    /// </summary>
+    private static void AddGeoAssociation(IServiceCollection services, IConfiguration configuration)
+    {
+        var provider = configuration["Creators:GeoAssociation:Provider"] ?? "disabled";
+        services.AddScoped<IUnmatchedMentionRepository, UnmatchedMentionRepository>();
+        services.AddSingleton<IGeoAssociationSettings>(ConfiguredGeoAssociationSettings.From(configuration, provider is "offline" or "openai"));
+        switch (provider)
+        {
+            case "openai":
+                var missing = RequiredModelSettings.Where(key => string.IsNullOrWhiteSpace(configuration[key])).ToArray();
+                if (missing.Length > 0)
+                {
+                    throw new InvalidOperationException($"Creators:GeoAssociation:Provider is 'openai' but these settings are missing: {string.Join(", ", missing)}. Use 'disabled' to run without a model.");
+                }
+
+                var client = new OpenAIClient(new ApiKeyCredential(configuration["OpenAI:ApiKey"]!));
+                services.AddSingleton<IChatClient>(_ => client.GetChatClient(configuration["Creators:Llm:GeotagModel"]!).AsIChatClient());
+                services.AddScoped<IPlaceMentionExtractor, ChatPlaceMentionExtractor>();
+                break;
+            case "offline":
+                services.AddScoped<IPlaceMentionExtractor, OfflinePlaceMentionExtractor>();
+                break;
+            case "disabled":
+                services.AddScoped<IPlaceMentionExtractor, DisabledPlaceMentionExtractor>();
+                break;
+            default:
+                throw new InvalidOperationException($"Unknown Creators:GeoAssociation:Provider '{provider}' (openai, offline or disabled).");
+        }
     }
 
     public static async Task InitializeCreatorsAsync(this IServiceProvider services, CancellationToken cancellationToken = default)

@@ -65,7 +65,8 @@ internal static class Mapping
             Chapters(row.Chapters),
             row.IsCommercial,
             row.Status,
-            row.ConnectedAccountId);
+            row.ConnectedAccountId,
+            row.GeotaggedAt);
 
     public static ConnectedAccount ToDomain(this ConnectedAccountRow row) =>
         new(row.Id, row.CreatorId, row.Platform, row.ExternalUserId, row.Username, row.ExpiresAt, row.Scopes, row.LastSyncAt, row.Status, row.LastError, row.CreatedAt);
@@ -109,6 +110,7 @@ internal static class Mapping
         row.IsCommercial = content.IsCommercial;
         row.Status = content.Status;
         row.ConnectedAccountId = content.ConnectedAccountId;
+        row.GeotaggedAt = content.GeotaggedAt;
         if (row.CreatedAt == default)
         {
             row.CreatedAt = now;

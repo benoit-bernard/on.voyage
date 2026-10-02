@@ -91,6 +91,9 @@ internal sealed class DataRightsStore(IDbContextOutbox<CreatorsDbContext> outbox
                 // Which accounts are connected, never the tokens.
                 connectedAccounts = await Db.ConnectedAccounts.AsNoTracking().Where(account => account.CreatorId == creator.Id).OrderBy(account => account.CreatedAt)
                     .Select(account => new { account.Platform, account.Username, account.Scopes, account.Status, account.LastSyncAt, account.CreatedAt }).ToListAsync(cancellationToken),
+                // Places the assistant found in the contents and that the catalog does not have (suggested to the editorial team).
+                placeSuggestions = await Db.UnmatchedMentions.AsNoTracking().Where(mention => mention.CreatorId == creator.Id).OrderBy(mention => mention.SuggestedAt)
+                    .Select(mention => new { mention.Name, mention.City, mention.Excerpt, mention.ContentId, mention.SuggestedAt }).ToListAsync(cancellationToken),
                 tips = await Db.Tips.AsNoTracking().Where(tip => tip.CreatorId == creator.Id).OrderBy(tip => tip.UpdatedAt)
                     .Select(tip => new { tip.PoiId, tip.Text, tip.Status, tip.UpdatedAt }).ToListAsync(cancellationToken),
             };

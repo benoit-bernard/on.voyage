@@ -34,6 +34,9 @@ builder.Host.UseWolverine(options =>
     options.PublishMessage<AdminActionRecordedV1>().ToPostgresqlQueue("platform");
     options.PublishMessage<CreatorTermsAcceptedV1>().ToPostgresqlQueue("platform");
 
+    // Unknown places that creators mention go to the editorial team (Factory, F-28).
+    options.PublishMessage<PlaceSuggestedV1>().ToPostgresqlQueue("factory");
+
     // Consumers of the creator events: one queue per subscribed service. Discovery handles them since T-1205; Insights joins with T-1212 (configuration, not code).
     foreach (var subscriber in builder.Configuration.GetSection("Messaging:CreatorSubscribers").Get<string[]>() ?? ["discovery"])
     {

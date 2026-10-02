@@ -50,6 +50,24 @@ internal static class StudioEndpoints
         studio.MapDelete("/contents/{contentId:guid}", (Guid contentId, HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<bool>>(new StudioRemoveContentCommand(Account(http), contentId), ct), _ => Results.NoContent()));
 
+        // Proposals of the assistant (F-28): nothing is published until the creator validates it, one by one or in bulk above the threshold.
+        studio.MapGet("/place-links", (string? status, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            status is null or "proposed"
+                ? Translate(bus.InvokeAsync<Result<PlaceProposalsDto>>(new ListProposalsQuery(Account(http)), ct))
+                : Task.FromResult(Results.Problem(title: "Seul le statut « proposed » est consultable ici.", statusCode: StatusCodes.Status400BadRequest, type: "https://on.voyage/problems/validation")));
+
+        studio.MapPost("/place-links/validate", (ReviewPlaceLinksRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<ReviewResultDto>>(new ValidateProposalsCommand(Account(http), request), ct)));
+
+        studio.MapPost("/place-links/reject", (ReviewPlaceLinksRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<ReviewResultDto>>(new RejectProposalsCommand(Account(http), request), ct)));
+
+        studio.MapPost("/place-links/{linkId:guid}/correct", (Guid linkId, CorrectPlaceLinkRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<AdminPlaceLinkDto>>(new CorrectProposalCommand(Account(http), linkId, request.PoiId), ct)));
+
+        studio.MapPost("/place-links/analyze", (bool? force, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<AnalysisRequestedDto>>(new AnalyzeContentsCommand(Account(http), force ?? false), ct), requested => Results.Accepted(value: requested)));
+
         studio.MapPost("/place-links", (AddPlaceLinkRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<AdminPlaceLinkDto>>(new StudioAddPlaceLinkCommand(Account(http), request), ct)));
 

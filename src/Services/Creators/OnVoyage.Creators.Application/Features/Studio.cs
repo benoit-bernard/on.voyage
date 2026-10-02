@@ -1,6 +1,7 @@
 using OnVoyage.Creators.Application.Ports;
 using OnVoyage.Creators.Contracts;
 using OnVoyage.Creators.Domain;
+using Wolverine;
 
 namespace OnVoyage.Creators.Application.Features;
 
@@ -148,10 +149,21 @@ public static class StudioHandler
         return unpublished.IsSuccess ? await Profile(creator.Id, queries, cancellationToken) : Result.Failure<StudioProfileDto>(unpublished.Error!.Code, unpublished.Error.Message);
     }
 
-    public static async Task<Result<AdminContentDto>> Handle(StudioAddContentCommand command, ICreatorRepository creators, IContentRepository contents, ICreatorsUnitOfWork unit, TimeProvider clock, CancellationToken cancellationToken)
+    public static async Task<Result<AdminContentDto>> Handle(StudioAddContentCommand command, ICreatorRepository creators, IContentRepository contents, ICreatorsUnitOfWork unit, IMessageBus bus, TimeProvider clock, CancellationToken cancellationToken)
     {
         var (creator, failure) = await Own<AdminContentDto>(command.AccountId, creators, cancellationToken);
-        return creator is null ? failure! : await CreatorContentHandler.Handle(new AddContentCommand(command.AccountId, creator.Id, command.Content), creators, contents, unit, clock, cancellationToken);
+        if (creator is null)
+        {
+            return failure!;
+        }
+
+        var added = await CreatorContentHandler.Handle(new AddContentCommand(command.AccountId, creator.Id, command.Content), creators, contents, unit, clock, cancellationToken);
+        if (added.IsSuccess)
+        {
+            await bus.PublishAsync(new AnalyzeContentCommand(added.Value!.Id)); // the assistant proposes the places it mentions
+        }
+
+        return added;
     }
 
     public static async Task<Result<AdminContentDto>> Handle(StudioUpdateContentCommand command, ICreatorRepository creators, IContentRepository contents, ICreatorsUnitOfWork unit, TimeProvider clock, CancellationToken cancellationToken)

@@ -242,5 +242,6 @@ Développement : Aspire (`dotnet run --project src/Aspire/OnVoyage.AppHost`). St
 | [0011](adr/0011-discovery-service-learning-feedback-planning.md) | Discovery : apprentissage, retours, envies, planification |
 | [0019](adr/0019-web-studio.md) | Espace créateur `Web.Studio` : inscription, rôle, conseils, contenus |
 | [0020](adr/0020-imports-instagram-youtube.md) | Comptes connectés et imports Instagram et YouTube |
+| [0021](adr/0021-geo-association.md) | Géo-association assistée par IA : lecture, appariement, validation par le créateur |
 
 Questions ouvertes : `docs/questions/` (sources de Factory, OpenAI, Resend).

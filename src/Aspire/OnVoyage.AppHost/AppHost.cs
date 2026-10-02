@@ -82,6 +82,10 @@ creators.WithEnvironment("Creators__Social__MediaDirectory", mediaDirectory);
 if (builder.ExecutionContext.IsRunMode)
 {
     creators.WithEnvironment("Creators__DataProtection__KeysDirectory", Path.Combine(Path.GetTempPath(), "onvoyage-creators-keys"));
+
+    // Local runs read the places of the creators' contents with the offline deterministic reader (no model, no key). Production decides with
+    // Creators:GeoAssociation:Provider (disabled by default; openai needs OpenAI:ApiKey and Creators:Llm:GeotagModel, docs/CONFIGURATION.md).
+    creators.WithEnvironment("Creators__GeoAssociation__Provider", "offline");
 }
 factoryWorker.WithEnvironment("Factory__MediaDirectory", mediaDirectory);
 
