@@ -1,6 +1,7 @@
 using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using OnVoyage.App.Core.Audio;
+using OnVoyage.App.Core.Background;
 using OnVoyage.App.Core.Discovery;
 using OnVoyage.App.Core;
 using OnVoyage.App.Core.Auth;
@@ -38,7 +39,17 @@ public static class MauiProgram
         builder.Services.AddSingleton<IAudioPlayer>(provider => provider.GetRequiredService<MediaElementAudioPlayer>());
         builder.Services.AddSingleton<ISpeechEngine, MauiSpeechEngine>();
         builder.Services.AddSingleton<ITextNarrator, SequentialTextNarrator>(); // stories published without audio are read by the device voice
-        builder.Services.AddSingleton<ILocationSource, MauiLocationSource>();
+        // Discovery mode in the background (T-612): permission path, foreground service / audio session, watchdog. See ADR-0019.
+        builder.Services.AddBackgroundLocation();
+        builder.Services.AddSingleton<ILocationPermissions, MauiLocationPermissions>();
+#if ANDROID
+        builder.Services.AddSingleton<IPlatformLocationUpdates, MauiLocationSource>();
+        builder.Services.AddSingleton<IBackgroundSession, AndroidBackgroundSession>();
+        builder.Services.AddSingleton<IBatteryOptimization, AndroidBatteryOptimization>();
+#elif IOS
+        builder.Services.AddSingleton<IPlatformLocationUpdates, IosLocationUpdates>();
+        builder.Services.AddSingleton<IBackgroundSession, IosBackgroundSession>();
+#endif
         builder.Services.AddSingleton<IScreenKeepAwake, MauiKeepAwake>();
         builder.Services.AddLocalData(Path.Combine(FileSystem.AppDataDirectory, "user.db"));
 

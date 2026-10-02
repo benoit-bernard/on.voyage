@@ -19,6 +19,21 @@
         else
         {
             <p class="status" role="status">@Describe()</p>
+            @if (_background is { Access: LocationAccess.Foreground })
+            {
+                <p class="note" role="status">Gardez l'écran allumé : sans l'autorisation « Toujours », le mode découverte s'arrête quand le téléphone se verrouille.</p>
+            }
+            else if (_background is { Access: LocationAccess.Background })
+            {
+                <p class="note">Le mode découverte continue écran verrouillé. Une notification reste affichée avec un bouton « Arrêter ».</p>
+            }
+
+            @if (_background is { Advice: BackgroundAdvice.BatteryOptimization })
+            {
+                <p class="note" role="status">Votre téléphone semble interrompre ON.VOYAGE en arrière-plan. Autorisez l'application dans les réglages de batterie pour que les histoires continuent.</p>
+                <button type="button" class="btn btn-soft" @onclick="() => _background.OpenBatterySettingsAsync()">Ouvrir les réglages de batterie</button>
+            }
+
             <button type="button" class="btn btn-soft" @onclick="StopAsync">Arrêter le mode découverte</button>
         }
     </section>
@@ -26,6 +41,7 @@
 
 @code {
     private DiscoveryModeController? _discovery;
+    private IBackgroundStatus? _background;
     private DiscoveryState _state = DiscoveryState.Off;
     private bool _keepScreenOn = true;
     private bool _starting;
@@ -38,6 +54,11 @@
         {
             _state = _discovery.State;
             _discovery.Changed += OnChanged;
+            _background = Services.GetService(typeof(IBackgroundStatus)) as IBackgroundStatus;
+            if (_background is not null)
+            {
+                _background.Changed += OnChanged;
+            }
         }
     }
 
@@ -84,6 +105,11 @@
         if (_discovery is not null)
         {
             _discovery.Changed -= OnChanged;
+        }
+
+        if (_background is not null)
+        {
+            _background.Changed -= OnChanged;
         }
     }
 }

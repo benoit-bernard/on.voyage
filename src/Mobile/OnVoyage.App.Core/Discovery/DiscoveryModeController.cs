@@ -42,7 +42,8 @@ public sealed class DiscoveryModeController(
     ITriggerSettingsProvider settings,
     IAnalyticsSink analytics,
     TimeProvider clock,
-    ITextNarrator? narrator = null) : IDisposable
+    ITextNarrator? narrator = null,
+    Background.IBackgroundStatus? background = null) : IDisposable
 {
     private static readonly TimeSpan TickEvery = TimeSpan.FromSeconds(5);
 
@@ -144,6 +145,11 @@ public sealed class DiscoveryModeController(
 
         _subscribed = true;
         location.FixReceived += OnFix;
+        if (background is not null)
+        {
+            background.StopRequested += OnStopRequested;
+        }
+
         calls.CallStateChanged += OnCallState;
         audio.MainStarted += OnMainStarted;
         audio.StoryEnded += OnStoryEnded;
@@ -158,6 +164,11 @@ public sealed class DiscoveryModeController(
 
         _subscribed = false;
         location.FixReceived -= OnFix;
+        if (background is not null)
+        {
+            background.StopRequested -= OnStopRequested;
+        }
+
         calls.CallStateChanged -= OnCallState;
         audio.MainStarted -= OnMainStarted;
         audio.StoryEnded -= OnStoryEnded;
@@ -285,6 +296,9 @@ public sealed class DiscoveryModeController(
         _engine.OnPlaybackEnded(clock.GetUtcNow());
         Publish();
     }
+
+    /// <summary>"Arrêter" in the notification of the background mode.</summary>
+    private void OnStopRequested() => _ = StopAsync();
 
     private void OnCallState(bool inCall) => _engine?.OnCallStateChanged(inCall);
 

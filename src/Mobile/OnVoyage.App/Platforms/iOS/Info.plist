@@ -9,7 +9,8 @@
   <key>UISupportedInterfaceOrientations~ipad</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationPortraitUpsideDown</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
   <key>XSAppIconAssets</key><string>Assets.xcassets/appicon.appiconset</string>
   <key>NSLocationWhenInUseUsageDescription</key><string>ON.VOYAGE utilise votre position pour proposer et raconter les lieux autour de vous. Elle sert à choisir les lieux sur votre téléphone ; elle n'est ni enregistrée ni associée à votre compte.</string>
-  <key>UIBackgroundModes</key><array><string>audio</string></array>
+  <key>NSLocationAlwaysAndWhenInUseUsageDescription</key><string>Pour continuer à vous raconter les lieux quand le téléphone est verrouillé dans votre poche, ON.VOYAGE a besoin de votre position en arrière-plan, seulement tant que le mode découverte est activé. Elle est utilisée sur votre téléphone pour choisir les histoires ; elle n'est ni enregistrée, ni envoyée, ni associée à votre compte.</string>
+  <key>UIBackgroundModes</key><array><string>audio</string><string>location</string></array>
   <key>ITSAppUsesNonExemptEncryption</key><false/>
 </dict>
 </plist>
