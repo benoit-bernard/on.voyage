@@ -66,6 +66,7 @@ Règles qui structurent tout le reste :
 | **Discovery** | Profil d'intérêts (rejeu de l'historique), interactions, avis, visites, onboarding | `discovery` | `Discovery.Api` + … | — | `PoiPublishedV1`, `PoiUnpublishedV1`, `StoryPublishedV1` (extraits), `StoryUnpublishedV1`, `StoryArchivedV1` |
 | **Factory** | Import OSM, enrichissement, scores, faits, rédaction, contrôles, voix, lots, signalements, atelier éditorial | `factory`, `factory_raw` | `Factory.Api` (back-office), `Factory.Worker` (tâches) + … | `PoiPublishedV1`, `PoiUnpublishedV1`, `StoryPublishedV1`, `StoryUnpublishedV1`, `StoryArchivedV1` (vers `catalog` et `discovery`), `AdminActionRecordedV1` (vers `platform`) | commandes de tâches sur sa propre file `factory` |
 | **web-admin** | Back-office Blazor serveur ; ne parle qu'au Gateway avec le jeton de l'éditeur | — | `Web.Admin` | — | — |
+| **web-studio** | Espace créateur Blazor serveur (inscription et CGU, profil, contenus, conseils) ; ne parle qu'au Gateway avec le jeton du créateur | — | `Web.Studio` | — | — |
 | **web-pwa** | PWA (fichiers statiques) | — | `Web.Pwa` | — | — |
 
 Bibliothèques partagées : `OnVoyage.ServiceDefaults` (OpenTelemetry avec expurgation, santé, résilience HTTP, authentification JWT et politiques, projection de configuration, contrôle de version minimale), `OnVoyage.Messaging` (configuration Wolverine commune), `OnVoyage.Recommendation.Engine` (apprentissage du profil, classement, planificateur de visite : C# pur, partagé serveur et app), `OnVoyage.Taxonomy` (74 dimensions).
@@ -239,5 +240,6 @@ Développement : Aspire (`dotnet run --project src/Aspire/OnVoyage.AppHost`). St
 | [0009](adr/0009-admin-blazor.md) | Back-office Blazor |
 | [0010](adr/0010-mobile-discovery-audio-map-localdata.md) | App : déclenchement, audio, carte, données locales |
 | [0011](adr/0011-discovery-service-learning-feedback-planning.md) | Discovery : apprentissage, retours, envies, planification |
+| [0019](adr/0019-web-studio.md) | Espace créateur `Web.Studio` : inscription, rôle, conseils, contenus |
 
 Questions ouvertes : `docs/questions/` (sources de Factory, OpenAI, Resend).

@@ -31,6 +31,7 @@ scrape_configs:
           - http://factory-api:8080/health
           - http://factory-worker:8080/health
           - http://web-admin:8080/health
+          - http://web-studio:8080/health
           - http://web-pwa:8080/
           # Future services (uncomment with their compose entry):
           # - http://insights-api:8080/health

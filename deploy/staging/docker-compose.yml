@@ -263,6 +263,28 @@ services:
     depends_on:
       gateway: { condition: service_healthy }
 
+  # Creator space (T-1206): like the back-office it only talks to the Gateway, with the creator's own token. It needs creators-api behind the
+  # Gateway (/api/creators/**), which is not part of this file yet (see docs/DEPLOYMENT.md).
+  web-studio:
+    <<: *image-defaults
+    image: ${IMAGE_PREFIX:-ghcr.io/benoit-bernard/onvoyage}/web-studio:${IMAGE_TAG:-staging}
+    build:
+      context: ../..
+      dockerfile: deploy/docker/service.Dockerfile
+      args:
+        PROJECT: src/Web/OnVoyage.Web.Studio/OnVoyage.Web.Studio.csproj
+        ASSEMBLY: OnVoyage.Web.Studio
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-}
+      OTEL_RESOURCE_ATTRIBUTES: deployment.environment=staging
+      OTEL_SERVICE_NAME: web-studio
+      # TLS ends at Caddy: honour X-Forwarded-Proto/-For (secure cookie, redirects).
+      ASPNETCORE_FORWARDEDHEADERS_ENABLED: "true"
+      Gateway__BaseUrl: http://gateway:8080
+    depends_on:
+      gateway: { condition: service_healthy }
+
   # ------------------------------- services being added by other workstreams (same pattern; uncomment when the image exists)
   # insights-api:
   #   <<: *image-defaults
@@ -329,6 +351,7 @@ services:
       gateway: { condition: service_healthy }
       web-pwa: { condition: service_healthy }
       web-admin: { condition: service_healthy }
+      web-studio: { condition: service_healthy }
 
   # ---------------------------------------------------------------- backups (T-009, docs/runbooks/restore.md)
   backup:

@@ -18,7 +18,8 @@ internal static class Responses
         {
             _ when error.Code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
             "terms_required" or "specialty_required" => StatusCodes.Status422UnprocessableEntity,
-            "handle_taken" or "content_exists" or "account_in_use" or "case_closed" or "not_published" or "content_removed" => StatusCodes.Status409Conflict,
+            "creator_suspended" => StatusCodes.Status403Forbidden,
+            "handle_taken" or "handle_locked" or "content_exists" or "account_in_use" or "case_closed" or "not_published" or "content_removed" => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status400BadRequest,
         };
         var extensions = new Dictionary<string, object?> { ["code"] = error.Code };

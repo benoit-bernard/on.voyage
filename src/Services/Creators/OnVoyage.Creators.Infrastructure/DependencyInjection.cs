@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<IPoiDirectoryWriter>(provider => provider.GetRequiredService<PoiDirectory>());
         services.AddScoped<IDataRightsStore, DataRightsStore>();
         services.AddSingleton(TimeProvider.System);
+        services.AddSingleton<ICreatorTerms>(new ConfiguredCreatorTerms(configuration["Creators:Terms:CurrentVersion"] is { Length: > 0 } version ? version : "2026-10"));
         services.AddHealthChecks().AddCheck<CreatorsDatabaseHealthCheck>("creators-db", tags: ["ready"]);
         return services;
     }
@@ -42,6 +43,8 @@ public static class DependencyInjection
             await scope.ServiceProvider.GetRequiredService<CreatorsDbContext>().Database.MigrateAsync(cancellationToken);
         }
     }
+
+    private sealed record ConfiguredCreatorTerms(string CurrentVersion) : ICreatorTerms;
 
     private sealed class CreatorsDatabaseHealthCheck(CreatorsDbContext db) : IHealthCheck
     {

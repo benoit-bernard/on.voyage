@@ -1,0 +1,80 @@
+@using OnVoyage.Taxonomy
+
+<div class="row">
+    <div>
+        <label for="@Id("handle")">Handle (3 à 30 caractères)</label>
+        <input id="@Id("handle")" @bind="Input.Handle" maxlength="31" autocomplete="off" disabled="@HandleLocked" aria-describedby="@(HandleLocked ? Id("handle-note") : null)" />
+        @if (HandleLocked)
+        {
+            <p class="muted" id="@Id("handle-note")">Le handle d'une page en ligne ne change pas : dépubliez-la d'abord.</p>
+        }
+    </div>
+    <div>
+        <label for="@Id("name")">Nom affiché</label>
+        <input id="@Id("name")" @bind="Input.DisplayName" maxlength="80" />
+    </div>
+    <div>
+        <label for="@Id("avatar")">Photo (chemin)</label>
+        <input id="@Id("avatar")" @bind="Input.AvatarPath" placeholder="avatars/marie.webp" />
+    </div>
+</div>
+<label for="@Id("bio")">Bio (300 caractères)</label>
+<textarea id="@Id("bio")" rows="3" maxlength="300" @bind="Input.Bio"></textarea>
+
+<fieldset>
+    <legend>Spécialités (1 à 5)</legend>
+    <div class="row">
+        @foreach (var specialty in SpecialtyCodes)
+        {
+            <label class="check">
+                <input type="checkbox" name="specialty" value="@specialty" checked="@Input.Specialties.Contains(specialty)" @onchange="e => Toggle(Input.Specialties, specialty, e)" />
+                @Labels.Specialty(specialty)
+            </label>
+        }
+    </div>
+</fieldset>
+<fieldset>
+    <legend>Langues</legend>
+    <div class="row">
+        @foreach (var (language, label) in ProfileInput.Languages)
+        {
+            <label class="check">
+                <input type="checkbox" name="language" value="@language" checked="@Input.LanguageCodes.Contains(language)" @onchange="e => Toggle(Input.LanguageCodes, language, e)" />
+                @label
+            </label>
+        }
+    </div>
+</fieldset>
+
+<button type="button" class="primary" id="@Id("submit")" disabled="@(Busy || string.IsNullOrWhiteSpace(Input.Handle) || string.IsNullOrWhiteSpace(Input.DisplayName))" @onclick="OnSubmit">@SubmitLabel</button>
+
+@code {
+    [Parameter, EditorRequired] public ProfileInput Input { get; set; } = new();
+
+    [Parameter] public string SubmitLabel { get; set; } = "Enregistrer";
+
+    [Parameter] public bool Busy { get; set; }
+
+    [Parameter] public bool HandleLocked { get; set; }
+
+    [Parameter] public string IdPrefix { get; set; } = "profile";
+
+    [Parameter] public EventCallback OnSubmit { get; set; }
+
+    /// <summary>The ten categories, then any finer code the creator already has (kept, so saving the form never drops it).</summary>
+    private IEnumerable<string> SpecialtyCodes => Interests.LevelOne.Concat(Input.Specialties.Where(code => !Interests.LevelOne.Contains(code)).Order(StringComparer.Ordinal));
+
+    private string Id(string name) => $"{IdPrefix}-{name}";
+
+    private static void Toggle(HashSet<string> set, string code, ChangeEventArgs args)
+    {
+        if (args.Value is true)
+        {
+            set.Add(code);
+        }
+        else
+        {
+            set.Remove(code);
+        }
+    }
+}

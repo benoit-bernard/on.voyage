@@ -99,6 +99,12 @@ public interface IFollowRepository
     Task<bool> StageAsync(Guid travelerId, Guid creatorId, bool following, DateTimeOffset at, CancellationToken cancellationToken);
 }
 
+/// <summary>The version of the creator terms (CGU créateurs, H-010) that a new creator accepts. Configuration, so a new version is a deployment, not a release.</summary>
+public interface ICreatorTerms
+{
+    string CurrentVersion { get; }
+}
+
 /// <summary>Read side, straight to the contracts' DTOs. Public reads only ever return what F-26 allows: published creator, validated link, published place, content online.</summary>
 public interface ICreatorQueries
 {

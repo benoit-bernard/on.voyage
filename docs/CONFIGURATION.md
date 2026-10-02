@@ -52,6 +52,7 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | Clé | Défaut | Rôle |
 | --- | --- | --- |
 | `Creators:Migrate` | `true` | Migrations au démarrage. |
+| `Creators:Terms:CurrentVersion` | `2026-10` | Version des CGU créateurs que l'inscription (`POST /studio/signup`) exige. La changer fait redemander l'acceptation (`POST /studio/terms`). Le texte juridique (H-010) est dans l'espace créateur ; la version est ici. |
 | `Messaging:CreatorSubscribers` | `["discovery"]` | Files qui reçoivent `CreatorPublishedV1`, `CreatorUnpublishedV1`, `CreatorPlaceLinkChangedV1` et `FollowChangedV1`. Discovery les traite depuis T-1205 ; **n'ajouter `insights` qu'avec ses gestionnaires** (T-1212), sinon les messages seraient mis de côté. `[]` désactive le routage. `CreatorTermsAcceptedV1`, le journal admin et les réponses aux droits des données vont toujours à `platform`. |
 | `Messaging:ProjectionSubscribers` (lue par **Catalog**) | `["creators", "discovery"]` | Files qui reçoivent `PoiProjectionChangedV1`. |
 | `Exports:Directory` | dossier temporaire | Dossier de la partie `creators.json` des exports (comme les autres services). |
@@ -116,6 +117,7 @@ Les deux hôtes lisent la même section ; le worker exécute les tâches, l'API 
 | --- | --- | --- | --- |
 | `web-admin` | `Gateway:BaseUrl` | `https+http://gateway` ; **obligatoire** | Adresse interne du Gateway. |
 | `web-admin` | `Admin:MediaBaseUrl` | vide : repli sur `Gateway:BaseUrl` | Adresse que le **navigateur** de l'éditeur utilise pour lire l'audio (origine publique). |
+| `web-studio` | `Gateway:BaseUrl` | `https+http://gateway` ; **obligatoire** | Adresse interne du Gateway (espace créateur, T-1206). Aucune base, aucun secret : le jeton est celui du créateur. |
 | `web-pwa` | `Gateway:BaseAddress` | vide : même origine | Adresse du Gateway (`wwwroot/appsettings.json`, lu par le navigateur au démarrage : aucune injection par Aspire possible). |
 | `web-pwa` | `Map:TilesUrl` | vide : la page Carte dit que la carte n'est pas configurée | Fichier `.pmtiles` servi avec requêtes Range. |
 | `web-pwa` | `Map:GlyphsUrl` | `_content/OnVoyage.UI.Components/fonts/{fontstack}/{range}.pbf` | Polices de la carte (embarquées, pas de tiers). |

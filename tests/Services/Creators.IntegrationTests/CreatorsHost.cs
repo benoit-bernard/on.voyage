@@ -83,6 +83,14 @@ public sealed class CreatorsHost : IAsyncDisposable
 
     public HttpClient Admin() => Traveler(null, "admin");
 
+    /// <summary>A signed-in account (verified e-mail), with the given roles: what Studio presents once the creator has signed in.</summary>
+    public HttpClient Account(Guid? id = null, params string[] roles)
+    {
+        var client = Factory.CreateClient();
+        client.Authenticate(TestTokens.Mint(id ?? Guid.NewGuid(), anonymous: false, roles: roles));
+        return client;
+    }
+
     public static string Unique(string prefix = "t") => prefix + Guid.NewGuid().ToString("N")[..12];
 
     /// <summary>A place of the catalog, as the Creators service learns of it: through the projection event.</summary>

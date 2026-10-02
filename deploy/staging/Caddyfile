@@ -82,5 +82,13 @@ admin.{$STAGING_DOMAIN} {
 	reverse_proxy web-admin:8080
 }
 
+# Creator space (T-1206). WebSockets (Blazor Server) are upgraded by reverse_proxy.
+studio.{$STAGING_DOMAIN} {
+	import privacy_logs
+	import security_headers
+	encode zstd gzip
+	reverse_proxy web-studio:8080
+}
+
 # Future services (uncomment with their compose entry):
-# {$STAGING_DOMAIN}/studio -> web-studio, www.{$STAGING_DOMAIN} -> web-public
+# www.{$STAGING_DOMAIN} -> web-public

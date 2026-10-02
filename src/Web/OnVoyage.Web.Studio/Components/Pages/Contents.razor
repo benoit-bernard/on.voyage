@@ -1,0 +1,247 @@
+@page "/studio/contents"
+@attribute [Authorize(Policy = StudioClaims.PolicyName)]
+@inherits StudioPageBase
+
+<h1>Vos contenus</h1>
+<p class="muted">Un contenu reste sur sa plateforme : ON.VOYAGE n'en garde que la référence (lien, titre, durée, chapitres). Le bouton « Voir » des voyageurs ouvre le lien d'origine.</p>
+<Status Message="@Message" Error="@Error" />
+
+@if (_profile is null)
+{
+    @if (Error is null)
+    {
+        <p>Chargement…</p>
+    }
+}
+else
+{
+    var locked = _profile.Status == "suspended";
+    <section class="card" id="contents">
+        <h2>Contenus référencés</h2>
+        @if (_profile.Contents.Count(content => content.Status != "removed") == 0)
+        {
+            <p class="muted" id="no-contents">Aucun contenu.</p>
+        }
+        else
+        {
+            <table>
+                <thead><tr><th>Contenu</th><th>Plateforme</th><th>Chapitres</th><th>Statut</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var content in _profile.Contents.Where(content => content.Status != "removed"))
+                    {
+                        <tr class="content @content.Status">
+                            <td>
+                                <a href="@content.Permalink" target="_blank" rel="noopener noreferrer">@content.Title</a>
+                                @if (content.IsCommercial)
+                                {
+                                    <span class="tag"> · Publicité</span>
+                                }
+                            </td>
+                            <td>@Labels.Platform(content.Platform)</td>
+                            <td>@content.Chapters.Count</td>
+                            <td>@Labels.ContentStatus(content.Status)</td>
+                            <td class="actions">
+                                <button type="button" disabled="@(Busy || locked)" @onclick="() => ToggleAsync(content)">@(content.Status == "imported" ? "Masquer" : "Remettre en ligne")</button>
+                                <button type="button" disabled="@(Busy || locked)" @onclick="() => ToggleCommercialAsync(content)">@(content.IsCommercial ? "Retirer l'étiquette Publicité" : "Marquer Publicité")</button>
+                                <button type="button" class="ghost" disabled="@(Busy || locked)" @onclick="() => RemoveAsync(content.Id)">Retirer</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h3>Ajouter un contenu par son adresse</h3>
+        <div class="row">
+            <div>
+                <label for="content-url">Adresse publique (YouTube, Instagram, TikTok)</label>
+                <input id="content-url" @bind="_url" @bind:event="oninput" size="48" placeholder="https://www.youtube.com/watch?v=…" />
+            </div>
+            <div>
+                <label for="content-title">Titre</label>
+                <input id="content-title" @bind="_title" @bind:event="oninput" maxlength="200" />
+            </div>
+            <div>
+                <label for="content-duration">Durée (secondes)</label>
+                <input id="content-duration" type="number" min="0" @bind="_duration" />
+            </div>
+        </div>
+        <label class="check"><input id="content-commercial" type="checkbox" checked="@_commercial" @onchange="e => _commercial = e.Value is true" /> Collaboration commerciale (étiquette « Publicité », obligatoire si vous êtes rémunéré)</label>
+        <label for="content-chapters">Chapitres (un par ligne, « 02:15 Gordes »)</label>
+        <textarea id="content-chapters" rows="3" @bind="_chapters"></textarea>
+        <button type="button" id="add-content" class="primary" disabled="@(Busy || locked || string.IsNullOrWhiteSpace(_url) || string.IsNullOrWhiteSpace(_title))" @onclick="AddAsync">Ajouter le contenu</button>
+    </section>
+
+    <section class="card" id="places">
+        <h2>Lieux associés</h2>
+        <p class="muted">Seules les associations <em>validées</em> sont publiées. Vous seul pouvez valider : rien n'est publié sans votre accord.</p>
+        @if (_profile.PlaceLinks.Count == 0)
+        {
+            <p class="muted" id="no-links">Aucune association.</p>
+        }
+        else
+        {
+            <table id="place-links">
+                <thead><tr><th>Lieu</th><th>Contenu</th><th>Statut</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var link in _profile.PlaceLinks)
+                    {
+                        <tr class="link @link.Status">
+                            <td>@link.PoiName</td>
+                            <td>@(link.ContentTitle ?? "conseil seul")@if (link.StartSeconds is { } start) { <span class="muted"> à @ChapterText.FormatTime(start)</span> }</td>
+                            <td>@Labels.LinkStatus(link.Status)</td>
+                            <td class="actions">
+                                @if (link.Status != "validated")
+                                {
+                                    <button type="button" disabled="@(Busy || locked)" @onclick='() => SetLinkAsync(link.Id, "validated")'>Valider</button>
+                                }
+                                else
+                                {
+                                    <button type="button" disabled="@(Busy || locked)" @onclick='() => SetLinkAsync(link.Id, "rejected")'>Retirer de la publication</button>
+                                }
+
+                                <button type="button" class="ghost" disabled="@(Busy || locked)" @onclick="() => RemoveLinkAsync(link.Id)">Supprimer</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h3>Associer un lieu à un contenu</h3>
+        <div class="row">
+            <div>
+                <label for="place-query">Chercher un lieu</label>
+                <input id="place-query" @bind="_query" @bind:event="oninput" placeholder="Fort Saint-Jean" />
+            </div>
+            <button type="button" id="search-places" disabled="@(Busy || _query.Trim().Length < 2)" @onclick="SearchAsync">Chercher</button>
+        </div>
+        @if (_results.Count > 0)
+        {
+            <ul class="candidates" id="place-results">
+                @foreach (var place in _results)
+                {
+                    <li>
+                        <span>@place.Name <span class="muted">· @place.City@(place.IsPublished ? "" : " · pas encore en ligne")</span></span>
+                        <button type="button" disabled="@Busy" @onclick="() => Choose(place)">Choisir</button>
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (_chosen is not null)
+        {
+            <div class="card" id="chosen">
+                <h3>@_chosen.Name</h3>
+                <div class="row">
+                    <div>
+                        <label for="link-content">Contenu</label>
+                        <select id="link-content" @bind="_linkContent">
+                            <option value="">Aucun (conseil seul)</option>
+                            @foreach (var content in _profile.Contents.Where(content => content.Status != "removed"))
+                            {
+                                <option value="@content.Id">@content.Title</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label for="link-start">Horodatage (secondes, facultatif)</label>
+                        <input id="link-start" type="number" min="0" @bind="_linkStart" />
+                    </div>
+                    <button type="button" id="add-link" class="primary" disabled="@(Busy || locked || (_linkStart is not null && _linkContent == string.Empty))" @onclick="AddLinkAsync">Associer ce lieu</button>
+                </div>
+            </div>
+        }
+    </section>
+}
+
+@code {
+    private StudioProfileDto? _profile;
+    private string _url = string.Empty;
+    private string _title = string.Empty;
+    private int? _duration;
+    private bool _commercial;
+    private string _chapters = string.Empty;
+    private string _query = string.Empty;
+    private IReadOnlyList<PoiSearchResultDto> _results = [];
+    private PoiSearchResultDto? _chosen;
+    private string _linkContent = string.Empty;
+    private int? _linkStart;
+
+    protected override async Task OnInitializedAsync() => await ReloadAsync();
+
+    private async Task ReloadAsync() => _profile = await LoadAsync(() => Api.GetProfileAsync()) ?? _profile;
+
+    private async Task AddAsync()
+    {
+        var (chapters, problem) = ChapterText.Parse(_chapters);
+        if (chapters is null)
+        {
+            Error = problem;
+            return;
+        }
+
+        var request = new AddContentRequest(_url.Trim(), _title.Trim(), null, null, null, _duration, null, _commercial, chapters);
+        await RunAsync(async () => await Api.AddContentAsync(request), "Contenu ajouté.");
+        if (Error is null)
+        {
+            _url = _title = _chapters = string.Empty;
+            _duration = null;
+            _commercial = false;
+            await ReloadAsync();
+        }
+    }
+
+    private async Task ToggleAsync(AdminContentDto content)
+    {
+        var status = content.Status == "imported" ? "hidden" : "imported";
+        await RunAsync(async () => await Api.UpdateContentAsync(content.Id, Update(content, status, content.IsCommercial)), status == "hidden" ? "Contenu masqué : les lieux qu'il appuyait ne sont plus publiés." : "Contenu remis en ligne.");
+        await ReloadAsync();
+    }
+
+    private async Task ToggleCommercialAsync(AdminContentDto content)
+    {
+        await RunAsync(async () => await Api.UpdateContentAsync(content.Id, Update(content, content.Status, !content.IsCommercial)), "Étiquette mise à jour.");
+        await ReloadAsync();
+    }
+
+    private static UpdateContentRequest Update(AdminContentDto content, string status, bool commercial) =>
+        new(content.Title, content.CaptionExcerpt, content.CoverPath, content.DurationSeconds, commercial, content.Chapters, status);
+
+    private async Task RemoveAsync(Guid contentId)
+    {
+        await RunAsync(() => Api.RemoveContentAsync(contentId), "Contenu retiré : les lieux qu'il appuyait ne sont plus publiés.");
+        await ReloadAsync();
+    }
+
+    private Task SearchAsync() => RunAsync(async () => _results = await Api.SearchPlacesAsync(_query.Trim()));
+
+    private void Choose(PoiSearchResultDto place)
+    {
+        _chosen = place;
+        _results = [];
+    }
+
+    private async Task AddLinkAsync()
+    {
+        var contentId = Guid.TryParse(_linkContent, out var parsed) ? parsed : (Guid?)null;
+        await RunAsync(async () => await Api.AddPlaceLinkAsync(new AddPlaceLinkRequest(_chosen!.PoiId, contentId, _linkStart, null)), "Lieu associé.");
+        if (Error is null)
+        {
+            _linkStart = null;
+            await ReloadAsync();
+        }
+    }
+
+    private async Task SetLinkAsync(Guid linkId, string status)
+    {
+        await RunAsync(async () => await Api.SetPlaceLinkStatusAsync(linkId, status), status == "validated" ? "Association validée." : "Association retirée de la publication.");
+        await ReloadAsync();
+    }
+
+    private async Task RemoveLinkAsync(Guid linkId)
+    {
+        await RunAsync(() => Api.RemovePlaceLinkAsync(linkId), "Association supprimée.");
+        await ReloadAsync();
+    }
+}

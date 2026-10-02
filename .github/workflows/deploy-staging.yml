@@ -50,6 +50,7 @@ jobs:
           - { name: factory-worker, dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Services/Factory/OnVoyage.Factory.Worker/OnVoyage.Factory.Worker.csproj\nASSEMBLY=OnVoyage.Factory.Worker\nRUNTIME_PACKAGES=curl osm2pgsql ffmpeg" }
           - { name: gateway,        dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Gateway/OnVoyage.Gateway/OnVoyage.Gateway.csproj\nASSEMBLY=OnVoyage.Gateway" }
           - { name: web-admin,      dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Web/OnVoyage.Web.Admin/OnVoyage.Web.Admin.csproj\nASSEMBLY=OnVoyage.Web.Admin" }
+          - { name: web-studio,     dockerfile: deploy/docker/service.Dockerfile, context: ., args: "PROJECT=src/Web/OnVoyage.Web.Studio/OnVoyage.Web.Studio.csproj\nASSEMBLY=OnVoyage.Web.Studio" }
           - { name: web-pwa,        dockerfile: deploy/docker/pwa.Dockerfile,     context: ., args: "MAP_TILES_URL=${{ vars.STAGING_MAP_TILES_URL }}" }
           - { name: backup,         dockerfile: deploy/staging/backup/Dockerfile, context: deploy/staging/backup, args: "" }
           # Services being added by other workstreams: add a line with the same pattern (and the matching block in deploy/staging/docker-compose.yml).

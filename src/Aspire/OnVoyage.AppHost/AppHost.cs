@@ -161,4 +161,13 @@ builder.AddProject<Projects.OnVoyage_Web_Admin>("web-admin")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health");
 
+// Creator space (T-1206, Blazor, interactive server): OTP sign-in through Platform, then the creator's own token to the Gateway, which routes
+// /api/creators/v1/studio/** to Creators. Like the back-office it has no database and no business logic of its own.
+builder.AddProject<Projects.OnVoyage_Web_Studio>("web-studio")
+    .WithReference(gateway)
+    .WaitFor(gateway)
+    .WithEnvironment("Gateway__BaseUrl", gateway.GetEndpoint("http"))
+    .WithExternalHttpEndpoints()
+    .WithHttpHealthCheck("/health");
+
 builder.Build().Run();

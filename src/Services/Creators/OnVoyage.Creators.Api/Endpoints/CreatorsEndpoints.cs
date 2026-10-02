@@ -1,3 +1,4 @@
+using OnVoyage.Creators.Api.Endpoints.Studio;
 using OnVoyage.Creators.Application;
 using OnVoyage.Creators.Application.Features;
 using OnVoyage.Creators.Contracts;
@@ -39,6 +40,7 @@ internal static class CreatorsEndpoints
             Translate(bus.InvokeAsync<Result<ReportReceiptDto>>(new ReportCommand(Traveler(http), request), ct), receipt => Results.Accepted(value: receipt)));
 
         MapAdmin(app);
+        app.MapStudioEndpoints();
         return app;
     }
 

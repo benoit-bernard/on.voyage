@@ -39,6 +39,8 @@ Configuration YARP de `appsettings.json` (section `ReverseProxy`). « Politique 
 | `platform` | `/api/platform/{**}` | toutes | `traveler` | platform-api |
 | `insights` | `/api/insights/v1/kpis` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway) |
 | `creators-admin` | `/api/creators/v1/admin/{**}` | toutes | `admin` | creators-api |
+| `creators-studio-join` | `/api/creators/v1/studio/{registration|signup|terms}` | toutes | `account` (e-mail vérifié) | creators-api |
+| `creators-studio` | `/api/creators/v1/studio/{**}` | toutes | `creator` | creators-api |
 | `creators` | `/api/creators/{**}` | toutes | `traveler` | creators-api |
 | `factory-story-reports` | `/api/factory/v1/stories/{id}/reports` | POST | `traveler` | factory-api |
 | `factory` | `/api/factory/{**}` | toutes | `admin` | factory-api |
@@ -125,6 +127,20 @@ Administrateur (politique `admin`, préfixe `/admin`, chaque écriture est journ
 | `GET /places?query&destination&limit` | Recherche dans le répertoire (sans accents ni casse). |
 | `GET /moderation?status&limit`, `POST /moderation/{caseId}/decision` | File des signalements (jamais l'auteur) ; décision `dismissed` ou `upheld` (exposé des motifs obligatoire). |
 
+Créateur (espace `web-studio`, T-1206, préfixe `/studio`). Le créateur est **toujours le compte du jeton** : aucun identifiant de créateur dans les chemins, un identifiant d'un autre créateur est simplement inconnu (404). Un créateur suspendu lit mais n'écrit pas (403 `creator_suspended`) et ne peut pas lever sa suspension en republiant. Les écritures sont journalisées chez Platform comme celles de l'administrateur (acteur = compte du créateur).
+
+| Méthode et chemin | Politique | Remarques |
+| --- | --- | --- |
+| `GET /registration` | `account` | `StudioRegistrationDto` : inscrit ou non, version courante des CGU, handle, statut, CGU acceptées. |
+| `POST /signup` | `account` | `StudioSignupRequest` (`handle`, `displayName`, `acceptedTermsVersion`). Crée le brouillon et enregistre l'acceptation ; publie `CreatorTermsAcceptedV1` (Platform ajoute `creator`). 422 `terms_required` si la version n'est pas la version courante ; 409 `handle_taken` avec une suggestion. Idempotent. |
+| `POST /terms` | `account` | Accepte la version courante (nouvelles CGU). Un fondateur garde son drapeau `founding`. |
+| `GET` / `PUT /profile` | `creator` | `StudioProfileDto` (comme la fiche admin, sans identifiant de compte ni liste d'abonnés ; abonnés `null` sous 20). 409 `handle_locked` si le handle change sur un profil publié. |
+| `POST /publish`, `/unpublish` | `creator` | Règle F-26 (`terms_required`, `specialty_required`). |
+| `POST` / `PUT` / `DELETE /contents[/{contentId}]` | `creator` | Contenus par URL, chapitres, « Publicité ». |
+| `POST` / `PUT` / `DELETE /place-links[/{linkId}]` | `creator` | Associations ; le créateur valide ou retire lui-même. |
+| `PUT` / `DELETE /tips/{poiId}` | `creator` | Conseil de 280 caractères au plus. |
+| `GET /places?query&destination` | `creator` | Recherche dans le répertoire. |
+
 Erreurs : Problem Details avec `type` = `https://on.voyage/problems/<code>` et l'extension `code`.
 
 ## Factory — `/api/factory/v1` (back-office)
@@ -162,6 +178,10 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 ## Back-office web (`web-admin`)
 
 Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
+
+## Espace créateur (`web-studio`)
+
+Application Blazor serveur, jamais appelée par l'app. Même connexion que le back-office (`POST /login/code`, `/login/verify`, `/logout`, cookie `ov_studio` avec un identifiant de session opaque, jetons et **rôles** gardés côté serveur : le rôle `creator`, donné par Platform un instant après l'inscription, apparaît dès le renouvellement de la session). Pages : `/studio` (accueil), `/studio/join` (inscription et CGU), `/studio/profile`, `/studio/contents`, `/studio/tips`. Tout `/studio/*` répond **403** à un compte sans le rôle `creator`, sauf `/studio` et `/studio/join`. `/health` et `/alive` sans authentification.
 
 ## Écarts avec le §12 du cahier des charges
 
