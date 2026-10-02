@@ -219,6 +219,22 @@ public sealed class CreatorLifecycleTests(PostgresFixture postgres) : IAsyncLife
     }
 
     [Fact]
+    public async Task An_internal_host_reads_the_public_pages_but_cannot_write_or_reach_the_admin()
+    {
+        var published = await _host.FounderAsync(CreatorsHost.Unique("internal"), publish: true);
+        using var web = _host.Factory.CreateClient();
+        web.Authenticate(OnVoyage.TestInfrastructure.TestTokens.Mint(roles: ["internal"]));
+
+        var page = await CreatorsHost.Read<CreatorPageDto>(await web.GetAsync($"/api/creators/v1/creators/{published.Handle}", Ct));
+
+        page.Id.ShouldBe(published.Id);
+        page.IsFollowing.ShouldBeFalse(); // the host is nobody's follower
+        (await web.GetAsync("/api/creators/v1/creators?limit=5", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await web.GetAsync($"/api/creators/v1/pois/{Guid.NewGuid()}/contents", Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        (await web.GetAsync("/api/creators/v1/admin/creators", Ct)).StatusCode.ShouldBe(HttpStatusCode.Forbidden);
+    }
+
+    [Fact]
     public async Task The_admin_list_filters_by_status_and_text_and_says_why_a_creator_is_not_publishable()
     {
         using var admin = _host.Admin();

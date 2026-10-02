@@ -21,6 +21,14 @@ builder.Services.AddHttpClient<ICatalogPublicClient, CatalogPublicClient>(client
     client.DefaultRequestHeaders.UserAgent.ParseAdd("OnVoyage-Web/1.0");
 }).AddHttpMessageHandler<InternalTokenHandler>();
 
+// Creator pages (T-1204): the second service Web.Public reads, with the same internal token. Only published creators and validated links come back.
+var creators = builder.Configuration["Creators:BaseAddress"] ?? "https+http://creators-api";
+builder.Services.AddHttpClient<ICreatorsPublicClient, CreatorsPublicClient>(client =>
+{
+    client.BaseAddress = new Uri(creators);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("OnVoyage-Web/1.0");
+}).AddHttpMessageHandler<InternalTokenHandler>();
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())

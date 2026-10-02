@@ -42,7 +42,11 @@ public sealed partial class PublicSiteTests : IDisposable
         _factory = new WebApplicationFactory<PublicSiteMarker>().WithWebHostBuilder(builder =>
         {
             builder.UseSetting("Auth:JwtSecret", "tests-secret-0123456789abcdef-0123456789abcdef-0123456789");
-            builder.ConfigureServices(services => services.AddSingleton<ICatalogPublicClient, FakeCatalog>());
+            builder.ConfigureServices(services =>
+            {
+                services.AddSingleton<ICatalogPublicClient, FakeCatalog>();
+                services.AddSingleton<ICreatorsPublicClient, FakeCreators>();
+            });
         });
         _client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
     }

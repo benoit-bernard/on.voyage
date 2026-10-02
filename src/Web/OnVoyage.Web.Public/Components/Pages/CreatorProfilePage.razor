@@ -1,0 +1,209 @@
+@page "/@{Handle}"
+@using OnVoyage.Creators.Contracts
+@inject PublicSettings Settings
+@inject ICreatorsPublicClient Creators
+@inject ICatalogPublicClient Catalog
+@inject NavigationManager Navigation
+
+@if (_creator is not null)
+{
+    <SeoHead Title="@($"{_creator.DisplayName} (@{_creator.Handle}) : lieux recommandés · ON.VOYAGE")"
+             Description="@Summary"
+             Path="@($"/@{_creator.Handle}")"
+             Alternates="@_alternates"
+             OgType="profile"
+             JsonLd="@JsonLd" />
+
+    <nav class="crumbs" aria-label="Fil d'Ariane"><a href="/">Accueil</a> › @_creator.DisplayName</nav>
+    <header class="creator-head">
+        @if (Settings.Media(_creator.AvatarPath) is { } avatar)
+        {
+            <img class="avatar" src="@avatar" alt="" width="96" height="96" />
+        }
+
+        <div>
+            <h1>@_creator.DisplayName</h1>
+            <p class="meta">@("@" + _creator.Handle) · @Followers</p>
+        </div>
+    </header>
+
+    @if (_creator.Specialties.Count > 0)
+    {
+        <ul class="chips" aria-label="Spécialités">
+            @foreach (var specialty in _creator.Specialties)
+            {
+                <li>@Labels.Category(specialty)</li>
+            }
+        </ul>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_creator.Bio))
+    {
+        <p class="bio">@_creator.Bio</p>
+    }
+
+    @if (_creator.Links.Count > 0)
+    {
+        <section aria-labelledby="links">
+            <h2 id="links">Retrouver @_creator.DisplayName</h2>
+            <p class="note">Ces liens ouvrent un site ou une application extérieurs à ON.VOYAGE.</p>
+            <ul class="plain">
+                @foreach (var link in _creator.Links)
+                {
+                    <li><a href="@link.Url" target="_blank" rel="me nofollow noopener noreferrer">@link.Kind</a></li>
+                }
+            </ul>
+        </section>
+    }
+
+    <section aria-labelledby="places">
+        <h2 id="places">Ses lieux à @(_creator.DestinationCount > 1 ? "découvrir" : "visiter")</h2>
+        @if (_creator.Places.Count == 0)
+        {
+            <p class="note">Aucun lieu pour l'instant.</p>
+        }
+
+        <ul class="plain items">
+            @foreach (var place in _creator.Places)
+            {
+                <li>
+                    <article>
+                        <h3>
+                            @if (_pages.TryGetValue(place.PoiId, out var path))
+                            {
+                                <a href="@path">@place.Name</a>
+                            }
+                            else
+                            {
+                                @place.Name
+                            }
+                            @if (!string.IsNullOrEmpty(place.City))
+                            {
+                                <span class="city"> · @place.City</span>
+                            }
+                        </h3>
+                        @if (!string.IsNullOrWhiteSpace(place.Tip))
+                        {
+                            <p class="tip">« @place.Tip »</p>
+                        }
+
+                        @foreach (var content in place.Contents)
+                        {
+                            <p class="content">
+                                <span class="kind">@Kind(content.Kind)@(content.DurationSeconds is > 0 ? " · " + Duration(content.DurationSeconds.Value) : "")</span>
+                                @if (content.IsCommercial)
+                                {
+                                    <span class="ad">Publicité</span>
+                                }
+
+                                <a href="@content.Url" target="_blank" rel="nofollow noopener noreferrer">@content.Title</a>
+                            </p>
+                        }
+                    </article>
+                </li>
+            }
+        </ul>
+    </section>
+
+    <p class="actions"><a class="btn" href="/app/createur/@_creator.Handle">Suivre @("@" + _creator.Handle) dans l'application</a></p>
+}
+
+@code {
+    [Parameter] public string Handle { get; set; } = "";
+
+    private CreatorPageDto? _creator;
+    private IReadOnlyList<(string, string)> _alternates = [];
+    private Dictionary<Guid, string> _pages = [];
+
+    private string Followers => _creator!.FollowerCount is { } count ? $"{count} abonné{(count > 1 ? "s" : "")}" : "Nouveau créateur";
+
+    private string Summary
+    {
+        get
+        {
+            var text = string.IsNullOrWhiteSpace(_creator!.Bio) ? $"{_creator.DisplayName} recommande {_creator.PlaceCount} lieux sur ON.VOYAGE." : _creator.Bio;
+            var flat = System.Text.RegularExpressions.Regex.Replace(text, @"\s+", " ").Trim();
+            return flat.Length <= 155 ? flat : flat[..155].TrimEnd() + "…";
+        }
+    }
+
+    private object JsonLd
+    {
+        get
+        {
+            var person = new Dictionary<string, object>
+            {
+                ["@context"] = "https://schema.org",
+                ["@type"] = "Person",
+                ["name"] = _creator!.DisplayName,
+                ["alternateName"] = "@" + _creator.Handle,
+                ["url"] = Settings.Absolute($"/@{_creator.Handle}"),
+                ["knowsAbout"] = _creator.Specialties.Select(Labels.Category).ToArray(),
+            };
+            if (!string.IsNullOrWhiteSpace(_creator.Bio))
+            {
+                person["description"] = _creator.Bio;
+            }
+
+            if (Settings.Media(_creator.AvatarPath) is { } image)
+            {
+                person["image"] = image;
+            }
+
+            if (_creator.Links.Count > 0)
+            {
+                person["sameAs"] = _creator.Links.Select(link => link.Url).ToArray();
+            }
+
+            if (_creator.Languages.Count > 0)
+            {
+                person["knowsLanguage"] = _creator.Languages.ToArray();
+            }
+
+            return person;
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Only a published creator has a page: Creators answers 404 for a draft, a suspended or an unknown handle.
+        var creator = await Creators.GetCreatorAsync(Handle, CancellationToken.None);
+        if (creator is null)
+        {
+            Navigation.NotFound();
+            return;
+        }
+
+        _pages = await PlacePagesAsync(creator);
+        _creator = creator;
+
+        // The page is not translated: it is offered for each language the creator speaks, plus the default.
+        var languages = creator.Languages.Where(Settings.Languages.Contains).ToArray();
+        _alternates = [.. languages.Select(l => (l, $"/@{creator.Handle}")), ("x-default", $"/@{creator.Handle}")];
+    }
+
+    /// <summary>The creator's places that have a page on this site: published place, a story with text, in a language of the site.</summary>
+    private async Task<Dictionary<Guid, string>> PlacePagesAsync(CreatorPageDto creator)
+    {
+        Dictionary<Guid, string> pages = [];
+        var wanted = creator.Places.Select(p => p.PoiId).ToHashSet();
+        foreach (var destination in Settings.Destinations)
+        {
+            foreach (var summary in (await Catalog.GetPlacesAsync(destination, CancellationToken.None)).Where(p => wanted.Contains(p.Id)))
+            {
+                var detail = await Catalog.GetPlaceAsync(summary.Slug, CancellationToken.None);
+                var language = Settings.Languages.FirstOrDefault(l => detail?.Stories.Any(s => s.Language == l && !string.IsNullOrWhiteSpace(s.Text)) == true);
+                if (language is not null)
+                {
+                    pages[summary.Id] = $"/{language}/{destination}/{summary.Slug}";
+                }
+            }
+        }
+
+        return pages;
+    }
+
+    private static string Kind(string kind) => kind switch { "video" => "Vidéo", "photo" => "Photo", "carousel" => "Carrousel", "article" => "Article", _ => "Contenu" };
+
+    private static string Duration(int seconds) => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{seconds / 60}:{seconds % 60:00}");
+}

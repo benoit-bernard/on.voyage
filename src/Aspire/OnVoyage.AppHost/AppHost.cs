@@ -132,12 +132,15 @@ if (!builder.ExecutionContext.IsRunMode)
     gateway.WithEnvironment("Gateway__TrustForwardedHeaders", "true");
 }
 
-// Public SEO site (F-24): server-rendered, reads the Catalog directly with an internal token; no audio, no Premium text, no third party.
+// Public SEO site (F-24, T-1204): server-rendered, reads the Catalog and the creators' public pages directly with an internal token; no audio, no Premium text, no third party.
 builder.AddProject<Projects.OnVoyage_Web_Public>("web-public")
     .WithReference(catalog)
+    .WithReference(creators)
     .WaitFor(catalog)
+    .WaitFor(creators)
     .WithEnvironment("Auth__JwtSecret", jwtSecret)
     .WithEnvironment("Catalog__BaseAddress", "https+http://catalog-api")
+    .WithEnvironment("Creators__BaseAddress", "https+http://creators-api")
     .WithExternalHttpEndpoints()
     .WithHttpHealthCheck("/health");
 

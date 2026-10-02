@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
     <ProjectReference Include="../../Services/Catalog/OnVoyage.Catalog.Contracts/OnVoyage.Catalog.Contracts.csproj" />
+    <ProjectReference Include="../../Services/Creators/OnVoyage.Creators.Contracts/OnVoyage.Creators.Contracts.csproj" />
   </ItemGroup>
   <ItemGroup>
     <!-- Former blog (T-903) and the shipped list of blocked crawlers (same source as Platform, annexe A). -->

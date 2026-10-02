@@ -26,3 +26,15 @@ h2 { font-size:1.2rem; margin:1.75rem 0 .5rem; }
 .story p { font-size:1.05rem; }
 footer { max-width:46rem; margin:0 auto; padding:1.5rem 1rem 3rem; border-top:1px solid var(--line); font-size:.85rem; color:var(--muted); }
 footer nav { display:flex; gap:1rem; flex-wrap:wrap; margin-bottom:.5rem; }
+.creator-head { display:flex; gap:1rem; align-items:center; }
+.avatar { width:96px; height:96px; border-radius:50%; object-fit:cover; background:var(--chip); }
+.chips { display:flex; flex-wrap:wrap; gap:.4rem; list-style:none; padding:0; }
+.chips li { padding:.15rem .7rem; border-radius:999px; background:var(--chip); font-size:.85rem; font-weight:700; }
+.plain { list-style:none; padding:0; }
+.items li { padding:.7rem 0; border-bottom:1px solid var(--line); }
+.items h3 { margin:.1rem 0; font-size:1.05rem; }
+.city { color:var(--muted); font-weight:400; font-size:.9rem; }
+.content, .tip { margin:.3rem 0; }
+.tip { font-style:italic; }
+.kind { color:var(--muted); font-size:.88rem; margin-right:.4rem; }
+.ad { display:inline-block; margin-right:.4rem; padding:.05rem .5rem; border:1px solid var(--ink); border-radius:999px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; }

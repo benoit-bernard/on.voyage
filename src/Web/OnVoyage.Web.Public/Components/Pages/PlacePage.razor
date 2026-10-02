@@ -1,6 +1,8 @@
 @page "/{Lang}/{Destination}/{Slug}"
+@using OnVoyage.Creators.Contracts
 @inject PublicSettings Settings
 @inject ICatalogPublicClient Catalog
+@inject ICreatorsPublicClient Creators
 @inject NavigationManager Navigation
 
 @if (_poi is not null && _story is not null)
@@ -28,6 +30,41 @@
         }
     </article>
 
+    @if (_creators is { Items.Count: > 0 })
+    {
+        <section class="creators" aria-labelledby="creators-title">
+            <h2 id="creators-title">Vu par les créateurs</h2>
+            <ul class="plain items">
+                @foreach (var item in _creators.Items)
+                {
+                    <li>
+                        <article>
+                            <h3><a href="/@("@" + item.Creator.Handle)">@("@" + item.Creator.Handle)</a><span class="city"> · @item.Creator.DisplayName</span></h3>
+                            @if (item.Content is { } content)
+                            {
+                                <p class="content">
+                                    <span class="kind">@Kind(content.Kind)@(content.DurationSeconds is > 0 ? " · " + Duration(content.DurationSeconds.Value) : "")</span>
+                                    @if (content.IsCommercial)
+                                    {
+                                        <span class="ad">Publicité</span>
+                                    }
+
+                                    <a href="@content.Url" target="_blank" rel="nofollow noopener noreferrer">@content.Title</a>
+                                </p>
+                            }
+
+                            @if (!string.IsNullOrWhiteSpace(item.Tip))
+                            {
+                                <p class="tip">« @item.Tip »</p>
+                            }
+                        </article>
+                    </li>
+                }
+            </ul>
+            <p class="note">Ces liens ouvrent un site ou une application extérieurs à ON.VOYAGE.@(_creators.Total > _creators.Items.Count ? $" {_creators.Total} créateurs au total." : "")</p>
+        </section>
+    }
+
     <p class="actions"><a class="btn" href="/app/lieu/@Slug">Écouter cette histoire dans l'application</a></p>
 
     @if (_poi.Attributions.Count > 0)
@@ -52,6 +89,7 @@
     [Parameter] public string Slug { get; set; } = "";
 
     private PoiDetailDto? _poi;
+    private PoiCreatorsDto? _creators;
     private StoryDto? _story;
     private string _destinationName = "";
     private IReadOnlyList<(string, string)> _alternates = [];
@@ -99,8 +137,22 @@
         }
 
         (_poi, _story, _destinationName) = (poi, story, destination.Name);
+        try
+        {
+            // The creators block is an extra: a failure of Creators must not take the place page down.
+            _creators = await Creators.GetPoiCreatorsAsync(poi.Id, 10, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _creators = null;
+        }
+
         _alternates = [.. stories.Select(s => s.Language).Distinct().Where(Settings.Languages.Contains).Select(l => (l, $"/{l}/{Destination}/{Slug}"))];
     }
+
+    private static string Kind(string kind) => kind switch { "video" => "Vidéo", "photo" => "Photo", "carousel" => "Carrousel", "article" => "Article", _ => "Contenu" };
+
+    private static string Duration(int seconds) => string.Create(System.Globalization.CultureInfo.InvariantCulture, $"{seconds / 60}:{seconds % 60:00}");
 
     private static string[] Paragraphs(string text) => text.Split(["\r\n\r\n", "\n\n"], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
 }

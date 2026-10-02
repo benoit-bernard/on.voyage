@@ -55,6 +55,14 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | `Messaging:ProjectionSubscribers` (lue par **Catalog**) | `["creators", "discovery"]` | Files qui reçoivent `PoiProjectionChangedV1`. |
 | `Exports:Directory` | dossier temporaire | Dossier de la partie `creators.json` des exports (comme les autres services). |
 
+## Site public (`web-public`)
+
+| Clé | Défaut | Rôle |
+| --- | --- | --- |
+| `Catalog:BaseAddress` | `https+http://catalog-api` | Catalog, lu avec un jeton `internal`. |
+| `Creators:BaseAddress` | `https+http://creators-api` | Creators (pages `/@handle`, bloc des lieux, sitemap), lu avec le même jeton. Seules les lectures publiques (`traveler_or_internal`) lui sont ouvertes. |
+| `Public:MediaBaseUrl` | `https://on.voyage/media` | Adresse publique de nos médias (avatars des créateurs, JSON-LD `Person`). |
+
 ## Factory (`factory-api` et `factory-worker`)
 
 Les deux hôtes lisent la même section ; le worker exécute les tâches, l'API enregistre les commandes.

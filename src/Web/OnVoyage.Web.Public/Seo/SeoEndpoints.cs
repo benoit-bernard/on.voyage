@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Xml.Linq;
+using OnVoyage.Creators.Contracts;
 
 namespace OnVoyage.Web.Public.Seo;
 
@@ -21,8 +22,8 @@ internal static class SeoEndpoints
             JsonSerializer.Serialize(new[] { new Dictionary<string, object> { ["location"] = "/", ["tdm-reservation"] = 1, ["tdm-policy"] = settings.Absolute(PublicSettings.TdmPolicyPath) } }),
             "application/json"));
 
-        app.MapGet("/sitemap.xml", async (ICatalogPublicClient catalog, ContentStore content, PublicSettings settings, CancellationToken ct) =>
-            Results.Text(await Sitemap(catalog, content, settings, ct), "application/xml; charset=utf-8"));
+        app.MapGet("/sitemap.xml", async (ICatalogPublicClient catalog, ICreatorsPublicClient creators, ContentStore content, PublicSettings settings, CancellationToken ct) =>
+            Results.Text(await Sitemap(catalog, creators, content, settings, ct), "application/xml; charset=utf-8"));
 
         // Universal links / App Links: the identifiers are placeholders until the developer accounts exist (H-003).
         app.MapGet("/.well-known/apple-app-site-association", (PublicSettings settings) => Results.Text(
@@ -63,7 +64,7 @@ internal static class SeoEndpoints
         return text.ToString();
     }
 
-    private static async Task<string> Sitemap(ICatalogPublicClient catalog, ContentStore content, PublicSettings settings, CancellationToken cancellationToken)
+    private static async Task<string> Sitemap(ICatalogPublicClient catalog, ICreatorsPublicClient creators, ContentStore content, PublicSettings settings, CancellationToken cancellationToken)
     {
         XNamespace ns = "http://www.sitemaps.org/schemas/sitemap/0.9";
         XNamespace xhtml = "http://www.w3.org/1999/xhtml";
@@ -92,6 +93,29 @@ internal static class SeoEndpoints
             }
         }
 
+        // Creator pages (T-1204): every published creator with a validated place in a listed destination, once. The page is the same for each
+        // language the creator speaks, so the alternates point to it for each of them.
+        Dictionary<string, CreatorSummaryDto> handles = new(StringComparer.OrdinalIgnoreCase);
+        foreach (var slug in settings.Destinations)
+        {
+            foreach (var creator in await TryListAsync(creators, slug, cancellationToken))
+            {
+                handles.TryAdd(creator.Handle, creator);
+            }
+        }
+
+        foreach (var handle in handles.Keys.Order(StringComparer.OrdinalIgnoreCase))
+        {
+            var page = await creators.GetCreatorAsync(handle, cancellationToken);
+            if (page is null)
+            {
+                continue;
+            }
+
+            var languages = page.Languages.Where(settings.Languages.Contains).ToArray();
+            urls.Add(Url(ns, settings.Absolute($"/@{page.Handle}"), Alternates(xhtml, settings, languages.Select(l => (l, $"/@{page.Handle}")).Append(("x-default", $"/@{page.Handle}")))));
+        }
+
         urls.Add(Url(ns, settings.Absolute("/micro-aventures")));
         urls.AddRange(content.All.Select(article => Url(ns, settings.Absolute($"/micro-aventures/{article.Path}"))));
         foreach (var legal in LegalPages)
@@ -100,6 +124,19 @@ internal static class SeoEndpoints
         }
 
         return new XDocument(new XDeclaration("1.0", "utf-8", null), new XElement(ns + "urlset", new XAttribute(XNamespace.Xmlns + "xhtml", xhtml), urls)).ToString();
+    }
+
+    /// <summary>A failure of Creators must not take the sitemap down: the creator pages are simply left out until it answers.</summary>
+    private static async Task<IReadOnlyList<CreatorSummaryDto>> TryListAsync(ICreatorsPublicClient creators, string destination, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await creators.ListCreatorsAsync(destination, cancellationToken);
+        }
+        catch (HttpRequestException)
+        {
+            return [];
+        }
     }
 
     private static XElement Url(XNamespace ns, string location, IEnumerable<XElement>? alternates = null) =>

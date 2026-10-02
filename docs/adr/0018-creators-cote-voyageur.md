@@ -19,6 +19,14 @@
 - Ouvrir un contenu enregistre `creator_content_opened` sur le lieu (+0,3, §6.2) et l'événement analytique du même nom (propriétés `creator_id`, `content_id`, `poi_id`, `surface`). Suivre émet `creator_followed` / `creator_unfollowed` (`creator_id` seul) ; le signal de profil `follow_creator` est écrit par Discovery, pas par l'app.
 - Un échec du bloc le masque (la fiche reste utilisable) ; un échec de Discovery laisse l'ordre de Creators.
 
+## T-1204 — Site public
+- **Lecture** : `ICreatorsPublicClient` (jeton `internal`, cache 5 min, base `Creators:BaseAddress`). C'est la seconde lecture directe de `Web.Public` après le Catalog (cahier §23.2) ; elle n'a accès qu'aux trois routes de lecture publique de Creators, passées de la politique `traveler` à `traveler_or_internal` (comme le Catalog). Un jeton `internal` n'a pas de voyageur : `isFollowing` est faux, aucune donnée de suivi n'est concernée.
+- **`/@{handle}`** (SSR) : nom, `@handle`, « Nouveau créateur » sous 20 abonnés, spécialités, bio, liens (`rel="me nofollow noopener noreferrer"`), lieux validés (lien vers la page du lieu quand elle existe : lieu publié avec un texte dans une langue du site), conseils, contenus en lien sortant (`nofollow`), étiquette « Publicité ». Un créateur inconnu, non publié ou suspendu : 404 (Creators). Les liens non validés ne peuvent pas y figurer : Creators ne les renvoie pas (tests de visibilité de `Creators.IntegrationTests`, une condition retirée à la fois).
+- **JSON-LD `Person`** : nom, `alternateName` (`@handle`), `url`, `image` (nos médias, `Public:MediaBaseUrl`), `description`, `knowsAbout`, `knowsLanguage`, `sameAs` (les liens publics du créateur).
+- **hreflang** : la page n'est pas traduite ; elle est déclarée pour chaque langue du créateur présente dans `Public:Languages`, plus `x-default`. Même chose dans le sitemap, qui liste chaque créateur publié ayant un lieu validé dans une destination du site (page par page, puis une lecture par créateur).
+- **Bloc sur la page d'un lieu** : jusqu'à 10 créateurs (`Vu par les créateurs`), lien vers `/@handle`, contenu en lien sortant, conseil, « Publicité ». Si Creators ne répond pas, le bloc est omis et la page reste servie ; si Creators est en panne, le sitemap omet les créateurs.
+- AppHost : `web-public` référence `creators-api`.
+
 ## Écarts
 - Le tri du bloc « Vu par les créateurs » devait se faire sur l'appareil avec les vecteurs `c` renvoyés par Creators (§6.15). Creators ne les a pas ; l'app utilise l'affinité (%) de `GET /creators/for-me` (Discovery, qui détient déjà le profil). Aucune donnée de profil de plus ne quitte l'appareil.
 - Le + 0,5 « présent dans un itinéraire » du vecteur créateur et `CreatorListChangedV1` : avec T-1210.

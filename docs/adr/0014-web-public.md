@@ -1,6 +1,6 @@
 # ADR-0014 — Site web public (T-901, T-902, T-903)
 
-- Statut : accepté. Hors périmètre : pages `/@handle` et bloc « Vu par les créateurs » (T-1204), liens universels réels (identifiants des comptes développeur, H-003).
+- Statut : accepté. Pages `/@handle` et bloc « Vu par les créateurs » : voir ADR-0018 (T-1204). Hors périmètre : liens universels réels (identifiants des comptes développeur, H-003).
 
 ## Choix
 - `OnVoyage.Web.Public` : ASP.NET Core, composants Razor en **rendu statique côté serveur** (aucune interactivité, aucun WebAssembly). Les composants ne sont pas ceux de la RCL de l'app : les pages du site sont des documents, pas des écrans ; ce choix s'écarte de la phrase « mêmes composants » du §F-24.

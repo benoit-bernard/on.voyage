@@ -14,13 +14,16 @@ internal static class CreatorsEndpoints
         // Travelers (anonymous sessions included). No route takes a position (F-30): the block of a place is asked by its identifier.
         var travelers = app.MapGroup("/api/creators/v1").RequireAuthorization(Policies.Traveler);
 
-        travelers.MapGet("/creators/{handle}", (string handle, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+        // Public reads: a traveler's session, or an internal host (Web.Public renders the creator pages with an internal token: no follower, no position).
+        var reads = app.MapGroup("/api/creators/v1").RequireAuthorization(Policies.TravelerOrInternal);
+
+        reads.MapGet("/creators/{handle}", (string handle, HttpContext http, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<CreatorPageDto>>(new GetCreatorPageQuery(handle, http.User.TravelerId()), ct)));
 
-        travelers.MapGet("/creators", (string? destination, string? specialty, string? cursor, int? limit, IMessageBus bus, CancellationToken ct) =>
+        reads.MapGet("/creators", (string? destination, string? specialty, string? cursor, int? limit, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<CreatorListDto>>(new ListCreatorsQuery(destination, specialty, cursor, limit), ct)));
 
-        travelers.MapGet("/pois/{poiId:guid}/contents", (Guid poiId, int? limit, IMessageBus bus, CancellationToken ct) =>
+        reads.MapGet("/pois/{poiId:guid}/contents", (Guid poiId, int? limit, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<PoiCreatorsDto>>(new GetPoiCreatorsQuery(poiId, limit), ct)));
 
         travelers.MapPut("/me/follows/{creatorId:guid}", (Guid creatorId, HttpContext http, IMessageBus bus, CancellationToken ct) =>

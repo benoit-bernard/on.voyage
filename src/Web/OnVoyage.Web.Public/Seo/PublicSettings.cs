@@ -10,6 +10,9 @@ public sealed class PublicSettings
     /// <summary>Destinations listed on the home page and in the sitemap. The Catalog has no list endpoint yet.</summary>
     public string[] Destinations { get; set; } = ["marseille"];
 
+    /// <summary>Public address of our own media (creators' avatars): the Gateway serves <c>/media</c>. Nothing here is a third-party address.</summary>
+    public string MediaBaseUrl { get; set; } = "https://on.voyage/media";
+
     public string AppStoreUrl { get; set; } = "https://apps.apple.com/app/on-voyage/id0000000000";
 
     public string PlayStoreUrl { get; set; } = "https://play.google.com/store/apps/details?id=voyage.on.app";
@@ -24,4 +27,7 @@ public sealed class PublicSettings
     public const string TdmPolicyPath = "/fr/conditions#fouille-de-textes";
 
     public string Absolute(string path) => BaseUrl.TrimEnd('/') + path;
+
+    public string? Media(string? path) =>
+        string.IsNullOrWhiteSpace(path) ? null : path.StartsWith("http", StringComparison.OrdinalIgnoreCase) ? path : $"{MediaBaseUrl.TrimEnd('/')}/{path.TrimStart('/')}";
 }
