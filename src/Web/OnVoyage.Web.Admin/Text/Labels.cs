@@ -19,6 +19,17 @@ public static class Labels
         _ => status,
     };
 
+    /// <summary>The kinds of reader report (F-20).</summary>
+    public static string ReportKind(string kind) => kind switch
+    {
+        "InaccurateFact" => "Fait inexact",
+        "Pronunciation" => "Prononciation",
+        "ClosedOrMoved" => "Lieu fermé ou déplacé",
+        "Photo" => "Photo",
+        "Other" => "Autre",
+        _ => kind,
+    };
+
     public static string Place(string status) => status switch
     {
         "Candidate" => "Candidat",

@@ -28,7 +28,7 @@ public sealed record GenerateAudioCommand(Guid StoryId);
 
 public sealed record ReportStoryCommand(Guid StoryId, Guid TravelerId, string Reason);
 
-public sealed record ListReportInboxQuery(string? Status, int Limit);
+public sealed record ListReportInboxQuery(string? Status, int Limit, string? Kind = null);
 
 public sealed record ResolveStoryReportsCommand(Guid StoryId, string Status, string? Note);
 
@@ -383,7 +383,12 @@ public static class StoryReportInboxHandler
             return Result.Failure<IReadOnlyList<ReportInboxItem>>("validation", "Unknown report status.");
         }
 
-        return Result.Success(await content.ListReportInboxAsync(query.Status, Math.Clamp(query.Limit, 1, 200), cancellationToken));
+        if (query.Kind is { Length: > 0 } kind && !ReportKinds.IsKnown(kind))
+        {
+            return Result.Failure<IReadOnlyList<ReportInboxItem>>("validation", "Unknown report kind.");
+        }
+
+        return Result.Success(await content.ListReportInboxAsync(query.Status, string.IsNullOrEmpty(query.Kind) ? null : query.Kind, Math.Clamp(query.Limit, 1, 200), cancellationToken));
     }
 
     /// <summary>Closes every open report of a story without touching the story: "handled" (fixed elsewhere) or "dismissed" (not a mistake).</summary>
@@ -439,7 +444,7 @@ public static class StoryReportHandler
         // A repeated report from the same traveler is accepted silently so it cannot be used to count readers.
         await content.AddReportAsync(new StoryReport(Guid.CreateVersion7(), story.Id, command.TravelerId, reason, now), cancellationToken);
 
-        if (await content.CountDistinctReportersAsync(story.Id, cancellationToken) >= settings.Current.ReportSuspendThreshold)
+        if (await content.CountDistinctReportersAsync(story.Id, inaccurateFactOnly: true, cancellationToken) >= settings.Current.ReportSuspendThreshold)
         {
             await StoryPublicationHandler.SuspendAsync(story, "reports_threshold", content, clock);
         }

@@ -20,7 +20,7 @@ public sealed class ReportAndAuditPageTests : BunitContext
     public void The_inbox_lists_each_story_with_the_remarks_and_never_a_reader_identity()
     {
         var item = Item("Fort Saint-Jean", "Suspended", 3, DateTimeOffset.UtcNow, "La date est fausse", "Faute dans le nom", "Il manque la tour");
-        _api.ListReportInboxAsync("Open", Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
 
         var cut = Render<Reports>();
 
@@ -33,10 +33,45 @@ public sealed class ReportAndAuditPageTests : BunitContext
     }
 
     [Fact]
+    public void Each_remark_shows_its_kind_the_story_counts_them_and_the_place_is_one_click_away()
+    {
+        var now = DateTimeOffset.UtcNow;
+        var item = Item("Fort Saint-Jean", "Published", 3, now, "x", "y", "z") with
+        {
+            Remarks = [new ReportRemarkItem("La date est fausse", now, "Open", null, "InaccurateFact"), new ReportRemarkItem("On dit Marseille", now, "Open", null, "Pronunciation"), new ReportRemarkItem("Autre fort", now, "Open", null, "Pronunciation")],
+        };
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
+
+        var cut = Render<Reports>();
+
+        cut.WaitForAssertion(() =>
+        {
+            cut.Find("[data-kind=Pronunciation]").TextContent.ShouldBe("Prononciation : 2");
+            cut.Find("[data-kind=InaccurateFact]").TextContent.ShouldBe("Fait inexact : 1");
+            cut.FindAll("li").Select(li => li.TextContent).ShouldContain(text => text.Contains("Prononciation", StringComparison.Ordinal) && text.Contains("On dit Marseille", StringComparison.Ordinal));
+            cut.Find("h2 span a").GetAttribute("href").ShouldBe($"/admin/workshop/place/{item.PlaceId}");
+        });
+    }
+
+    [Fact]
+    public void Choosing_a_kind_asks_the_inbox_for_that_kind_only()
+    {
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        var cut = Render<Reports>();
+        cut.WaitForAssertion(() => cut.FindAll("#kind").ShouldNotBeEmpty());
+
+        cut.Find("#kind").Change("Photo");
+
+        cut.WaitForAssertion(() => _api.Received().ListReportInboxAsync("Open", "Photo", Arg.Any<int>(), Arg.Any<CancellationToken>()));
+        cut.Find("#kind").Change(string.Empty);
+        cut.WaitForAssertion(() => _api.Received().ListReportInboxAsync("Open", null, Arg.Any<int>(), Arg.Any<CancellationToken>()));
+    }
+
+    [Fact]
     public void Reports_can_be_sorted_by_place_or_by_how_many_readers_complained()
     {
         var now = DateTimeOffset.UtcNow;
-        _api.ListReportInboxAsync("Open", Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns(
         [
             Item("Zèbre", "Published", 1, now, "a"),
             Item("Alpha", "Published", 2, now.AddDays(-1), "a", "b"),
@@ -45,7 +80,7 @@ public sealed class ReportAndAuditPageTests : BunitContext
         var cut = Render<Reports>();
         cut.WaitForAssertion(() => cut.FindAll("section.report").Count.ShouldBe(3));
 
-        string[] Order() => [.. cut.FindAll("section.report h2 a").Select(link => link.TextContent)];
+        string[] Order() => [.. cut.FindAll("section.report h2 > a").Select(link => link.TextContent)];
 
         Order().ShouldBe(["Histoire de Zèbre", "Histoire de Alpha", "Histoire de Milieu"]);
         cut.Find("#sort").Change("place");
@@ -58,7 +93,7 @@ public sealed class ReportAndAuditPageTests : BunitContext
     public void A_published_story_is_suspended_first_and_then_a_correction_is_opened()
     {
         var item = Item("Fort", "Published", 3, DateTimeOffset.UtcNow, "a", "b", "c");
-        _api.ListReportInboxAsync("Open", Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
         var correction = new StoryItem(Guid.CreateVersion7(), item.PlaceId, "fr", "Standard", 3, "NeedsReview", "t", "h", "x", "i", "f", "l", "r", null, [], 100, "p", "m", 0.8, new CheckReportItem([], [], null, 1, []), "marin", 0.8, null, DateTimeOffset.UtcNow, DateTimeOffset.UtcNow, null);
         _api.OpenCorrectionAsync(item.StoryId, Arg.Any<CancellationToken>()).Returns(correction);
         var cut = Render<Reports>();
@@ -78,7 +113,7 @@ public sealed class ReportAndAuditPageTests : BunitContext
     public void If_the_suspension_is_refused_no_correction_is_opened()
     {
         var item = Item("Fort", "Published", 3, DateTimeOffset.UtcNow, "a");
-        _api.ListReportInboxAsync("Open", Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
         _api.SuspendStoryAsync(item.StoryId, Arg.Any<string>(), Arg.Any<CancellationToken>()).Returns<Task>(_ => throw new AdminApiException("Déjà suspendue.", 409));
         var cut = Render<Reports>();
         cut.WaitForAssertion(() => cut.FindAll("button").ShouldNotBeEmpty());
@@ -93,7 +128,7 @@ public sealed class ReportAndAuditPageTests : BunitContext
     public void Dismissing_closes_the_reports_with_the_editors_note()
     {
         var item = Item("Fort", "Published", 1, DateTimeOffset.UtcNow, "a");
-        _api.ListReportInboxAsync("Open", Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([item]);
         var cut = Render<Reports>();
         cut.WaitForAssertion(() => cut.FindAll("input[aria-label=Note]").ShouldNotBeEmpty());
 
@@ -107,8 +142,8 @@ public sealed class ReportAndAuditPageTests : BunitContext
     public void Closed_reports_offer_no_action()
     {
         var closed = Item("Fort", "Published", 0, DateTimeOffset.UtcNow) with { Remarks = [new ReportRemarkItem("a", DateTimeOffset.UtcNow, "Handled", "correction v3")] };
-        _api.ListReportInboxAsync("Handled", Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([closed]);
-        _api.ListReportInboxAsync("Open", Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
+        _api.ListReportInboxAsync("Handled", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([closed]);
+        _api.ListReportInboxAsync("Open", Arg.Any<string?>(), Arg.Any<int>(), Arg.Any<CancellationToken>()).Returns([]);
         var cut = Render<Reports>();
         cut.WaitForAssertion(() => cut.Find("#status").ShouldNotBeNull());
 

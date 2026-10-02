@@ -51,6 +51,25 @@ public sealed class AuditJournalTests(PostgresFixture postgres) : IAsyncLifetime
         (await _platformAdmin.GetFromJsonAsync<List<AdminActionDto>>($"/api/platform/v1/admin/audit?{query}", Ct))!;
 
     [Fact]
+    public async Task Handling_reader_reports_reaches_the_platform_journal_even_when_the_story_is_unknown()
+    {
+        using var admin = _f.ApiClient(TestTokens.Mint(_adminId, anonymous: false, roles: ["admin"]));
+        var story = Guid.NewGuid();
+
+        (await admin.PostAsJsonAsync($"/api/factory/v1/admin/stories/{story}/reports/resolve", new { status = "Dismissed", note = "pas une erreur" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.NotFound);
+
+        List<AdminActionDto> entries = [];
+        (await FactoryHarness.EventuallyAsync(async () =>
+        {
+            entries = [.. (await JournalAsync("service=factory")).Where(entry => entry.Target.Contains(story.ToString(), StringComparison.Ordinal))];
+            return entries.Count == 1;
+        })).ShouldBeTrue("the journal never received the write");
+        entries[0].Actor.ShouldBe(_adminId.ToString());
+        entries[0].Status.ShouldBe(404);
+        entries[0].Summary.ShouldNotBeNull().ShouldContain("Dismissed");
+    }
+
+    [Fact]
     public async Task An_admin_action_in_factory_appears_in_the_platform_journal_with_its_actor_and_request()
     {
         using var admin = _f.ApiClient(TestTokens.Mint(_adminId, anonymous: false, roles: ["admin"]));

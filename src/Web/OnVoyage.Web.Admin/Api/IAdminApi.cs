@@ -131,7 +131,7 @@ public interface IAdminApi
     Task<IReadOnlyList<AuditItem>> ListAuditAsync(int limit, string? service = null, CancellationToken cancellationToken = default);
 
     // Report inbox (T-405)
-    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken = default);
+    Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, string? kind, int limit, CancellationToken cancellationToken = default);
 
     Task<int> ResolveReportsAsync(Guid storyId, string status, string? note, CancellationToken cancellationToken = default);
 }

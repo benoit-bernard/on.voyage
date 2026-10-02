@@ -15,3 +15,15 @@
 - **Pages** : `/admin/batches` (filtres d'état et de destination, plafond, coût dépensé sur plafond, barre d'avancement), `/admin/batches/{id}` (filtre par état de tâche, relance d'une tâche, annulation, coût), `/admin/bootstrap` (formulaire, exécutions, arrêt, étapes), `/admin/dead-letters`. Le suivi en direct est une **interrogation périodique** (5 s pour les lots, 3 s pour l'amorçage), arrêtée quand plus rien ne tourne.
 
 **Alternatives écartées** : un canal temps réel (SignalR/SSE) — inutile pour des tâches de plusieurs secondes à plusieurs minutes, et un état de plus à tenir ; stocker le coût par lot dans une colonne mise à jour par le worker — double écriture sans gain tant que la somme se lit en une requête.
+
+## 2. Boîte des signalements (T-405)
+
+**Ce qui existait** : `story_report`, file `GET /admin/reports` (par histoire, tri par date, par nombre de lecteurs ou par lieu), clôture `Handled`/`Dismissed` avec note, « Suspendre et ouvrir une correction » (nouvelle version de l'histoire, signalements clos), suspension automatique à trois lecteurs distincts, jamais d'identité de lecteur dans la file.
+
+**Ce qui est ajouté**
+- **Type de signalement.** L'app compose déjà `[Kind] texte` (`ReportLabels.Compose`) : le serveur lit ce préfixe (`ReportKinds.Parse`) au lieu d'ajouter une colonne et un champ d'API. Pas de préfixe connu (ancienne app, appel à la main) = fait inexact, c'est ce que c'était avant. Un préfixe inconnu devient « Autre » et garde son texte.
+- **Seuil de suspension (F-20)** : seuls les signalements « fait inexact » comptent (`CountDistinctReportersAsync(…, inaccurateFactOnly)`). Cinq lecteurs qui disent « la prononciation est fausse » ne retirent plus l'histoire du Catalog ; ils restent dans la boîte pour l'éditeur.
+- **Boîte** : filtre par type (`?kind=`, 400 si inconnu), décompte par type et par histoire, lien vers l'histoire **et** vers le lieu, type affiché sur chaque remarque (le texte est montré sans le préfixe).
+- **Audit** : toutes les écritures de l'admin Factory passent par `AuditFilter` (journal local + `AdminActionRecordedV1` vers Platform). Les décisions « traité » / « écarté » y figurent avec leur note ; un test d'intégration vérifie la ligne locale et un autre l'arrivée dans le journal de Platform, y compris pour une histoire inconnue (404).
+
+**Écarts au cahier** : la route voyageur reste `POST /stories/{id}/reports` (pas `POST /reports` avec `poi_id`), et l'extrait sélectionné facultatif n'existe pas (le texte libre de 500 caractères le remplace). Le correctif « corriger → nouvelle version » est celui de T-308 (`OpenCorrectionCommand`).

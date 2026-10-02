@@ -206,12 +206,19 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
         return true;
     }
 
-    public async Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, int limit, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<ReportInboxItem>> ListReportInboxAsync(string? status, string? kind, int limit, CancellationToken cancellationToken)
     {
         var withStatus = Db.StoryReports.AsNoTracking();
         if (!string.IsNullOrEmpty(status))
         {
             withStatus = withStatus.Where(row => row.Status == status);
+        }
+
+        if (!string.IsNullOrEmpty(kind))
+        {
+            withStatus = kind == ReportKinds.InaccurateFact
+                ? withStatus.Where(row => !EF.Functions.Like(row.Reason, "[%") || EF.Functions.Like(row.Reason, "[InaccurateFact]%"))
+                : withStatus.Where(row => EF.Functions.Like(row.Reason, "[" + kind + "]%"));
         }
 
         var storyIds = await withStatus.GroupBy(row => row.StoryId).Select(group => new { StoryId = group.Key, Latest = group.Max(row => row.CreatedAt) })
@@ -232,7 +239,7 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
             var items = reports[id].ToList();
             return new ReportInboxItem(
                 id, story.PlaceId, places.GetValueOrDefault(story.PlaceId, string.Empty), story.Title, story.Lang, story.Kind, story.Version, story.Status,
-                items.Count(row => row.Status == "Open"), items.Max(row => row.CreatedAt), [.. items.Select(row => new ReportRemark(row.Reason, row.CreatedAt, row.Status, row.Resolution))]);
+                items.Count(row => row.Status == "Open"), items.Max(row => row.CreatedAt), [.. items.Select(row => { var (remarkKind, text) = ReportKinds.Parse(row.Reason); return new ReportRemark(text, row.CreatedAt, row.Status, row.Resolution, remarkKind); })]);
         })];
     }
 
@@ -240,8 +247,16 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
         await Db.StoryReports.Where(row => row.StoryId == storyId && row.Status == "Open").ExecuteUpdateAsync(
             update => update.SetProperty(row => row.Status, status).SetProperty(row => row.HandledAt, at).SetProperty(row => row.Resolution, resolution), cancellationToken);
 
-    public Task<int> CountDistinctReportersAsync(Guid storyId, CancellationToken cancellationToken) =>
-        Db.StoryReports.Where(row => row.StoryId == storyId && row.Status == "Open").Select(row => row.TravelerId).Distinct().CountAsync(cancellationToken);
+    public Task<int> CountDistinctReportersAsync(Guid storyId, bool inaccurateFactOnly, CancellationToken cancellationToken)
+    {
+        var open = Db.StoryReports.Where(row => row.StoryId == storyId && row.Status == "Open");
+        if (inaccurateFactOnly)
+        {
+            open = open.Where(row => !EF.Functions.Like(row.Reason, "[%") || EF.Functions.Like(row.Reason, "[InaccurateFact]%"));
+        }
+
+        return open.Select(row => row.TravelerId).Distinct().CountAsync(cancellationToken);
+    }
 
     public async Task<IReadOnlyList<StoryReport>> ListReportsAsync(Guid storyId, CancellationToken cancellationToken) =>
         [.. (await Db.StoryReports.AsNoTracking().Where(row => row.StoryId == storyId).OrderBy(row => row.CreatedAt).ToListAsync(cancellationToken))

@@ -78,7 +78,7 @@ public sealed record PronunciationItem(string Destination, string Term, string R
 
 public sealed record AuditItem(Guid EventId, DateTimeOffset At, string Service, string Actor, string Action, string Target, int Status, string? Summary);
 
-public sealed record ReportRemarkItem(string Reason, DateTimeOffset CreatedAt, string Status, string? Resolution);
+public sealed record ReportRemarkItem(string Reason, DateTimeOffset CreatedAt, string Status, string? Resolution, string Kind = "InaccurateFact");
 
 public sealed record ReportInboxItem(
     Guid StoryId, Guid PlaceId, string PlaceName, string StoryTitle, string Lang, string Kind, int Version, string StoryStatus, int OpenReports,

@@ -133,7 +133,7 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 
 | Méthode et chemin | Corps / paramètres | Réponse |
 | --- | --- | --- |
-| `POST /stories/{id}/reports` | `{ reason }` — **politique `traveler`** (F-20) | `{ received: true }` |
+| `POST /stories/{id}/reports` | `{ reason }` — **politique `traveler`** (F-20) | `{ received: true }` ; `reason` porte le type en préfixe, `[Pronunciation] Le nom…` (sans préfixe connu : fait inexact) ; seuls trois lecteurs distincts signalant un **fait inexact** suspendent l'histoire |
 | `POST /admin/imports`, `/admin/enrichments`, `/admin/scorings` | `{ destination }` | 202 |
 | `POST /admin/snapshot-imports` | `{ destination }` | 202 : charge le snapshot versionné `data-pipeline/<destination>/` (idempotent, [ADR-0017](adr/0017-snapshot-et-amorcage-d-une-destination.md)) |
 | `POST /admin/bootstrap` | `{ destination, maxPlaces?, minImportance?, lang?, budgetUsd, autoPublish?, forceImport?, skipImport?, allowUnpriced? }` | 202 `{ id }` : enregistre l'exécution (`Queued`) puis la confie au worker ; amorçage plafonné par `budgetUsd` ([runbook](runbooks/bootstrap-marseille.md)). 400 `validation`, 404 `destination_not_found`, 409 `prices_missing` |
@@ -154,7 +154,7 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 | `PUT /admin/stories/{id}/text` | `{ title, text }` | histoire |
 | `POST /admin/stories/{id}/approve` (`{ editorialScore? }`), `/reject` (`{ reason }`), `/publish`, `/suspend` (`{ reason }`), `/resume`, `/correction` | — | histoire |
 | `POST /admin/stories/{id}/audio` (202), `/audio/reset`, `PUT /admin/stories/{id}/voice` (`{ voice }`) | — | histoire |
-| `GET /admin/reports?status=&limit=`, `POST /admin/stories/{id}/reports/resolve` | `{ status, note? }` | file des signalements, clôture |
+| `GET /admin/reports?status=&kind=&limit=`, `POST /admin/stories/{id}/reports/resolve` | `{ status, note? }` | file des signalements (par histoire, avec le type de chaque remarque : `InaccurateFact`, `Pronunciation`, `ClosedOrMoved`, `Photo`, `Other` ; 400 si le type ou le statut est inconnu), clôture `Handled` ou `Dismissed` avec note de 300 caractères au plus |
 | `POST /admin/batches` | `{ destination, minImportance?, placeStatuses?, lang?, kind?, limit?, budgetUsd? }` | 202 `{ id, total }` ; `budgetUsd` : plafond de coût estimé du lot (les tâches non démarrées sont alors annulées, `budget_exhausted`) |
 | `GET /admin/batches`, `GET /admin/batches/{id}` | — | lots et détail : par lot `pending/running/succeeded/toReview/failed/cancelled`, `costUsd`, `status` (`running`, `completed`, `completed_with_failures`, `cancelled`) ; par tâche étape, essais, dernière erreur |
 | `POST /admin/batches/{id}/retry`, `POST /admin/batches/{id}/cancel`, `POST /admin/batch-jobs/{id}/retry` | — | relance des tâches en échec ou annulées `{ requeued }`, annulation des tâches en attente `{ cancelled }` (409 `nothing_to_cancel`), relance d'une tâche (409 `not_retryable`) |

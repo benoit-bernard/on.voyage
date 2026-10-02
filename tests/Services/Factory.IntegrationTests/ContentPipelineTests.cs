@@ -210,6 +210,53 @@ public sealed class ContentPipelineTests(PostgresFixture postgres) : IAsyncLifet
         (await _f.Admin.PostAsJsonAsync($"{Admin}/stories/{story}/reports/resolve", new { status = "Handled" }, Ct)).StatusCode.ShouldBe(HttpStatusCode.Conflict);
     }
 
+    private async Task ReportKindAsync(Guid story, string reason, int travelers = 1)
+    {
+        for (var i = 0; i < travelers; i++)
+        {
+            using var traveler = _f.ApiClient(TestTokens.Mint(Guid.NewGuid()));
+            (await traveler.PostAsJsonAsync($"/api/factory/v1/stories/{story}/reports", new { reason }, Ct)).StatusCode.ShouldBe(HttpStatusCode.OK);
+        }
+    }
+
+    [Fact]
+    public async Task Only_inaccurate_fact_reports_suspend_a_story_and_the_inbox_can_be_filtered_by_kind()
+    {
+        var story = await PublishedStoryAsync();
+
+        await ReportKindAsync(story, "[Pronunciation] On dit Marseille avec le s final.", 4);
+        await ReportKindAsync(story, "[Photo] La photo montre un autre fort.");
+        (await _f.QueryAsync("select status from factory.story", r => r.GetString(0))).ShouldBe("Published", "five readers, but none of them reported a wrong fact");
+
+        await ReportKindAsync(story, "[InaccurateFact] La date est fausse.", 2);
+        (await _f.QueryAsync("select status from factory.story", r => r.GetString(0))).ShouldBe("Published", "two inaccurate facts are not enough");
+        await ReportKindAsync(story, "Une date semble fausse (rapport sans type, application ancienne)");
+        (await _f.QueryAsync("select status from factory.story", r => r.GetString(0))).ShouldBe("Suspended");
+
+        var item = (await InboxAsync("Open")).EnumerateArray().ShouldHaveSingleItem();
+        item.GetProperty("openReports").GetInt32().ShouldBe(8);
+        var kinds = item.GetProperty("remarks").EnumerateArray().Select(remark => remark.GetProperty("kind").GetString()).GroupBy(kind => kind).ToDictionary(group => group.Key!, group => group.Count());
+        kinds.ShouldBe(new Dictionary<string, int> { ["Pronunciation"] = 4, ["Photo"] = 1, ["InaccurateFact"] = 3 });
+        item.GetProperty("remarks").EnumerateArray().Select(remark => remark.GetProperty("reason").GetString()).ShouldNotContain(reason => reason!.StartsWith('['), "the kind is shown apart from the text");
+
+        (await _f.Admin.GetFromJsonAsync<JsonElement>($"{Admin}/reports?status=Open&kind=Pronunciation", Ct)).GetArrayLength().ShouldBe(1);
+        (await _f.Admin.GetFromJsonAsync<JsonElement>($"{Admin}/reports?status=Open&kind=ClosedOrMoved", Ct)).GetArrayLength().ShouldBe(0);
+        (await _f.Admin.GetFromJsonAsync<JsonElement>($"{Admin}/reports?status=Open&kind=InaccurateFact", Ct)).GetArrayLength().ShouldBe(1);
+        (await _f.Admin.GetAsync($"{Admin}/reports?kind=Nope", Ct)).StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+    }
+
+    [Fact]
+    public async Task Handling_the_reports_of_a_story_is_journaled_with_the_editor_and_the_decision()
+    {
+        var story = await PublishedStoryAsync();
+        await ReportKindAsync(story, "[ClosedOrMoved] Le fort est fermé le lundi.");
+
+        await PostAsync($"{Admin}/stories/{story}/reports/resolve", new { status = "Handled", note = "Horaires ajoutes" });
+
+        (await _f.CountAsync($"select count(*) from factory.audit_log where action like 'POST%' and target = '{Admin}/stories/{story}/reports/resolve' and status = 200 and detail like '%Horaires ajoutes%'")).ShouldBe(1);
+        (await _f.CountAsync("select count(*) from factory.audit_log where actor <> 'unknown'")).ShouldBeGreaterThan(0);
+    }
+
     [Fact]
     public async Task Putting_a_story_back_online_dismisses_its_reports_and_only_new_reports_count_toward_the_threshold()
     {

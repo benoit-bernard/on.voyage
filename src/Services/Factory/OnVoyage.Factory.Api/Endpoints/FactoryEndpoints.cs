@@ -295,8 +295,8 @@ internal static class FactoryEndpoints
             await bus.SendAsync(new GenerateAudioCommand(id));
             return Results.Accepted();
         });
-        admin.MapGet("/reports", (string? status, int? limit, IMessageBus bus, CancellationToken ct) =>
-            Translate(bus.InvokeAsync<Result<IReadOnlyList<ReportInboxItem>>>(new ListReportInboxQuery(status, limit ?? 100), ct), items => items));
+        admin.MapGet("/reports", (string? status, string? kind, int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<ReportInboxItem>>>(new ListReportInboxQuery(status, limit ?? 100, kind), ct), items => items));
         admin.MapPost("/stories/{id:guid}/reports/resolve", (Guid id, ResolveReportsRequest request, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<int>>(new ResolveStoryReportsCommand(id, request.Status, request.Note), ct), closed => new { closed }));
         admin.MapPut("/stories/{id:guid}/voice", (Guid id, VoiceRequest request, IMessageBus bus, CancellationToken ct) =>
