@@ -1,4 +1,5 @@
 using OnVoyage.App.Core.Audio;
+using OnVoyage.App.Core.Driving;
 using OnVoyage.App.Core.Interactions;
 using OnVoyage.Recommendation.Engine.Learning;
 
@@ -48,12 +49,19 @@ public sealed class FeedbackTracker : IDisposable
     private readonly InteractionRecorder _recorder;
     private readonly ILocalNotifier _notifier;
     private readonly TimeProvider _clock;
+    private readonly CarModeState? _carMode;
     private readonly List<ListenedStory> _unrated = [];
     private ListenedStory? _banner;
     private bool _recapNotified;
 
-    public FeedbackTracker(AudioPlaybackController audio, InteractionRecorder recorder, ILocalNotifier notifier, TimeProvider clock)
+    public FeedbackTracker(AudioPlaybackController audio, InteractionRecorder recorder, ILocalNotifier notifier, TimeProvider clock, CarModeState? carMode = null)
     {
+        _carMode = carMode;
+        if (carMode is not null)
+        {
+            carMode.Changed += OnCarModeChanged;
+        }
+
         _audio = audio;
         _recorder = recorder;
         _notifier = notifier;
@@ -76,6 +84,29 @@ public sealed class FeedbackTracker : IDisposable
     {
         _audio.StoryEnded -= OnStoryEnded;
         _audio.Listening -= OnListening;
+        if (_carMode is not null)
+        {
+            _carMode.Changed -= OnCarModeChanged;
+        }
+    }
+
+    private bool Driving => _carMode is { IsActive: true };
+
+    /// <summary>Nothing is asked while driving (F-10); once the traveler is out of car mode, the recap is offered if there is something to rate.</summary>
+    private void OnCarModeChanged()
+    {
+        if (!Driving && RecapAvailable && !_recapNotified)
+        {
+            NotifyRecap();
+        }
+
+        Changed?.Invoke();
+    }
+
+    private void NotifyRecap()
+    {
+        _recapNotified = true;
+        _ = _notifier.NotifyAsync("Votre trajet en histoires", $"{_unrated.Count} histoires écoutées : qu'en avez-vous pensé ?", CancellationToken.None);
     }
 
     public async Task RateAsync(Guid storyId, FeedbackChoice choice, NotForMeScope scope = NotForMeScope.Place, CancellationToken cancellationToken = default)
@@ -138,7 +169,7 @@ public sealed class FeedbackTracker : IDisposable
         }
 
         var story = new ListenedStory(request.StoryId, request.PoiId, request.Title, request.Weights ?? new Dictionary<string, double>(), request.Origin, _clock.GetUtcNow());
-        if (request.Origin == PlayOrigin.Manual)
+        if (request.Origin == PlayOrigin.Manual && !Driving)
         {
             _banner = story;
         }
@@ -148,10 +179,9 @@ public sealed class FeedbackTracker : IDisposable
         }
 
         Changed?.Invoke();
-        if (RecapAvailable && !_recapNotified)
+        if (RecapAvailable && !_recapNotified && !Driving)
         {
-            _recapNotified = true;
-            _ = _notifier.NotifyAsync("Votre trajet en histoires", $"{_unrated.Count} histoires écoutées : qu'en avez-vous pensé ?", CancellationToken.None);
+            NotifyRecap();
         }
     }
 

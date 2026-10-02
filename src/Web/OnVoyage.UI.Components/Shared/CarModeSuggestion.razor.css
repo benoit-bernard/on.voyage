@@ -1,0 +1,5 @@
+.suggestion { margin: 0 0 1rem; padding: .9rem 1rem; border-radius: .9rem; background: var(--ov-chip); }
+.suggestion p { margin: 0 0 .6rem; font-weight: 600; }
+.row { display: flex; gap: .6rem; flex-wrap: wrap; }
+.btn { padding: .7rem 1rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
+.btn-soft { background: var(--ov-surface); color: var(--ov-ink); }

@@ -17,6 +17,7 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddOnVoyageAuthentication(builder.Configuration);
 builder.Services.AddSingleton<IValidator<GetNearbyPoisQuery>, GetNearbyPoisValidator>();
+builder.Services.AddSingleton<IValidator<OnVoyage.Catalog.Application.Features.SearchPois.SearchPoisQuery>, OnVoyage.Catalog.Application.Features.SearchPois.SearchPoisValidator>();
 builder.Services.AddCatalogInfrastructure(builder.Configuration);
 var connectionString = builder.Configuration.GetConnectionString(DependencyInjection.ConnectionName)!;
 builder.Host.UseWolverine(options =>

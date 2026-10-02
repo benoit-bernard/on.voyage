@@ -1,0 +1,30 @@
+@implements IDisposable
+@inject BackgroundRationaleBroker Broker
+
+@if (Broker.Pending)
+{
+    <section class="rationale" role="alertdialog" aria-labelledby="rationale-title" aria-describedby="rationale-text">
+        <h2 id="rationale-title">Continuer écran verrouillé ?</h2>
+        <p id="rationale-text">
+            Pour vous raconter les lieux quand le téléphone est dans votre poche, ON.VOYAGE doit pouvoir suivre votre position en arrière-plan.
+            Le téléphone va vous proposer « Toujours autoriser » (Android) ou « Toujours » (iPhone).
+        </p>
+        <ul>
+            <li>La position sert à choisir l'histoire sur votre téléphone ; elle n'est ni enregistrée, ni envoyée, ni associée à votre compte.</li>
+            <li>Une notification (ou l'indicateur de position de l'iPhone) reste visible tant que le mode découverte tourne, avec un bouton « Arrêter ».</li>
+            <li>Vous pouvez refuser : le mode découverte fonctionne alors écran allumé.</li>
+        </ul>
+        <div class="row">
+            <button type="button" class="btn" @onclick="() => Broker.Answer(true)">Continuer</button>
+            <button type="button" class="btn btn-soft" @onclick="() => Broker.Answer(false)">Pas maintenant</button>
+        </div>
+    </section>
+}
+
+@code {
+    protected override void OnInitialized() => Broker.Changed += OnChanged;
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    public void Dispose() => Broker.Changed -= OnChanged;
+}

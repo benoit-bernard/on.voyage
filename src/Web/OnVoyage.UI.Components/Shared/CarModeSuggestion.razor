@@ -1,0 +1,43 @@
+@implements IDisposable
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
+
+@if (_car is { Suggested: true })
+{
+    <section class="suggestion" role="status" aria-label="Mode voiture">
+        <p>Vous roulez ? Le mode voiture simplifie l'écran et ne pose aucune question pendant la conduite.</p>
+        <div class="row">
+            <button type="button" class="btn" @onclick="Accept">Passer en mode voiture</button>
+            <button type="button" class="btn btn-soft" @onclick="() => _car.DeclineSuggestion()">Non merci</button>
+        </div>
+    </section>
+}
+
+@code {
+    private CarModeController? _car;
+
+    protected override void OnInitialized()
+    {
+        _car = Services.GetService(typeof(CarModeController)) as CarModeController;
+        if (_car is not null)
+        {
+            _car.Changed += OnChanged;
+        }
+    }
+
+    private void OnChanged() => _ = InvokeAsync(StateHasChanged);
+
+    private void Accept()
+    {
+        _car!.Accept();
+        Navigation.NavigateTo("voiture");
+    }
+
+    public void Dispose()
+    {
+        if (_car is not null)
+        {
+            _car.Changed -= OnChanged;
+        }
+    }
+}

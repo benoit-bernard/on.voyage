@@ -1,0 +1,7 @@
+.rationale { position: fixed; inset: auto 0 0 0; z-index: 30; max-height: 85vh; overflow: auto; padding: 1rem 1rem calc(env(safe-area-inset-bottom) + 1rem); background: var(--ov-surface); color: var(--ov-ink); border-top: 3px solid var(--ov-accent); box-shadow: 0 -8px 24px rgb(0 0 0 / .25); }
+.rationale h2 { margin: 0 0 .5rem; font-size: 1.15rem; }
+.rationale p { margin: 0 0 .5rem; }
+.rationale ul { margin: 0 0 .8rem; padding-left: 1.2rem; font-size: .9rem; color: var(--ov-muted); }
+.row { display: flex; gap: .6rem; flex-wrap: wrap; }
+.btn { padding: .7rem 1rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
+.btn-soft { background: var(--ov-chip); color: var(--ov-ink); }

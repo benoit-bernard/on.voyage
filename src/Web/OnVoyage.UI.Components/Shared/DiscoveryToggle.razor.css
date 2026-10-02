@@ -5,3 +5,4 @@
 .btn { padding: .6rem .9rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
 .btn-soft { background: var(--ov-surface); color: var(--ov-ink); }
 .status { font-weight: 600; }
+.car-link { margin-left: .75rem; color: var(--ov-ink); font-weight: 700; }

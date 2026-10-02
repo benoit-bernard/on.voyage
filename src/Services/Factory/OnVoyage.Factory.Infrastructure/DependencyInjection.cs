@@ -66,6 +66,8 @@ public static class DependencyInjection
         services.AddSingleton<IContentSettingsProvider>(new ConfiguredContentSettings(configuration.GetSection("Factory:Content").Get<ContentSettings>() ?? new ContentSettings()));
         services.AddSingleton<IAudioProcessor, FfmpegAudioProcessor>();
         services.AddSingleton<IMediaStorage, LocalMediaStorage>();
+        services.AddSingleton<OnVoyage.Factory.Application.Features.Packs.IPackPublisher, OnVoyage.Factory.Infrastructure.Packs.FilePackPublisher>();
+        services.AddSingleton<OnVoyage.Factory.Application.Features.Packs.IMapExtractor, OnVoyage.Factory.Infrastructure.Packs.PmtilesCliMapExtractor>();
         services.AddSingleton<LlmUsageRecorder>();
         services.AddSingleton<LlmRunner>();
         services.AddScoped<IFactExtractor, LlmFactExtractor>();

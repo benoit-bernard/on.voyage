@@ -359,30 +359,97 @@ public sealed class TriggerEngine(TriggerSettings settings, ITriggerHistory hist
         return new Visit(poiId, track.StartedAt, dwell, Math.Round(confidence, 3));
     }
 
+    /// <summary>The filters that do not depend on the distance: the same list for the trigger and for the "next story" shown in car mode.</summary>
+    private bool IsEligible(TriggerCandidate candidate, LocationFix fix)
+    {
+        if (candidate.Fragile || candidate.StoryId == Guid.Empty || _excluded.Contains(candidate.PoiId))
+        {
+            return false;
+        }
+
+        if (Mode == TravelMode.Car
+            ? candidate.Importance < _settings.CarMinImportance && !candidate.VisibleFromRoad && !candidate.CarAccessible
+            : candidate.Importance < _settings.MinImportanceFor(Mode))
+        {
+            return false;
+        }
+
+        var told = TimeSpan.FromDays(_settings.RepeatAfterDays);
+        var lastTold = Latest(_history.LastTold(candidate.PoiId), _toldThisSession.TryGetValue(candidate.PoiId, out var session) ? session : null);
+        return lastTold is not { } at || fix.Timestamp - at >= told;
+    }
+
+    /// <summary>False when the place is behind the traveler (bike and car). Without a known heading the question cannot be answered, so nothing is guessed.</summary>
+    private bool IsAhead(double bearing)
+    {
+        if (Mode == TravelMode.Walk)
+        {
+            return true;
+        }
+
+        if (_heading is not { } heading)
+        {
+            return false;
+        }
+
+        var cone = Mode == TravelMode.Bike ? _settings.BikeConeDegrees : _settings.CarConeDegrees;
+        return Math.Abs(GeoMath.SignedAngleDegrees(heading, bearing)) <= cone;
+    }
+
+    private double TriggerScore(TriggerCandidate candidate)
+    {
+        var crowdPenalty = Math.Clamp((candidate.CrowdLevel - 1) / 4d, 0d, 1d);
+        return candidate.BaseScore + (_settings.ContextWeight * candidate.ContextScore) - (_settings.CrowdWeight * crowdPenalty);
+    }
+
+    /// <summary>
+    /// The place the engine would announce next if the traveler kept going: the nearest eligible one ahead within the look-ahead distance,
+    /// whatever the trigger radius. For the car-mode screen ("prochaine histoire et sa distance"); it triggers nothing. Null before the first position.
+    /// </summary>
+    public UpcomingStory? Upcoming()
+    {
+        if (State == EngineState.Off || _lastValid is not { } fix || !_modeEstablished)
+        {
+            return null;
+        }
+
+        UpcomingStory? nearest = null;
+        var nearestDistance = double.MaxValue;
+        foreach (var candidate in _candidates)
+        {
+            if (!IsEligible(candidate, fix) || TriggerScore(candidate) < _settings.MinTriggerScore)
+            {
+                continue;
+            }
+
+            var distance = GeoMath.DistanceMeters(fix.Latitude, fix.Longitude, candidate.Latitude, candidate.Longitude);
+            if (distance > _settings.UpcomingLookaheadMeters || distance >= nearestDistance)
+            {
+                continue;
+            }
+
+            if (!IsAhead(GeoMath.BearingDegrees(fix.Latitude, fix.Longitude, candidate.Latitude, candidate.Longitude)))
+            {
+                continue;
+            }
+
+            nearestDistance = distance;
+            nearest = new UpcomingStory(candidate.PoiId, candidate.Name, RoundTo50(distance));
+        }
+
+        return nearest;
+    }
+
     private Trigger? Select(LocationFix fix)
     {
         var speed = SmoothedSpeedMetersPerSecond;
         var radius = _settings.RadiusFor(Mode, speed);
-        var told = TimeSpan.FromDays(_settings.RepeatAfterDays);
         Trigger? best = null;
         var bestRank = double.MinValue;
 
         foreach (var candidate in _candidates)
         {
-            if (candidate.Fragile || candidate.StoryId == Guid.Empty || _excluded.Contains(candidate.PoiId))
-            {
-                continue;
-            }
-
-            if (Mode == TravelMode.Car
-                ? candidate.Importance < _settings.CarMinImportance && !candidate.VisibleFromRoad && !candidate.CarAccessible
-                : candidate.Importance < _settings.MinImportanceFor(Mode))
-            {
-                continue;
-            }
-
-            var lastTold = Latest(_history.LastTold(candidate.PoiId), _toldThisSession.TryGetValue(candidate.PoiId, out var session) ? session : null);
-            if (lastTold is { } at && fix.Timestamp - at < told)
+            if (!IsEligible(candidate, fix))
             {
                 continue;
             }
@@ -395,23 +462,12 @@ public sealed class TriggerEngine(TriggerSettings settings, ITriggerHistory hist
             }
 
             var bearing = GeoMath.BearingDegrees(fix.Latitude, fix.Longitude, candidate.Latitude, candidate.Longitude);
-            if (Mode != TravelMode.Walk)
+            if (!IsAhead(bearing))
             {
-                // Without a known heading the "behind me" question cannot be answered: do not guess.
-                if (_heading is not { } heading)
-                {
-                    continue;
-                }
-
-                var cone = Mode == TravelMode.Bike ? _settings.BikeConeDegrees : _settings.CarConeDegrees;
-                if (Math.Abs(GeoMath.SignedAngleDegrees(heading, bearing)) > cone)
-                {
-                    continue;
-                }
+                continue;
             }
 
-            var crowdPenalty = Math.Clamp((candidate.CrowdLevel - 1) / 4d, 0d, 1d);
-            var score = candidate.BaseScore + (_settings.ContextWeight * candidate.ContextScore) - (_settings.CrowdWeight * crowdPenalty);
+            var score = TriggerScore(candidate);
             if (score < _settings.MinTriggerScore)
             {
                 continue;

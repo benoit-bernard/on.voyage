@@ -64,6 +64,9 @@ public sealed record TriggerCandidate(
 /// <summary>A story to start now. The analytics event <c>story_triggered</c> is exactly these three fields: no coordinates (D-14).</summary>
 public sealed record Trigger(Guid PoiId, TravelMode Mode, int DistanceMeters, AnnouncementDirection Direction, double Score, bool Anticipated, Guid StoryId);
 
+/// <summary>The next place that would be told, for the car-mode screen: its name and the straight-line distance rounded to 50 m. No coordinates.</summary>
+public sealed record UpcomingStory(Guid PoiId, string Name, int DistanceMeters);
+
 /// <summary>A stay at a place. No coordinates: the place and how long, nothing else (D-14).</summary>
 public sealed record Visit(Guid PoiId, DateTimeOffset StartedAt, TimeSpan Dwell, double Confidence);
 
@@ -122,6 +125,9 @@ public sealed record TriggerSettings
     public double VisitFullMinutes { get; init; } = 10;
     public double VisitMaxSpeedKmh { get; init; } = 2;
     public double AutoStopIdleHours { get; init; } = 2;
+
+    /// <summary>How far ahead the car-mode screen looks for "the next story" (it never triggers anything).</summary>
+    public double UpcomingLookaheadMeters { get; init; } = 10_000;
 
     /// <summary>
     /// A story published without audio (no TTS voice when it was produced) may be announced and read by the device's own voice (MVP-0: on).

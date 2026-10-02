@@ -30,8 +30,14 @@ public static class DependencyInjection
         services.TryAddSingleton<ICallMonitor, NoCallMonitor>();
         services.TryAddSingleton<ITriggerSettingsProvider, DefaultTriggerSettingsProvider>();
         services.AddScoped<DiscoveryModeController>();
+        services.TryAddSingleton<OnVoyage.App.Core.Background.BackgroundRationaleBroker>();
+        services.TryAddSingleton<OnVoyage.App.Core.Driving.CarModeState>();
+        services.AddScoped<OnVoyage.App.Core.Driving.CarModeController>();
         services.AddScoped<OnVoyage.App.Core.Planning.DestinationService>();
         services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();
+        services.AddScoped<OnVoyage.App.Core.Surprise.SurpriseService>();
+        services.TryAddSingleton<OnVoyage.App.Core.Search.IOfflineSearch, OnVoyage.App.Core.Search.NoOfflineSearch>();
+        services.AddScoped<OnVoyage.App.Core.Search.SearchSession>();
         services.TryAddSingleton<OnVoyage.App.Core.Interactions.IInteractionOutbox, OnVoyage.App.Core.Interactions.DirectInteractionOutbox>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionSender>();
         services.AddSingleton<OnVoyage.App.Core.Interactions.InteractionRecorder>();
@@ -42,6 +48,22 @@ public static class DependencyInjection
         services.TryAddSingleton(new OnVoyage.App.Core.Map.MapSettings());
         services.TryAddSingleton(new OnVoyage.App.Core.Creators.MediaLocator("/media"));
         services.AddScoped<OnVoyage.App.Core.Creators.CreatorsService>();
+        return services;
+    }
+
+    /// <summary>
+    /// The phone apps' position source with the background mode (T-612). The host registers <see cref="Background.IPlatformLocationUpdates"/>,
+    /// <see cref="Background.ILocationPermissions"/>, <see cref="Background.IBackgroundSession"/> and, where it exists,
+    /// <see cref="Background.IBatteryOptimization"/>.
+    /// </summary>
+    public static IServiceCollection AddBackgroundLocation(this IServiceCollection services)
+    {
+        services.TryAddSingleton<Background.IBackgroundRationale>(provider => provider.GetRequiredService<Background.BackgroundRationaleBroker>());
+        services.TryAddSingleton<Background.IBatteryOptimization, Background.NoBatteryOptimization>();
+        services.AddSingleton<Background.BackgroundAccessFlow>();
+        services.AddSingleton<Background.BackgroundLocationSource>();
+        services.AddSingleton<ILocationSource>(provider => provider.GetRequiredService<Background.BackgroundLocationSource>());
+        services.AddSingleton<Background.IBackgroundStatus>(provider => provider.GetRequiredService<Background.BackgroundLocationSource>());
         return services;
     }
 }

@@ -19,6 +19,9 @@ internal sealed class MauiSpeechEngine : ISpeechEngine
     public async Task<bool> SpeakAsync(string text, string language, double rate, CancellationToken cancellationToken)
     {
         var locale = await LocaleAsync(language) ?? throw new InvalidOperationException($"No voice for '{language}' on this device.");
+#if ANDROID
+        using var focus = AndroidAudioFocus.Acquire(); // TextToSpeech does not take the audio focus by itself
+#endif
         try
         {
             await TextToSpeech.Default.SpeakAsync(text, new SpeechOptions { Locale = locale }, cancellationToken);

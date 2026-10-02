@@ -127,6 +127,49 @@ public sealed class CatalogApiTests(PostgresFixture postgres) : IAsyncLifetime
         (await open.GetAsync("/health", TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
+    [Theory]
+    [InlineData("cathedrale")]
+    [InlineData("CATHÉDRALE")]
+    [InlineData("cathedral")]
+    public async Task Search_finds_the_cathedral_without_accents_in_the_first_three(string text)
+    {
+        var places = await _client.GetFromJsonAsync<List<PoiSummaryDto>>($"/api/catalog/v1/search?q={Uri.EscapeDataString(text)}&destination=marseille", TestContext.Current.CancellationToken);
+
+        places!.Take(3).Select(p => p.Slug).ShouldContain("cathedrale-de-la-major");
+    }
+
+    [Fact]
+    public async Task Search_finds_a_keyword_of_the_description_and_ranks_a_name_that_starts_with_the_text_first()
+    {
+        var places = await _client.GetFromJsonAsync<List<PoiSummaryDto>>("/api/catalog/v1/search?q=fort", TestContext.Current.CancellationToken);
+
+        places!.ShouldNotBeEmpty();
+        places[0].Slug.ShouldBe("fort-saint-jean");
+        places.ShouldAllBe(p => p.DistanceMeters == null);
+    }
+
+    [Fact]
+    public async Task Search_rejects_a_single_character_and_returns_nothing_for_gibberish()
+    {
+        var tooShort = await _client.GetAsync("/api/catalog/v1/search?q=a", TestContext.Current.CancellationToken);
+        var gibberish = await _client.GetFromJsonAsync<List<PoiSummaryDto>>("/api/catalog/v1/search?q=zzzxqwv", TestContext.Current.CancellationToken);
+
+        tooShort.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
+        gibberish.ShouldBeEmpty();
+    }
+
+    [Fact]
+    public async Task Search_treats_sql_and_like_syntax_as_plain_text()
+    {
+        var injection = await _client.GetAsync("/api/catalog/v1/search?q=" + Uri.EscapeDataString("fort'; drop table catalog.poi;--"), TestContext.Current.CancellationToken);
+        var wildcard = await _client.GetFromJsonAsync<List<PoiSummaryDto>>("/api/catalog/v1/search?q=%25%25", TestContext.Current.CancellationToken);
+
+        injection.StatusCode.ShouldBe(HttpStatusCode.OK);
+        wildcard.ShouldBeEmpty("a percent sign is a character, not a wildcard");
+        var all = await _client.GetFromJsonAsync<List<PoiSummaryDto>>("/api/catalog/v1/destinations/marseille/pois", TestContext.Current.CancellationToken);
+        all!.Count.ShouldBe(15);
+    }
+
     [Fact]
     public async Task Health_includes_the_database()
     {

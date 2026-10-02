@@ -51,6 +51,8 @@
   </Folder>
   <Folder Name="/src/Shared/">
     <Project Path="src/Shared/OnVoyage.Messaging/OnVoyage.Messaging.csproj" />
+    <Project Path="src/Shared/OnVoyage.Packs/OnVoyage.Packs.csproj" />
+    <Project Path="src/Shared/OnVoyage.Packs.Builder/OnVoyage.Packs.Builder.csproj" />
     <Project Path="src/Shared/OnVoyage.Recommendation.Engine/OnVoyage.Recommendation.Engine.csproj" />
     <Project Path="src/Shared/OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
   </Folder>

@@ -28,6 +28,8 @@ internal sealed record InterestsRequest(Dictionary<string, double> Weights);
 
 internal sealed record DestinationRequest(string Destination);
 
+internal sealed record PackRequest(string Destination, string? Lang);
+
 internal sealed record BootstrapRequest(string Destination, int? MaxPlaces, int? MinImportance, string? Lang, double? BudgetUsd, bool? AutoPublish, bool? ForceImport, bool? SkipImport, bool? AllowUnpriced);
 
 internal sealed record DecideFactRequest(bool Accept, string? Reason);
@@ -100,6 +102,18 @@ internal static class FactoryEndpoints
         admin.MapPost("/snapshot-imports", async (DestinationRequest request, IMessageBus bus) =>
         {
             await bus.SendAsync(new ImportSnapshotCommand(request.Destination));
+            return Results.Accepted();
+        });
+
+        // Builds the offline pack of a destination and language from what is published now (F-15, T-307); the worker publishes it as a new version.
+        admin.MapPost("/packs", async (PackRequest request, IMessageBus bus) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Destination) || !OnVoyage.Factory.Application.Features.Packs.BuildPackHandler.Languages.Contains(request.Lang ?? "fr"))
+            {
+                return Results.Problem(title: "A destination and a language (fr or en) are required.", statusCode: StatusCodes.Status400BadRequest, type: "https://on.voyage/problems/validation");
+            }
+
+            await bus.SendAsync(new OnVoyage.Factory.Application.Features.Packs.BuildPackCommand(request.Destination, request.Lang ?? "fr"));
             return Results.Accepted();
         });
 

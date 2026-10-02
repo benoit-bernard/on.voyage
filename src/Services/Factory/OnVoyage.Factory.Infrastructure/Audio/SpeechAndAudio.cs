@@ -143,7 +143,7 @@ internal sealed class FfmpegAudioProcessor(IConfiguration configuration, ILogger
 /// <summary>Files on local disk under <c>Factory:MediaDirectory</c>. Production uses S3-compatible storage behind a CDN (§9.7); the port is the same.</summary>
 internal sealed class LocalMediaStorage(IConfiguration configuration) : IMediaStorage
 {
-    private string Root => Path.GetFullPath(configuration["Factory:MediaDirectory"] ?? Path.Combine(configuration["Factory:DataDirectory"] ?? Path.Combine(Path.GetTempPath(), "onvoyage-factory"), "media"));
+    private string Root => OnVoyage.Factory.Infrastructure.Packs.MediaDirectory.Root(configuration);
 
     public async Task<string> SaveAsync(string relativePath, byte[] content, CancellationToken cancellationToken)
     {

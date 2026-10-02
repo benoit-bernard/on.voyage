@@ -3,6 +3,7 @@
     <PackageReference Include="WolverineFx" />
     <PackageReference Include="FluentValidation" />
     <ProjectReference Include="../OnVoyage.Factory.Domain/OnVoyage.Factory.Domain.csproj" />
+    <ProjectReference Include="../../../Shared/OnVoyage.Packs/OnVoyage.Packs.csproj" />
     <ProjectReference Include="../OnVoyage.Factory.Contracts/OnVoyage.Factory.Contracts.csproj" />
     <ProjectReference Include="../../Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
   </ItemGroup>

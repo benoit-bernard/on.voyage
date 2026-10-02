@@ -17,7 +17,7 @@ public enum DiscoveryStartResult
 }
 
 /// <summary>What the "discovery mode" button and the status line show.</summary>
-public sealed record DiscoveryState(EngineState Engine, TravelMode Mode, bool SignalLost, string? LastTitle, bool KeepScreenOn)
+public sealed record DiscoveryState(EngineState Engine, TravelMode Mode, bool SignalLost, string? LastTitle, bool KeepScreenOn, UpcomingStory? Next = null)
 {
     public static DiscoveryState Off { get; } = new(EngineState.Off, TravelMode.Walk, false, null, false);
 
@@ -42,7 +42,8 @@ public sealed class DiscoveryModeController(
     ITriggerSettingsProvider settings,
     IAnalyticsSink analytics,
     TimeProvider clock,
-    ITextNarrator? narrator = null) : IDisposable
+    ITextNarrator? narrator = null,
+    Background.IBackgroundStatus? background = null) : IDisposable
 {
     private static readonly TimeSpan TickEvery = TimeSpan.FromSeconds(5);
 
@@ -144,6 +145,11 @@ public sealed class DiscoveryModeController(
 
         _subscribed = true;
         location.FixReceived += OnFix;
+        if (background is not null)
+        {
+            background.StopRequested += OnStopRequested;
+        }
+
         calls.CallStateChanged += OnCallState;
         audio.MainStarted += OnMainStarted;
         audio.StoryEnded += OnStoryEnded;
@@ -158,6 +164,11 @@ public sealed class DiscoveryModeController(
 
         _subscribed = false;
         location.FixReceived -= OnFix;
+        if (background is not null)
+        {
+            background.StopRequested -= OnStopRequested;
+        }
+
         calls.CallStateChanged -= OnCallState;
         audio.MainStarted -= OnMainStarted;
         audio.StoryEnded -= OnStoryEnded;
@@ -286,6 +297,9 @@ public sealed class DiscoveryModeController(
         Publish();
     }
 
+    /// <summary>"Arrêter" in the notification of the background mode.</summary>
+    private void OnStopRequested() => _ = StopAsync();
+
     private void OnCallState(bool inCall) => _engine?.OnCallStateChanged(inCall);
 
     private void OnTick()
@@ -311,7 +325,7 @@ public sealed class DiscoveryModeController(
     {
         if (_engine is { } engine)
         {
-            State = new DiscoveryState(engine.State, engine.Mode, engine.SignalLost, _lastTitle, _keepScreenOn);
+            State = new DiscoveryState(engine.State, engine.Mode, engine.SignalLost, _lastTitle, _keepScreenOn, engine.Upcoming());
             Changed?.Invoke();
         }
     }

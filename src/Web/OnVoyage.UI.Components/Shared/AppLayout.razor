@@ -3,12 +3,14 @@
 <div class="shell">
     <header class="topbar">
         <a href="" class="brand" aria-label="ON.VOYAGE, accueil">ON<span>.</span>VOYAGE</a>
-        <nav class="topnav"><a href="destination">Destination</a><a href="carte">Carte</a><a href="envies">Envies</a><a href="reglages">Réglages</a><a href="compte" class="account">Compte</a></nav>
+        <nav class="topnav"><a href="destination">Destination</a><a href="recherche" aria-label="Rechercher un lieu">Recherche</a><a href="carte">Carte</a><a href="envies">Envies</a><a href="reglages">Réglages</a><a href="compte" class="account">Compte</a></nav>
     </header>
     <main class="content">
+        <CarModeSuggestion />
         <ReminderBanner />
         @Body
     </main>
+    <BackgroundRationaleDialog />
     <FeedbackBanner />
     <PlayerBar />
     <footer class="attribution">© OpenStreetMap contributors · Aucune donnée de voyageur n'est transmise à un tiers.</footer>

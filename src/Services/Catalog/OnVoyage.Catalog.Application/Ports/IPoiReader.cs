@@ -9,6 +9,12 @@ public interface IPoiReader
     /// <summary>Published places of a destination, nearest first when an origin is given. The origin is only used to filter and order; it is never stored.</summary>
     Task<IReadOnlyList<PlaceDistance>> ListPublishedAsync(string destinationSlug, GeoPoint? origin, int radiusMeters, int limit, CancellationToken cancellationToken);
 
+    /// <summary>
+    /// Published places whose name, description or keywords match <paramref name="text"/> (accent- and case-insensitive, tolerant to a typo), best match first.
+    /// The text is only used to build the query.
+    /// </summary>
+    Task<IReadOnlyList<Poi>> SearchPublishedAsync(string destinationSlug, string text, int limit, CancellationToken cancellationToken);
+
     Task<int> CountPublishedAsync(string destinationSlug, CancellationToken cancellationToken);
 
     Task<Poi?> FindBySlugAsync(string slug, CancellationToken cancellationToken);

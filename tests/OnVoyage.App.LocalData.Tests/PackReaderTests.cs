@@ -1,5 +1,6 @@
 using Microsoft.Data.Sqlite;
 using OnVoyage.App.LocalData.Packs;
+using OnVoyage.Packs;
 
 namespace OnVoyage.App.LocalData.Tests;
 
@@ -28,7 +29,7 @@ public sealed class PackReaderTests : IDisposable
         }
 
         SqliteConnection.ClearAllPools();
-        await PackReader.WriteManifestAsync(_directory, "marseille", "fr", 1, Ct);
+        await PackManifests.WriteAsync(_directory, "marseille", "fr", 1, cancellationToken: Ct);
     }
 
     private static void Run(SqliteConnection connection, string sql)
