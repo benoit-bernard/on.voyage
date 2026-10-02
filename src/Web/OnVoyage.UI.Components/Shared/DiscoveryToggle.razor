@@ -10,6 +10,7 @@
             <p class="hint">Gardez l'écran allumé : ON.VOYAGE vous raconte les lieux quand vous vous en approchez. Votre position reste sur votre téléphone.</p>
             <label class="check"><input type="checkbox" @bind="_keepScreenOn" /> Garder l'écran allumé</label>
             <button type="button" class="btn" disabled="@_starting" @onclick="StartAsync">Activer le mode découverte</button>
+            <a class="car-link" href="voiture">Mode voiture</a>
             @if (_message is not null)
             {
                 <p class="note" role="status">@_message</p>

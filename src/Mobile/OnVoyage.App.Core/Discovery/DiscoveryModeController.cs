@@ -17,7 +17,7 @@ public enum DiscoveryStartResult
 }
 
 /// <summary>What the "discovery mode" button and the status line show.</summary>
-public sealed record DiscoveryState(EngineState Engine, TravelMode Mode, bool SignalLost, string? LastTitle, bool KeepScreenOn)
+public sealed record DiscoveryState(EngineState Engine, TravelMode Mode, bool SignalLost, string? LastTitle, bool KeepScreenOn, UpcomingStory? Next = null)
 {
     public static DiscoveryState Off { get; } = new(EngineState.Off, TravelMode.Walk, false, null, false);
 
@@ -311,7 +311,7 @@ public sealed class DiscoveryModeController(
     {
         if (_engine is { } engine)
         {
-            State = new DiscoveryState(engine.State, engine.Mode, engine.SignalLost, _lastTitle, _keepScreenOn);
+            State = new DiscoveryState(engine.State, engine.Mode, engine.SignalLost, _lastTitle, _keepScreenOn, engine.Upcoming());
             Changed?.Invoke();
         }
     }

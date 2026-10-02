@@ -1,0 +1,114 @@
+@page "/voiture"
+@implements IDisposable
+@inject IServiceProvider Services
+
+<PageTitle>Mode voiture · ON.VOYAGE</PageTitle>
+
+@if (_car is null)
+{
+    <h1>Mode voiture</h1>
+    <p class="note">Le mode voiture n'est pas disponible sur cet appareil.</p>
+}
+else if (!_view.Active)
+{
+    <h1>Mode voiture</h1>
+    <p class="hint">Un écran simplifié pour la route : de gros boutons, l'histoire en cours et la prochaine. Aucune question ne vous est posée pendant que vous conduisez ; vos avis sont demandés après le trajet. Votre position reste sur votre téléphone.</p>
+    <button type="button" class="big start" disabled="@_starting" @onclick="ActivateAsync">Activer le mode voiture</button>
+    @if (_message is not null)
+    {
+        <p class="note" role="status">@_message</p>
+    }
+}
+else
+{
+    <h1 class="sr-only">Mode voiture</h1>
+    <section class="car" aria-label="Mode voiture">
+        @if (_view.SignalLost)
+        {
+            <p class="lost" role="status">Signal GPS perdu : rien ne sera raconté tant qu'il n'est pas revenu.</p>
+        }
+
+        <div class="now" aria-live="polite">
+            @if (_view.CurrentTitle is { } current)
+            {
+                <span class="label">En cours</span>
+                <strong class="title">@current</strong>
+            }
+            else
+            {
+                <span class="label">À l'écoute de la route</span>
+            }
+        </div>
+
+        @if (_view.NextTitle is { } next)
+        {
+            <p class="next">
+                <span class="label">Prochaine histoire</span>
+                <strong>@next</strong>
+                @if (_view.NextDistanceMeters is { } meters)
+                {
+                    <span class="distance">à @CarModeView.FormatDistance(meters)</span>
+                }
+            </p>
+        }
+
+        <div class="controls">
+            <button type="button" class="big play" aria-label="@(_view.Playing ? "Pause" : "Lecture")" @onclick="Car.TogglePauseAsync">@(_view.Playing ? "❚❚" : "▶")</button>
+            <button type="button" class="big" @onclick="Car.NextAsync">Suivante</button>
+            <button type="button" class="big stop" @onclick="() => Car.StopAsync()">Arrêter</button>
+        </div>
+
+        @if (_view.CanLeave)
+        {
+            <button type="button" class="leave" @onclick="() => Car.Leave()">Vous ne roulez plus ? Quitter le mode voiture</button>
+        }
+    </section>
+}
+
+@code {
+    private CarModeController? _car;
+    private CarModeView _view = default!;
+    private bool _starting;
+    private string? _message;
+
+    private CarModeController Car => _car!;
+
+    protected override void OnInitialized()
+    {
+        _car = Services.GetService(typeof(CarModeController)) as CarModeController;
+        if (_car is not null)
+        {
+            _view = _car.View;
+            _car.Changed += OnChanged;
+        }
+    }
+
+    private void OnChanged()
+    {
+        _view = _car!.View;
+        _ = InvokeAsync(StateHasChanged);
+    }
+
+    private async Task ActivateAsync()
+    {
+        _starting = true;
+        _message = null;
+        var result = await Car.ActivateAsync();
+        _message = result switch
+        {
+            CarModeStartResult.PermissionDenied => "Sans l'accès à votre position, le mode voiture ne peut pas fonctionner. Vous pouvez l'autoriser dans les réglages du téléphone.",
+            CarModeStartResult.NothingToTell => "Aucune histoire n'est encore disponible pour cette destination.",
+            _ => null,
+        };
+        _starting = false;
+        OnChanged();
+    }
+
+    public void Dispose()
+    {
+        if (_car is not null)
+        {
+            _car.Changed -= OnChanged;
+        }
+    }
+}

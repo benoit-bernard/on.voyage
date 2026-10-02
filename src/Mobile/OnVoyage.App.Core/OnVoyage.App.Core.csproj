@@ -11,5 +11,6 @@
   </ItemGroup>
   <ItemGroup>
     <InternalsVisibleTo Include="OnVoyage.App.Core.Tests" />
+    <InternalsVisibleTo Include="OnVoyage.UI.Components.Tests" />
   </ItemGroup>
 </Project>

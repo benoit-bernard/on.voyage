@@ -1,0 +1,15 @@
+h1 { font-size: 1.5rem; margin: .25rem 0 1rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.hint, .note { color: var(--ov-muted); font-size: 1rem; }
+.car { display: flex; flex-direction: column; gap: 1.25rem; min-height: 70vh; justify-content: space-between; }
+.label { display: block; color: var(--ov-muted); font-size: 1rem; text-transform: uppercase; letter-spacing: .06em; }
+.now .title { display: block; font-size: 2.2rem; line-height: 1.15; margin-top: .25rem; }
+.next { margin: 0; font-size: 1.4rem; }
+.next .distance { display: block; font-size: 1.4rem; color: var(--ov-muted); }
+.lost { margin: 0; padding: .8rem 1rem; border-radius: .9rem; background: var(--ov-chip); font-size: 1.2rem; font-weight: 700; }
+.controls { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+.controls .play { grid-column: 1 / -1; min-height: 9rem; font-size: 4rem; }
+.big { min-height: 5.5rem; padding: 1rem; border: 0; border-radius: 1.2rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-size: 1.8rem; font-weight: 800; cursor: pointer; }
+.big.stop { background: var(--ov-surface); color: var(--ov-ink); border: 3px solid var(--ov-ink); }
+.start { width: 100%; }
+.leave { border: 0; background: transparent; color: var(--ov-muted); font: inherit; font-size: 1.1rem; padding: 1rem; text-decoration: underline; cursor: pointer; }

@@ -30,6 +30,8 @@ public static class DependencyInjection
         services.TryAddSingleton<ICallMonitor, NoCallMonitor>();
         services.TryAddSingleton<ITriggerSettingsProvider, DefaultTriggerSettingsProvider>();
         services.AddScoped<DiscoveryModeController>();
+        services.TryAddSingleton<OnVoyage.App.Core.Driving.CarModeState>();
+        services.AddScoped<OnVoyage.App.Core.Driving.CarModeController>();
         services.AddScoped<OnVoyage.App.Core.Planning.DestinationService>();
         services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();
         services.TryAddSingleton<OnVoyage.App.Core.Interactions.IInteractionOutbox, OnVoyage.App.Core.Interactions.DirectInteractionOutbox>();
