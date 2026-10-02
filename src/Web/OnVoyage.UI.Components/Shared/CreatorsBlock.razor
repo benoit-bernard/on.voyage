@@ -1,0 +1,95 @@
+@using OnVoyage.App.Core.Creators
+@inject CreatorsService Creators
+
+@if (_block.Cards.Count > 0)
+{
+    <section class="creators" aria-labelledby="creators-title">
+        <h2 id="creators-title">Vu par les créateurs</h2>
+        <ul>
+            @foreach (var card in _block.Cards)
+            {
+                <li class="creator" data-creator="@card.Handle">
+                    @if (card.AvatarUrl is not null)
+                    {
+                        <img class="avatar" src="@card.AvatarUrl" alt="" width="48" height="48" loading="lazy" />
+                    }
+                    else
+                    {
+                        <span class="avatar initial" aria-hidden="true">@Initial(card)</span>
+                    }
+                    <div class="body">
+                        <a class="handle" href="createur/@card.Handle">@("@" + card.Handle)</a>
+                        @if (card.IsCommercial)
+                        {
+                            <span class="ad">@CreatorLabels.Advertising</span>
+                        }
+
+                        @if (card.ContentKind is not null)
+                        {
+                            <p class="meta">@CreatorLabels.Kind(card.ContentKind)@(string.IsNullOrEmpty(card.Duration) ? string.Empty : " · " + card.Duration) · @card.ContentTitle</p>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(card.Tip))
+                        {
+                            <p class="tip">« @card.Tip »</p>
+                        }
+
+                        @if (card.ContentUrl is not null)
+                        {
+                            @* A plain link out, never an embedded player (D-17); a chapter already carries its timestamp in the address. *@
+                            <a class="see" href="@card.ContentUrl" target="_blank" rel="noopener noreferrer" @onclick="() => OpenedAsync(card)">Voir<span class="sr-only"> le contenu de @@@card.Handle sur sa plateforme</span></a>
+                        }
+
+                        <ReportForm TargetType="@(card.ContentId is null ? "creator" : "content")" TargetId="@(card.ContentId ?? card.CreatorId)" Label="Signaler" />
+                    </div>
+                </li>
+            }
+        </ul>
+        @if (_block.Total > _block.Cards.Count && !_all)
+        {
+            <button type="button" class="more" @onclick="ShowAllAsync">Tous les créateurs (@_block.Total)</button>
+        }
+
+        <p class="note">Ces liens ouvrent un site ou une application extérieurs à ON.VOYAGE.</p>
+    </section>
+}
+
+@code {
+    [Parameter, EditorRequired] public Guid PoiId { get; set; }
+
+    [Parameter] public string Destination { get; set; } = "marseille";
+
+    /// <summary>The place's taste vector, so opening a content can teach the local profile (+0.3, §6.2).</summary>
+    [Parameter] public IReadOnlyDictionary<string, double> Weights { get; set; } = new Dictionary<string, double>();
+
+    private CreatorBlock _block = CreatorBlock.Empty;
+    private bool _all;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _all = false;
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        try
+        {
+            _block = await Creators.LoadBlockAsync(PoiId, Destination, _all, CancellationToken.None);
+        }
+        catch (HttpRequestException)
+        {
+            _block = CreatorBlock.Empty; // the block is an extra: the place page works without it
+        }
+    }
+
+    private async Task ShowAllAsync()
+    {
+        _all = true;
+        await LoadAsync();
+    }
+
+    private Task OpenedAsync(CreatorCard card) => Creators.OpenedContentAsync(card, PoiId, Weights);
+
+    private static string Initial(CreatorCard card) => card.Handle.Length > 0 ? char.ToUpperInvariant(card.Handle[0]).ToString() : "?";
+}

@@ -39,6 +39,8 @@ public static class DependencyInjection
         services.TryAddSingleton<OnVoyage.App.Core.Wishes.IReminderStore, OnVoyage.App.Core.Wishes.InMemoryReminderStore>();
         services.AddSingleton<OnVoyage.App.Core.Wishes.ProximityReminderService>();
         services.TryAddSingleton(new OnVoyage.App.Core.Map.MapSettings());
+        services.TryAddSingleton(new OnVoyage.App.Core.Creators.MediaLocator("/media"));
+        services.AddScoped<OnVoyage.App.Core.Creators.CreatorsService>();
         return services;
     }
 }

@@ -1,0 +1,13 @@
+.creators ul { list-style: none; padding: 0; margin: 0; }
+.creator { display: flex; gap: .75rem; padding: .6rem 0; border-bottom: 1px solid var(--ov-line); }
+.avatar { flex: none; width: 48px; height: 48px; border-radius: 50%; object-fit: cover; background: var(--ov-chip); }
+.initial { display: inline-flex; align-items: center; justify-content: center; font-weight: 700; color: var(--ov-ink); }
+.body { min-width: 0; }
+.handle { font-weight: 700; color: var(--ov-accent); text-decoration: none; }
+.ad { display: inline-block; margin-left: .4rem; padding: .05rem .5rem; border: 1px solid var(--ov-ink); border-radius: 999px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.meta { margin: .15rem 0; font-size: .85rem; color: var(--ov-muted); }
+.tip { margin: .25rem 0; font-style: italic; }
+.see { display: inline-block; margin: .25rem 0; padding: .3rem .8rem; border-radius: .7rem; background: var(--ov-chip); color: var(--ov-ink); font-weight: 700; text-decoration: none; }
+.more { margin-top: .6rem; padding: .4rem 0; border: 0; background: none; color: var(--ov-accent); font: inherit; font-weight: 700; cursor: pointer; text-decoration: underline; }
+.note { color: var(--ov-muted); font-size: .8rem; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }

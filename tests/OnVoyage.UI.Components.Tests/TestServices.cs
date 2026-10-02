@@ -29,10 +29,21 @@ internal static class TestServices
         context.Services.AddSingleton(Substitute.For<OnVoyage.App.Core.Privacy.IPrivacyApi>());
         context.Services.AddSingleton(Substitute.For<OnVoyage.App.Core.Reports.IReportClient>());
         context.Services.AddSingleton(new OnVoyage.App.Core.Interactions.InteractionSender(discovery, profiles));
+        context.AddCreators(Substitute.For<OnVoyage.App.Core.Creators.ICreatorsClient>(), profiles, new KeepingOutbox(), clock);
         context.Services.AddScoped<OnVoyage.App.Core.Onboarding.OnboardingService>();
     }
 
-    private sealed class KeepingOutbox : IInteractionOutbox
+    /// <summary>The creators client (a fake the test sets up) and the service the creator components inject.</summary>
+    public static void AddCreators(this BunitContext context, OnVoyage.App.Core.Creators.ICreatorsClient client, IProfileStore profiles, IInteractionOutbox outbox, TimeProvider? clock = null)
+    {
+        clock ??= TimeProvider.System;
+        context.Services.AddSingleton(client);
+        context.Services.AddSingleton(new OnVoyage.App.Core.Creators.MediaLocator("https://media.test/media"));
+        context.Services.AddSingleton<IAnalyticsSink>(new NullAnalyticsSink());
+        context.Services.AddSingleton(new OnVoyage.App.Core.Creators.CreatorsService(client, new InteractionRecorder(profiles, outbox, clock), new OnVoyage.App.Core.Creators.MediaLocator("https://media.test/media"), new NullAnalyticsSink()));
+    }
+
+    internal sealed class KeepingOutbox : IInteractionOutbox
     {
         public Task EnqueueAsync(OnVoyage.Discovery.Contracts.InteractionDto interaction, CancellationToken cancellationToken) => Task.CompletedTask;
 

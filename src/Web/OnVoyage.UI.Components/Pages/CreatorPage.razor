@@ -1,0 +1,182 @@
+@page "/createur/{Handle}"
+@using OnVoyage.App.Core.Creators
+@using OnVoyage.Creators.Contracts
+@inject CreatorsService Creators
+@inject ICatalogClient Catalog
+
+<PageTitle>@(_page is null ? "Créateur" : "@" + _page.Handle) · ON.VOYAGE</PageTitle>
+
+<a class="back" href="">← Retour</a>
+
+@if (_notFound)
+{
+    <p class="empty">Ce créateur est introuvable.</p>
+}
+else if (_page is null)
+{
+    <p class="empty" aria-live="polite">Chargement…</p>
+}
+else
+{
+    <header class="profile">
+        @if (Creators.Avatar(_page.AvatarPath) is { } avatar)
+        {
+            <img class="avatar" src="@avatar" alt="" width="72" height="72" />
+        }
+
+        <div>
+            <h1>@_page.DisplayName</h1>
+            <p class="handle">@("@" + _page.Handle)</p>
+            <p class="stats">@CreatorLabels.Followers(_page) · @_page.PlaceCount @(_page.PlaceCount == 1 ? "lieu" : "lieux")@(_page.DestinationCount > 0 ? $" · {_page.DestinationCount} destination{(_page.DestinationCount > 1 ? "s" : string.Empty)}" : string.Empty)</p>
+        </div>
+    </header>
+
+    <div class="actions">
+        <button type="button" class="btn @(_following ? "btn-on" : string.Empty)" aria-pressed="@(_following ? "true" : "false")" disabled="@_busy" @onclick="ToggleFollowAsync">
+            @(_following ? "✓ Vous suivez" : "Suivre")
+        </button>
+    </div>
+    @if (_error is not null)
+    {
+        <p class="note" role="alert">@_error</p>
+    }
+
+    @if (_page.Specialties.Count > 0)
+    {
+        <ul class="chips" aria-label="Spécialités">
+            @foreach (var specialty in _page.Specialties)
+            {
+                <li>@specialty</li>
+            }
+        </ul>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(_page.Bio))
+    {
+        <p class="bio">@_page.Bio</p>
+    }
+
+    @if (_page.Links.Count > 0)
+    {
+        <section aria-labelledby="links-title">
+            <h2 id="links-title">Retrouver @("@" + _page.Handle)</h2>
+            <p class="note">Ces liens ouvrent un site ou une application extérieurs à ON.VOYAGE.</p>
+            <ul class="plain">
+                @foreach (var link in _page.Links)
+                {
+                    <li><a href="@link.Url" target="_blank" rel="noopener noreferrer">@link.Kind</a></li>
+                }
+            </ul>
+        </section>
+    }
+
+    <section aria-labelledby="places-title">
+        <h2 id="places-title">Ses lieux</h2>
+        @if (_page.Places.Count == 0)
+        {
+            <p class="note">Aucun lieu pour l'instant.</p>
+        }
+
+        @foreach (var place in _page.Places)
+        {
+            <article class="place">
+                <h3>
+                    @if (_slugs.TryGetValue(place.PoiId, out var slug))
+                    {
+                        <a href="lieu/@slug">@place.Name</a>
+                    }
+                    else
+                    {
+                        @place.Name
+                    }
+                    @if (!string.IsNullOrEmpty(place.City))
+                    {
+                        <span class="city"> · @place.City</span>
+                    }
+                </h3>
+                @if (!string.IsNullOrWhiteSpace(place.Tip))
+                {
+                    <p class="tip">« @place.Tip »</p>
+                }
+
+                @foreach (var content in place.Contents)
+                {
+                    <p class="content">
+                        <span class="meta">@CreatorLabels.Kind(content.Kind)@(content.DurationSeconds is > 0 ? " · " + CreatorLabels.Duration(content.DurationSeconds) : string.Empty)</span>
+                        @if (content.IsCommercial)
+                        {
+                            <span class="ad">@CreatorLabels.Advertising</span>
+                        }
+
+                        <a href="@content.Url" target="_blank" rel="noopener noreferrer">@content.Title</a>
+                    </p>
+                }
+            </article>
+        }
+    </section>
+
+    <ReportForm TargetType="creator" TargetId="_page.Id" Label="Signaler ce créateur" />
+}
+
+@code {
+    [Parameter] public string Handle { get; set; } = string.Empty;
+
+    private CreatorPageDto? _page;
+    private Dictionary<Guid, string> _slugs = [];
+    private bool _notFound;
+    private bool _following;
+    private bool _busy;
+    private string? _error;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        _page = null;
+        _notFound = false;
+        _error = null;
+        var page = await Creators.LoadPageAsync(Handle, CancellationToken.None);
+        if (page is null)
+        {
+            _notFound = true;
+            return;
+        }
+
+        try
+        {
+            // The creator's places link to our own place pages: the slug comes from the catalog, by place identifier.
+            _slugs = (await Catalog.GetPoisAsync("marseille", null, null, CancellationToken.None)).ToDictionary(poi => poi.Id, poi => poi.Slug);
+        }
+        catch (HttpRequestException)
+        {
+            _slugs = [];
+        }
+
+        _following = page.IsFollowing;
+        _page = page;
+    }
+
+    private async Task ToggleFollowAsync()
+    {
+        _busy = true;
+        _error = null;
+        try
+        {
+            var now = await Creators.SetFollowAsync(_page!.Id, !_following, CancellationToken.None);
+            if (now is null)
+            {
+                _notFound = true; // withdrawn while the page was open
+                _page = null;
+                return;
+            }
+
+            _following = now.Value;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Action impossible pour l'instant. Réessayez plus tard.";
+        }
+        finally
+        {
+            _busy = false;
+        }
+    }
+}

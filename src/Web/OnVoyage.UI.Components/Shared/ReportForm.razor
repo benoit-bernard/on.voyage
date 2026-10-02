@@ -1,0 +1,56 @@
+@using OnVoyage.Creators.Contracts
+@using OnVoyage.App.Core.Creators
+@inject CreatorsService Creators
+
+@* A closed list of reasons and no free text (F-33): the reporter is never shown to anyone. *@
+<details class="report" open="@_open">
+    <summary @onclick="() => _open = !_open" @onclick:preventDefault>@Label</summary>
+    @if (_sent)
+    {
+        <p class="note" role="status">Merci, votre signalement a été transmis.</p>
+    }
+    else if (_open)
+    {
+        <label>Motif
+            <select @bind="_reason" aria-label="Motif du signalement">
+                @foreach (var reason in ReportReasons.All)
+                {
+                    <option value="@reason">@CreatorLabels.Reason(reason)</option>
+                }
+            </select>
+        </label>
+        @if (_error is not null)
+        {
+            <p class="note" role="alert">@_error</p>
+        }
+        <button type="button" class="btn" @onclick="SendAsync">Envoyer</button>
+    }
+</details>
+
+@code {
+    /// <summary><c>creator</c>, <c>content</c>, <c>place_link</c> or <c>tip</c>.</summary>
+    [Parameter, EditorRequired] public string TargetType { get; set; } = "creator";
+
+    [Parameter, EditorRequired] public Guid TargetId { get; set; }
+
+    [Parameter] public string Label { get; set; } = "Signaler";
+
+    private bool _open;
+    private bool _sent;
+    private string _reason = ReportReasons.Inaccurate;
+    private string? _error;
+
+    private async Task SendAsync()
+    {
+        _error = null;
+        try
+        {
+            await Creators.ReportAsync(TargetType, TargetId, _reason, CancellationToken.None);
+            _sent = true;
+        }
+        catch (HttpRequestException)
+        {
+            _error = "Envoi impossible pour l'instant. Réessayez plus tard.";
+        }
+    }
+}

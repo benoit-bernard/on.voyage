@@ -1,0 +1,6 @@
+.report { margin: .5rem 0; font-size: .85rem; }
+.report summary { cursor: pointer; color: var(--ov-muted); }
+.report label { display: block; margin: .4rem 0; }
+.report select { margin-left: .4rem; padding: .3rem; font: inherit; }
+.note { color: var(--ov-muted); font-size: .8rem; }
+.btn { padding: .5rem .8rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }

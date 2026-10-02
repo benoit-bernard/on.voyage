@@ -1,0 +1,20 @@
+.back { display: inline-block; margin-bottom: .75rem; color: var(--ov-muted); text-decoration: none; }
+.profile { display: flex; gap: 1rem; align-items: center; }
+.avatar { flex: none; width: 72px; height: 72px; border-radius: 50%; object-fit: cover; background: var(--ov-chip); }
+h1 { font-size: 1.5rem; margin: 0; }
+h2 { font-size: 1.1rem; margin: 1.25rem 0 .25rem; }
+h3 { font-size: 1rem; margin: .2rem 0; }
+.handle { margin: 0; color: var(--ov-accent); font-weight: 700; }
+.stats, .note, .empty, .city, .meta { color: var(--ov-muted); font-size: .85rem; }
+.actions { margin: 1rem 0; }
+.btn { padding: .6rem .9rem; border: 0; border-radius: .7rem; background: var(--ov-accent); color: var(--ov-on-accent); font: inherit; font-weight: 700; cursor: pointer; }
+.btn-on { background: var(--ov-chip); color: var(--ov-ink); outline: 2px solid var(--ov-ink); }
+.chips { display: flex; flex-wrap: wrap; gap: .4rem; list-style: none; padding: 0; margin: .5rem 0; }
+.chips li { padding: .15rem .6rem; border-radius: 999px; background: var(--ov-chip); font-size: .8rem; font-weight: 700; }
+.bio { line-height: 1.6; }
+.plain { list-style: none; padding: 0; }
+.plain a, .place a { color: var(--ov-accent); }
+.place { padding: .5rem 0; border-bottom: 1px solid var(--ov-line); }
+.tip { margin: .25rem 0; font-style: italic; }
+.content { margin: .25rem 0; }
+.ad { display: inline-block; margin: 0 .4rem; padding: .05rem .5rem; border: 1px solid var(--ov-ink); border-radius: 999px; font-size: .7rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }

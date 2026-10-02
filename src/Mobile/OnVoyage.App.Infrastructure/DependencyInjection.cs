@@ -27,6 +27,9 @@ public static class DependencyInjection
             .AddHttpMessageHandler<BearerTokenHandler>();
         services.AddHttpClient<IReportClient, HttpReportClient>(client => client.BaseAddress = gatewayBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>();
+        services.AddHttpClient<OnVoyage.App.Core.Creators.ICreatorsClient, HttpCreatorsClient>(client => client.BaseAddress = gatewayBaseAddress)
+            .AddHttpMessageHandler<BearerTokenHandler>();
+        services.AddSingleton(new OnVoyage.App.Core.Creators.MediaLocator(new Uri(gatewayBaseAddress, "media/").ToString()));
         services.AddHttpClient<OnVoyage.App.Core.Analytics.IAnalyticsTransport, HttpAnalyticsTransport>(client => client.BaseAddress = gatewayBaseAddress)
             .AddHttpMessageHandler<BearerTokenHandler>();
         services.AddSingleton(OnVoyage.App.Core.Analytics.AnalyticsContext.Detect(appVersion));
