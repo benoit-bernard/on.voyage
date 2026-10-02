@@ -1,0 +1,276 @@
+/* ==========================================================================
+   on.voyage — Global Styles
+   ========================================================================== */
+
+/* ---------- CSS Custom Properties ---------- */
+:root {
+    --color-primary: #19e6a2;
+    --color-bg-light: #f6f8f7;
+    --color-bg-dark: #11211c;
+    --font-display: "Plus Jakarta Sans", system-ui, sans-serif;
+    --radius: 0.25rem;
+    --radius-lg: 0.5rem;
+    --radius-xl: 0.75rem;
+}
+
+/* ---------- Base ---------- */
+body {
+    min-height: max(884px, 100dvh);
+    font-family: var(--font-display);
+}
+
+/* ---------- Scrollbar hiding ---------- */
+.no-scrollbar::-webkit-scrollbar {
+    display: none;
+}
+
+.no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+}
+
+/* ---------- Video hero ---------- */
+.video-hero {
+    position: relative;
+    cursor: pointer;
+}
+
+.video-hero__play {
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.video-hero:hover .video-hero__play {
+    transform: scale(1.12);
+}
+
+.video-hero__iframe-wrapper {
+    display: none;
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+    border-radius: var(--radius-xl);
+    overflow: hidden;
+}
+
+.video-hero__iframe-wrapper.is-active {
+    display: block;
+}
+
+.video-hero__iframe-wrapper iframe {
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+/* ---------- Instagram grid ---------- */
+.instagram-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.25rem;
+}
+
+.instagram-grid__item {
+    position: relative;
+    aspect-ratio: 1;
+    overflow: hidden;
+    border-radius: 0.125rem;
+}
+
+.instagram-grid__item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.instagram-grid__item:hover img {
+    transform: scale(1.06);
+}
+
+.instagram-grid__skeleton {
+    aspect-ratio: 1;
+    border-radius: 0.125rem;
+    animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes skeleton-pulse {
+    0%, 100% { opacity: 0.4; }
+    50%      { opacity: 0.8; }
+}
+
+/* ---------- Blog card ---------- */
+.blog-card {
+    transition: transform 0.25s ease;
+}
+
+.blog-card:hover {
+    transform: translateX(4px);
+}
+
+/* ---------- Tab navigation ---------- */
+.tab-btn {
+    flex: 1;
+    padding: 0.625rem 0;
+    font-size: 0.875rem;
+    font-weight: 600;
+    border-radius: var(--radius-lg);
+    transition: all 0.25s ease;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+/* ---------- Newsletter form ---------- */
+.newsletter-input:focus {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(25, 230, 162, 0.5);
+}
+
+.newsletter-btn {
+    transition: all 0.2s ease;
+}
+
+.newsletter-btn:active {
+    transform: scale(0.98);
+}
+
+/* ---------- Bottom nav — hide on desktop ---------- */
+.bottom-nav {
+    padding-bottom: env(safe-area-inset-bottom, 1.5rem);
+}
+
+/* ---------- Fade-in animation ---------- */
+.fade-in-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+.fade-in-up.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* ==========================================================================
+   Responsive — Desktop (≥ 768px)
+   ========================================================================== */
+@media (min-width: 768px) {
+    /* Widen the content area */
+    .site-header__inner,
+    .site-main {
+        max-width: 56rem; /* 896px */
+    }
+
+    /* Two-column layout for the feed area */
+    .feed-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 3rem;
+        align-items: start;
+    }
+
+    /* Video hero takes full width on desktop */
+    .feed-grid .video-hero-wrapper {
+        grid-column: 1 / -1;
+    }
+
+    /* Video aspect ratio — wider on desktop */
+    .video-hero {
+        aspect-ratio: 16 / 9;
+    }
+
+    /* Instagram grid — keep 3 cols but bigger */
+    .instagram-grid {
+        gap: 0.5rem;
+    }
+
+    .instagram-grid__item {
+        border-radius: var(--radius);
+    }
+
+    /* Blog articles side by side */
+    .blog-articles {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1.5rem;
+    }
+
+    .blog-card {
+        flex-direction: column;
+    }
+
+    .blog-card__thumb {
+        width: 100% !important;
+        height: 10rem !important;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    /* Newsletter — horizontal on desktop */
+    .newsletter-form {
+        flex-direction: row !important;
+        max-width: 32rem;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .newsletter-form .newsletter-input {
+        flex: 1;
+    }
+
+    .newsletter-form .newsletter-btn {
+        width: auto;
+        padding-left: 2rem;
+        padding-right: 2rem;
+        white-space: nowrap;
+    }
+
+    /* Bottom nav becomes a top secondary nav on desktop */
+    .bottom-nav {
+        position: static;
+        border-top: none;
+        border-bottom: 1px solid rgba(25, 230, 162, 0.1);
+        padding-bottom: 0;
+        padding-top: 0;
+        backdrop-filter: none;
+        background: transparent !important;
+    }
+
+    .bottom-nav__inner {
+        max-width: 56rem;
+        gap: 2rem;
+    }
+
+    .bottom-nav__inner button {
+        flex-direction: row;
+        gap: 0.375rem;
+        padding: 0.75rem 0;
+    }
+
+    .bottom-nav__inner button span:last-child {
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+    }
+
+    /* Push main content down to account for no fixed bottom nav */
+    .site-main {
+        padding-bottom: 4rem;
+    }
+}
+
+/* ==========================================================================
+   Responsive — Large Desktop (≥ 1280px)
+   ========================================================================== */
+@media (min-width: 1280px) {
+    .site-header__inner,
+    .site-main {
+        max-width: 72rem; /* 1152px */
+    }
+
+    .bottom-nav__inner {
+        max-width: 72rem;
+    }
+
+    .feed-grid {
+        gap: 4rem;
+    }
+}
