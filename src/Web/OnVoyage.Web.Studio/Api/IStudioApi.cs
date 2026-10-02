@@ -36,6 +36,18 @@ public interface IStudioApi
 
     Task RemovePlaceLinkAsync(Guid linkId, CancellationToken cancellationToken = default);
 
+    Task<ConnectionsDto> GetConnectionsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>The address of the platform's authorization page: the browser is sent there (F-27).</summary>
+    Task<ConnectionStartDto> StartConnectionAsync(string platform, CancellationToken cancellationToken = default);
+
+    /// <summary>Hands the <c>code</c> and <c>state</c> of the return address to the Creators service, which exchanges them for the tokens it keeps.</summary>
+    Task<ConnectedAccountDto> CompleteConnectionAsync(string platform, string code, string state, CancellationToken cancellationToken = default);
+
+    Task DisconnectAsync(string platform, bool deleteContents, CancellationToken cancellationToken = default);
+
+    Task<SyncRequestedDto> RequestSyncAsync(CancellationToken cancellationToken = default);
+
     Task<AdminTipDto> SetTipAsync(Guid poiId, string text, CancellationToken cancellationToken = default);
 
     Task RemoveTipAsync(Guid poiId, CancellationToken cancellationToken = default);

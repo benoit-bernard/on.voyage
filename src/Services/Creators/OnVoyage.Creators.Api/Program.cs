@@ -1,3 +1,4 @@
+using OnVoyage.Creators.Api.Background;
 using OnVoyage.Creators.Api.Endpoints;
 using OnVoyage.Creators.Application.Features;
 using OnVoyage.Creators.Contracts;
@@ -15,6 +16,11 @@ builder.AddServiceDefaults();
 builder.Services.AddProblemDetails();
 builder.Services.AddOnVoyageAuthentication(builder.Configuration);
 builder.Services.AddCreatorsInfrastructure(builder.Configuration);
+if (builder.Configuration.GetValue("Creators:Social:SyncEnabled", false))
+{
+    builder.Services.AddHostedService<SocialSyncScheduler>();
+}
+
 
 var connectionString = builder.Configuration.GetConnectionString(DependencyInjection.ConnectionName)!;
 builder.Host.UseWolverine(options =>

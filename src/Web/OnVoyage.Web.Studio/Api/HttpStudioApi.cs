@@ -51,6 +51,21 @@ internal sealed class HttpStudioApi(IHttpClientFactory clients, StudioSession se
     public Task RemovePlaceLinkAsync(Guid linkId, CancellationToken cancellationToken = default) =>
         _gateway.WriteAsync(HttpMethod.Delete, $"{Studio}/place-links/{linkId}", null, cancellationToken);
 
+    public Task<ConnectionsDto> GetConnectionsAsync(CancellationToken cancellationToken = default) =>
+        _gateway.GetAsync<ConnectionsDto>($"{Studio}/connections", cancellationToken);
+
+    public Task<ConnectionStartDto> StartConnectionAsync(string platform, CancellationToken cancellationToken = default) =>
+        _gateway.GetAsync<ConnectionStartDto>($"{Studio}/connections/{Uri.EscapeDataString(platform)}/start", cancellationToken);
+
+    public Task<ConnectedAccountDto> CompleteConnectionAsync(string platform, string code, string state, CancellationToken cancellationToken = default) =>
+        _gateway.WriteAsync<ConnectedAccountDto>(HttpMethod.Post, $"{Studio}/connections/{Uri.EscapeDataString(platform)}/callback", new CompleteConnectionRequest(code, state), cancellationToken);
+
+    public Task DisconnectAsync(string platform, bool deleteContents, CancellationToken cancellationToken = default) =>
+        _gateway.WriteAsync(HttpMethod.Delete, $"{Studio}/connections/{Uri.EscapeDataString(platform)}?deleteContents={(deleteContents ? "true" : "false")}", null, cancellationToken);
+
+    public Task<SyncRequestedDto> RequestSyncAsync(CancellationToken cancellationToken = default) =>
+        _gateway.WriteAsync<SyncRequestedDto>(HttpMethod.Post, $"{Studio}/sync", new { }, cancellationToken);
+
     public Task<AdminTipDto> SetTipAsync(Guid poiId, string text, CancellationToken cancellationToken = default) =>
         _gateway.WriteAsync<AdminTipDto>(HttpMethod.Put, $"{Studio}/tips/{poiId}", new SetTipRequest(text), cancellationToken);
 

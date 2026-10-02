@@ -36,6 +36,13 @@ public static class Labels
         _ => status,
     };
 
+    public static string ConnectionStatus(string status) => status switch
+    {
+        "active" => "Connecté",
+        "needs_reauth" => "À reconnecter",
+        _ => status,
+    };
+
     public static string LinkStatus(string status) => status switch
     {
         "validated" => "Validée (publiée)",

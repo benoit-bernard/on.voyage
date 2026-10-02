@@ -40,7 +40,7 @@ Configuration YARP de `appsettings.json` (section `ReverseProxy`). « Politique 
 | `insights` | `/api/insights/v1/kpis` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway) |
 | `creators-admin` | `/api/creators/v1/admin/{**}` | toutes | `admin` | creators-api |
 | `creators-studio-join` | `/api/creators/v1/studio/{registration|signup|terms}` | toutes | `account` (e-mail vérifié) | creators-api |
-| `creators-studio` | `/api/creators/v1/studio/{**}` | toutes | `creator` | creators-api |
+| `creators-studio` | `/api/creators/v1/studio/{**}` | toutes | `creator` | creators-api (dont `connections/{platform}/start|callback`, T-1207/1208) |
 | `creators` | `/api/creators/{**}` | toutes | `traveler` | creators-api |
 | `factory-story-reports` | `/api/factory/v1/stories/{id}/reports` | POST | `traveler` | factory-api |
 | `factory` | `/api/factory/{**}` | toutes | `admin` | factory-api |
@@ -140,6 +140,11 @@ Créateur (espace `web-studio`, T-1206, préfixe `/studio`). Le créateur est **
 | `POST` / `PUT` / `DELETE /place-links[/{linkId}]` | `creator` | Associations ; le créateur valide ou retire lui-même. |
 | `PUT` / `DELETE /tips/{poiId}` | `creator` | Conseil de 280 caractères au plus. |
 | `GET /places?query&destination` | `creator` | Recherche dans le répertoire. |
+| `GET /connections` | `creator` | `ConnectionsDto` : pour `instagram` et `youtube`, `enabled` (faux tant que l'application de la plateforme est en revue, H-008) et le compte connecté (`ConnectedAccountDto` : nom, statut `active` ou `needs_reauth`, dernière synchronisation, nombre de contenus). **Jamais un jeton.** |
+| `GET /connections/{platform}/start` | `creator` | `ConnectionStartDto.authorizeUrl` : l'adresse d'autorisation de la plateforme (code + PKCE ; l'`state` chiffré lie le créateur, la plateforme, le vérificateur PKCE et 10 minutes). 503 `connections_disabled` si la plateforme n'est pas ouverte. |
+| `POST /connections/{platform}/callback` | `creator` | Corps `{ code, state }` : la page de retour du Studio y transmet ce que la plateforme a renvoyé, **avec le jeton du créateur**. 400 `invalid_state` (état inconnu, expiré, d'une autre plateforme ou d'un autre créateur), 422 `professional_account_required` (compte Instagram personnel) ou `access_denied`, 409 `account_in_use` (compte déjà connecté à un autre créateur), 502 `provider_error`. La première importation part en arrière-plan. |
+| `DELETE /connections/{platform}?deleteContents` | `creator` | Révoque chez la plateforme quand elle le permet, supprime la ligne et donc les jetons, supprime les vignettes copiées ; `deleteContents=true` retire aussi les contenus importés (et publie les retraits de leurs lieux). 204. |
+| `POST /sync` | `creator` | « Resynchroniser » : 202 `SyncRequestedDto` (nombre de comptes actifs mis en file). Un compte `needs_reauth` n'est pas relancé. |
 
 Erreurs : Problem Details avec `type` = `https://on.voyage/problems/<code>` et l'extension `code`.
 
@@ -181,7 +186,7 @@ Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /logi
 
 ## Espace créateur (`web-studio`)
 
-Application Blazor serveur, jamais appelée par l'app. Même connexion que le back-office (`POST /login/code`, `/login/verify`, `/logout`, cookie `ov_studio` avec un identifiant de session opaque, jetons et **rôles** gardés côté serveur : le rôle `creator`, donné par Platform un instant après l'inscription, apparaît dès le renouvellement de la session). Pages : `/studio` (accueil), `/studio/join` (inscription et CGU), `/studio/profile`, `/studio/contents`, `/studio/tips`. Tout `/studio/*` répond **403** à un compte sans le rôle `creator`, sauf `/studio` et `/studio/join`. `/health` et `/alive` sans authentification.
+Application Blazor serveur, jamais appelée par l'app. Même connexion que le back-office (`POST /login/code`, `/login/verify`, `/logout`, cookie `ov_studio` avec un identifiant de session opaque, jetons et **rôles** gardés côté serveur : le rôle `creator`, donné par Platform un instant après l'inscription, apparaît dès le renouvellement de la session). Pages : `/studio` (accueil), `/studio/join` (inscription et CGU), `/studio/profile`, `/studio/contents`, `/studio/tips`, `/studio/connections` et `/studio/connections/{platform}/callback` (page où la plateforme renvoie le navigateur : elle remet `code` et `state` au service Creators, une seule fois). Tout `/studio/*` répond **403** à un compte sans le rôle `creator`, sauf `/studio` et `/studio/join`. `/health` et `/alive` sans authentification.
 
 ## Écarts avec le §12 du cahier des charges
 

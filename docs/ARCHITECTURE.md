@@ -241,5 +241,6 @@ Développement : Aspire (`dotnet run --project src/Aspire/OnVoyage.AppHost`). St
 | [0010](adr/0010-mobile-discovery-audio-map-localdata.md) | App : déclenchement, audio, carte, données locales |
 | [0011](adr/0011-discovery-service-learning-feedback-planning.md) | Discovery : apprentissage, retours, envies, planification |
 | [0019](adr/0019-web-studio.md) | Espace créateur `Web.Studio` : inscription, rôle, conseils, contenus |
+| [0020](adr/0020-imports-instagram-youtube.md) | Comptes connectés et imports Instagram et YouTube |
 
 Questions ouvertes : `docs/questions/` (sources de Factory, OpenAI, Resend).

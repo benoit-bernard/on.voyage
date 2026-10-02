@@ -44,6 +44,12 @@ public interface IContentRepository
 
     Task<IReadOnlyList<ContentItem>> ListContentsAsync(Guid creatorId, CancellationToken cancellationToken);
 
+    /// <summary>The content of that platform with that external identifier, whoever owns it (unique, so a content cannot be imported twice).</summary>
+    Task<ContentItem?> FindContentAsync(string platform, string externalId, CancellationToken cancellationToken);
+
+    /// <summary>The contents that a connected account brought in (online, hidden or removed).</summary>
+    Task<IReadOnlyList<ContentItem>> ListContentsOfAccountAsync(Guid connectedAccountId, CancellationToken cancellationToken);
+
     Task StageContentAsync(ContentItem content, CancellationToken cancellationToken);
 
     Task<PlaceLink?> FindLinkAsync(Guid id, CancellationToken cancellationToken);

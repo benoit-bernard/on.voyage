@@ -52,6 +52,19 @@ public sealed class CreatorsHost : IAsyncDisposable
                 builder.UseSetting("Exports:Directory", exports);
                 builder.UseSetting("Messaging:CreatorSubscribers:0", "discovery");
                 builder.UseSetting("Logging:LogLevel:Default", "Error");
+
+                // Imports run against the deterministic adapters (no network): both platforms open, tokens encrypted with keys kept in a temporary folder.
+                builder.UseSetting("Creators:Social:Provider", "fake");
+                foreach (var platform in new[] { "Instagram", "YouTube" })
+                {
+                    builder.UseSetting($"Creators:Social:{platform}:Enabled", "true");
+                    builder.UseSetting($"Creators:Social:{platform}:ClientId", $"{platform}-client");
+                    builder.UseSetting($"Creators:Social:{platform}:ClientSecret", $"{platform}-secret");
+                    builder.UseSetting($"Creators:Social:{platform}:RedirectUri", $"https://studio.onvoyage.test/studio/connections/{platform.ToLowerInvariant()}/callback");
+                }
+
+                builder.UseSetting("Creators:DataProtection:KeysDirectory", Path.Combine(exports, "keys"));
+                builder.UseSetting("Creators:Social:MediaDirectory", Path.Combine(exports, "media"));
             });
             _ = factory.Server; // starts the host: migrations
             return _shared = new CreatorsHost(factory, connection, exports);
@@ -70,6 +83,9 @@ public sealed class CreatorsHost : IAsyncDisposable
             Directory.Delete(Exports, recursive: true);
         }
     }
+
+    /// <summary>The platforms of the fake adapters: tests fill what an account has published and make its tokens fail.</summary>
+    internal OnVoyage.Creators.Infrastructure.Social.FakeSocialWorld World => Factory.Services.GetRequiredService<OnVoyage.Creators.Infrastructure.Social.FakeSocialWorld>();
 
     // A fresh bus per call, like a handler invoked from the outside.
     public MessageBus Bus => new(Factory.Services.GetRequiredService<IWolverineRuntime>());

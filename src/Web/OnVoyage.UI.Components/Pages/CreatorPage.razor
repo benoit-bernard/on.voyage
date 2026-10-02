@@ -56,6 +56,11 @@ else
         <p class="bio">@_page.Bio</p>
     }
 
+    @if (_page.ConnectedPlatforms is { Count: > 0 } connected)
+    {
+        <p class="note" id="verified">Comptes vérifiés : @string.Join(", ", connected.Select(CreatorLabels.Platform))</p>
+    }
+
     @if (_page.Links.Count > 0)
     {
         <section aria-labelledby="links-title">

@@ -35,7 +35,7 @@ Les durées du §16.2 sont **configurées** dans la clé de configuration distan
 | `platform` | `account`, `otp_challenge`, `refresh_token`, `consent` | e-mail (facultatif), identifiant voyageur, empreintes de codes et de jetons, consentements |
 | `discovery` | `traveler`, `interest_vector`, `interaction`, `poi_rating`, `visit`, `impression` | profil de goûts et historique de lieux (donnée de localisation au sens du RGPD, §16.2), sans coordonnées |
 | `factory` | `story_report` | identifiant voyageur et motif du signalement |
-| `creators` | `follow`, `moderation_case` (référence du voyageur qui signale), `creator` (profil public d'un créateur, identifiant de compte, référence du consentement signé) | abonnements (jamais exposés), signalements, profil publié avec consentement |
+| `creators` | `follow`, `moderation_case` (référence du voyageur qui signale), `creator` (profil public d'un créateur, identifiant de compte, référence du consentement signé), `connected_account` (compte social du créateur et **jetons OAuth chiffrés**) | abonnements (jamais exposés), signalements, profil publié avec consentement, accès aux comptes sociaux du créateur |
 | `catalog` | aucune | contenu éditorial |
 
 Le registre officiel est [PRIVACY.md](PRIVACY.md). La suppression en cascade existe dans `discovery` (toutes les tables filles de `traveler` sont en `ON DELETE CASCADE`) ; l'orchestration de la suppression entre services (F-22, T-507) n'est pas encore écrite.
@@ -855,4 +855,11 @@ Une migration (`Initial`). Colonnes en `snake_case`. Pas de colonne de position 
 | `creators.poi_directory` | `poi_id` | `destination_id`, `destination_slug`, `name`, `names jsonb` (fr, en, alias), `city`, `importance_score`, `is_published`, `version`, `search_text`, `updated_at` | GIN trigramme sur `search_text` ; **pas de coordonnées** |
 | `creators.moderation_case` | `id` | `target_type`, `target_id`, `reason`, `reporter_ref` (nulle après suppression du compte), `status`, `decision`, `statement_of_reasons`, `created_at`, `decided_at` | (`status`, `created_at`), `reporter_ref`, (`target_type`, `target_id`) |
 
-Hors de cette première livraison : `connected_account`, `creator_list`, `creator_list_item`, `creator_stats_daily` du §11.5.
+Migration `ConnectedAccounts` (T-1207/1208, [ADR-0020](adr/0020-imports-instagram-youtube.md)) :
+
+| Table | Clé | Colonnes principales | Index et contraintes |
+| --- | --- | --- | --- |
+| `creators.connected_account` | `id` | `creator_id` (cascade), `platform`, `external_user_id`, `username`, **`access_token_protected`**, **`refresh_token_protected`** (chiffrés par Data Protection, nuls une fois le compte à reconnecter), `expires_at`, `scopes text[]`, `last_sync_at`, `status` (`active`, `needs_reauth`), `last_error`, `created_at` | unique (`creator_id`, `platform`) ; unique (`platform`, `external_user_id`) : un compte de plateforme, un créateur ; `platform in (instagram, youtube, tiktok)` ; seules colonnes de jeton de tout le schéma (test) |
+| `creators.content_item` (colonne ajoutée) | | `connected_account_id` (null pour un contenu saisi à la main ; `ON DELETE SET NULL`) | index |
+
+Hors de cette livraison : `creator_list`, `creator_list_item`, `creator_stats_daily` du §11.5.

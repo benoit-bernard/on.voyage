@@ -64,7 +64,31 @@ internal static class Mapping
             row.CoverPath,
             Chapters(row.Chapters),
             row.IsCommercial,
-            row.Status);
+            row.Status,
+            row.ConnectedAccountId);
+
+    public static ConnectedAccount ToDomain(this ConnectedAccountRow row) =>
+        new(row.Id, row.CreatorId, row.Platform, row.ExternalUserId, row.Username, row.ExpiresAt, row.Scopes, row.LastSyncAt, row.Status, row.LastError, row.CreatedAt);
+
+    /// <summary>Copies what is not secret. The tokens are never touched here.</summary>
+    public static void CopyTo(this ConnectedAccount account, ConnectedAccountRow row)
+    {
+        row.CreatorId = account.CreatorId;
+        row.Platform = account.Platform;
+        row.ExternalUserId = account.ExternalUserId;
+        row.Username = account.Username;
+        row.ExpiresAt = account.ExpiresAt;
+        row.Scopes = [.. account.Scopes];
+        row.LastSyncAt = account.LastSyncAt;
+        row.Status = account.Status;
+        row.LastError = account.LastError;
+        row.CreatedAt = account.CreatedAt;
+        if (account.Status == ConnectionStatuses.NeedsReauth)
+        {
+            row.AccessTokenProtected = null;
+            row.RefreshTokenProtected = null;
+        }
+    }
 
     public static IReadOnlyList<Chapter> Chapters(string json) =>
         [.. (JsonSerializer.Deserialize<List<ChapterJson>>(json, Json) ?? []).Select(chapter => new Chapter(chapter.StartSeconds, chapter.Title))];
@@ -84,6 +108,7 @@ internal static class Mapping
         row.Chapters = JsonSerializer.Serialize(content.Chapters.Select(chapter => new ChapterJson(chapter.StartSeconds, chapter.Title)), Json);
         row.IsCommercial = content.IsCommercial;
         row.Status = content.Status;
+        row.ConnectedAccountId = content.ConnectedAccountId;
         if (row.CreatedAt == default)
         {
             row.CreatedAt = now;

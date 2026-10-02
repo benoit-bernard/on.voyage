@@ -1,0 +1,106 @@
+@page "/studio/connections"
+@attribute [Authorize(Policy = StudioClaims.PolicyName)]
+@inherits StudioPageBase
+
+<h1>Connexions</h1>
+<p class="muted">Facultatif. Connecter un compte prouve qu'il est le vôtre (badge sur votre page) et importe la liste de vos contenus : seules les références sont gardées (lien, titre, durée, chapitres), vos vidéos et photos restent chez la plateforme. ON.VOYAGE ne publie jamais rien sur votre compte.</p>
+<Status Message="@(Message ?? Notice)" Error="@(Error ?? QueryError)" />
+
+@if (_connections is null)
+{
+    @if (Error is null)
+    {
+        <p>Chargement…</p>
+    }
+}
+else
+{
+    @foreach (var platform in _connections.Platforms)
+    {
+        <section class="card connection" id="@($"platform-{platform.Platform}")">
+            <h2>@Labels.Platform(platform.Platform) <span class="tag status">@(platform.Account is null ? "Non connecté" : Labels.ConnectionStatus(platform.Account.Status))</span></h2>
+            @if (platform.Platform == "instagram")
+            {
+                <p class="muted">Comptes professionnels (Business ou Créateur) uniquement. Un compte personnel est refusé.</p>
+            }
+
+            @if (platform.Account is null)
+            {
+                @if (!platform.Enabled)
+                {
+                    <p class="alert warn" role="status" id="@($"disabled-{platform.Platform}")">L'import automatique n'est pas encore ouvert pour @Labels.Platform(platform.Platform) (validation de l'application en cours). Ajoutez vos contenus par leur adresse, dans <a href="/studio/contents">Contenus</a> : cette voie reste toujours disponible.</p>
+                }
+
+                <button type="button" class="primary" id="@($"connect-{platform.Platform}")" disabled="@(Busy || !platform.Enabled)" @onclick="() => ConnectAsync(platform.Platform)">Connecter @Labels.Platform(platform.Platform)</button>
+            }
+            else
+            {
+                <p>
+                    <strong>@platform.Account.Username</strong> ·
+                    <span id="@($"count-{platform.Platform}")">@platform.Account.ContentCount contenu(s) importé(s)</span> ·
+                    @if (platform.Account.LastSyncAt is { } at)
+                    {
+                        <span id="@($"last-sync-{platform.Platform}")">dernière synchronisation le @at.ToString("dd/MM/yyyy HH:mm", System.Globalization.CultureInfo.InvariantCulture)</span>
+                    }
+                    else
+                    {
+                        <span id="@($"last-sync-{platform.Platform}")">première synchronisation en cours</span>
+                    }
+                </p>
+                @if (platform.Account.Status == "needs_reauth")
+                {
+                    <p class="alert warn" role="status" id="@($"reauth-{platform.Platform}")">La plateforme n'accepte plus l'autorisation (accès retiré, mot de passe changé…) : reconnectez le compte pour reprendre les imports. Ce qui a été importé reste en place.</p>
+                    <button type="button" class="primary" id="@($"reconnect-{platform.Platform}")" disabled="@(Busy || !platform.Enabled)" @onclick="() => ConnectAsync(platform.Platform)">Reconnecter</button>
+                }
+
+                <h3>Déconnecter</h3>
+                <p class="muted">Déconnecter révoque l'accès chez la plateforme quand elle le permet et supprime nos jetons ainsi que les vignettes copiées. Vos contenus déjà référencés restent, sauf si vous le demandez.</p>
+                <label class="check"><input type="checkbox" id="@($"delete-contents-{platform.Platform}")" checked="@_deleteContents" @onchange="e => _deleteContents = e.Value is true" /> Supprimer aussi les contenus importés (leurs lieux ne seront plus publiés)</label>
+                <button type="button" class="danger" id="@($"disconnect-{platform.Platform}")" disabled="@Busy" @onclick="() => DisconnectAsync(platform.Platform)">Déconnecter @Labels.Platform(platform.Platform)</button>
+            }
+        </section>
+    }
+
+    <section class="card" id="sync">
+        <h2>Synchronisation</h2>
+        <p class="muted">Les 200 contenus les plus récents sont importés à la connexion, puis une fois par jour. Un contenu supprimé chez la plateforme est retiré d'ici à la synchronisation suivante.</p>
+        <button type="button" id="resync" disabled="@(Busy || !_connections.Platforms.Any(platform => platform.Account is { Status: "active" }))" @onclick="ResyncAsync">Resynchroniser</button>
+    </section>
+}
+
+@code {
+    private ConnectionsDto? _connections;
+    private bool _deleteContents;
+
+    [SupplyParameterFromQuery(Name = "connected")] private string? Connected { get; set; }
+    [SupplyParameterFromQuery(Name = "error")] private string? QueryError { get; set; }
+
+    private string? Notice => Connected is { Length: > 0 } platform ? $"{Labels.Platform(platform)} est connecté. Vos contenus arrivent dans un instant." : null;
+
+    protected override async Task OnInitializedAsync() => _connections = await LoadAsync(() => Api.GetConnectionsAsync());
+
+    private async Task ConnectAsync(string platform)
+    {
+        await RunAsync(async () => Navigation.NavigateTo((await Api.StartConnectionAsync(platform)).AuthorizeUrl, forceLoad: true));
+    }
+
+    private async Task DisconnectAsync(string platform)
+    {
+        await RunAsync(() => Api.DisconnectAsync(platform, _deleteContents), $"{Labels.Platform(platform)} est déconnecté : l'accès est révoqué et les jetons sont supprimés.");
+        if (Error is null)
+        {
+            _deleteContents = false;
+            _connections = await LoadAsync(() => Api.GetConnectionsAsync()) ?? _connections;
+        }
+    }
+
+    private async Task ResyncAsync()
+    {
+        SyncRequestedDto? requested = null;
+        await RunAsync(async () => requested = await Api.RequestSyncAsync());
+        if (requested is not null)
+        {
+            Message = requested.Accounts == 0 ? "Aucun compte à synchroniser." : "Synchronisation demandée : vos contenus se mettent à jour dans un instant.";
+        }
+    }
+}

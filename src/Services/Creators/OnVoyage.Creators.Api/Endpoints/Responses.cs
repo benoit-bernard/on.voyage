@@ -19,6 +19,9 @@ internal static class Responses
             _ when error.Code.EndsWith("not_found", StringComparison.Ordinal) => StatusCodes.Status404NotFound,
             "terms_required" or "specialty_required" => StatusCodes.Status422UnprocessableEntity,
             "creator_suspended" => StatusCodes.Status403Forbidden,
+            "connections_disabled" => StatusCodes.Status503ServiceUnavailable,
+            "provider_error" => StatusCodes.Status502BadGateway,
+            "professional_account_required" or "access_denied" => StatusCodes.Status422UnprocessableEntity,
             "handle_taken" or "handle_locked" or "content_exists" or "account_in_use" or "case_closed" or "not_published" or "content_removed" => StatusCodes.Status409Conflict,
             _ => StatusCodes.Status400BadRequest,
         };

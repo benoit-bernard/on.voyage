@@ -68,6 +68,23 @@ internal static class StudioEndpoints
         studio.MapGet("/places", (string? query, string? destination, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<PoiSearchResultDto>>>(new StudioSearchPlacesQuery(query ?? string.Empty, destination), ct)));
 
+        // Connected accounts (F-27). OAuth is server side: the browser goes to the platform and comes back to a page of the creator space, which
+        // hands the code to `callback` with the creator's own token. The state only completes for the creator who asked for it.
+        studio.MapGet("/connections", (HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<ConnectionsDto>>(new ListConnectionsQuery(Account(http)), ct)));
+
+        studio.MapGet("/connections/{platform}/start", (string platform, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<ConnectionStartDto>>(new StartConnectionQuery(Account(http), platform), ct)));
+
+        studio.MapPost("/connections/{platform}/callback", (string platform, CompleteConnectionRequest request, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<ConnectedAccountDto>>(new CompleteConnectionCommand(Account(http), platform, request), ct)));
+
+        studio.MapDelete("/connections/{platform}", (string platform, bool? deleteContents, HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<bool>>(new DisconnectCommand(Account(http), platform, deleteContents ?? false), ct), _ => Results.NoContent()));
+
+        studio.MapPost("/sync", (HttpContext http, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<SyncRequestedDto>>(new RequestSyncCommand(Account(http)), ct), requested => Results.Accepted(value: requested)));
+
         return app;
     }
 

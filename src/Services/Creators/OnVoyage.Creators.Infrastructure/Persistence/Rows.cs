@@ -37,6 +37,28 @@ internal sealed class ContentRow
     public string Chapters { get; set; } = "[]";
     public bool IsCommercial { get; set; }
     public string Status { get; set; } = "imported";
+    public Guid? ConnectedAccountId { get; set; }
+    public DateTimeOffset CreatedAt { get; set; }
+}
+
+/// <summary>
+/// A connected social account with its OAuth tokens. The tokens are encrypted with Data Protection (<see cref="Social.SocialConnector"/> is the only code that
+/// reads or writes the two protected columns); they are never mapped to a domain type, an API or a log.
+/// </summary>
+internal sealed class ConnectedAccountRow
+{
+    public Guid Id { get; set; }
+    public Guid CreatorId { get; set; }
+    public string Platform { get; set; } = "";
+    public string ExternalUserId { get; set; } = "";
+    public string Username { get; set; } = "";
+    public string? AccessTokenProtected { get; set; }
+    public string? RefreshTokenProtected { get; set; }
+    public DateTimeOffset? ExpiresAt { get; set; }
+    public string[] Scopes { get; set; } = [];
+    public DateTimeOffset? LastSyncAt { get; set; }
+    public string Status { get; set; } = "active";
+    public string? LastError { get; set; }
     public DateTimeOffset CreatedAt { get; set; }
 }
 

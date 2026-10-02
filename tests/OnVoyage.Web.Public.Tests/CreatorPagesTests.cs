@@ -27,7 +27,7 @@ public sealed partial class PublicSiteTests
             null, true, 1, 1, false,
             [new CreatorPlaceDto(FakeCatalog.Fort.Id, "Fort Saint-Jean", "Marseille", "Montez au coucher du soleil.",
                 [new CreatorContentDto(Guid.NewGuid(), "youtube", "video", "Le fort en 90 secondes", "https://www.youtube.com/watch?v=abcdefghijk&t=30s", 30, 90, null, true, null)])],
-            []);
+            [], ["instagram", "youtube"]);
 
         public Task<CreatorPageDto?> GetCreatorAsync(string handle, CancellationToken cancellationToken) =>
             Task.FromResult(string.Equals(handle, "marie", StringComparison.OrdinalIgnoreCase) ? Marie : null);
@@ -57,6 +57,7 @@ public sealed partial class PublicSiteTests
         html.ShouldContain("<h1>Marie Dupont</h1>");
         html.ShouldContain("@marie");
         html.ShouldContain("Nouveau créateur");
+        html.ShouldContain("Comptes vérifiés : Instagram, YouTube"); // proof of ownership by OAuth (F-26), names only
         html.ShouldContain("Historienne du Sud");
         html.ShouldContain("href=\"/fr/marseille/fort-saint-jean\">Fort Saint-Jean");
         html.ShouldContain("Montez au coucher du soleil.");

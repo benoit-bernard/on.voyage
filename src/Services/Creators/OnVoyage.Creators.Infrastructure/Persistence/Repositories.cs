@@ -44,6 +44,12 @@ internal sealed class ContentRepository(CreatorsDbContext db, TimeProvider clock
     public async Task<IReadOnlyList<ContentItem>> ListContentsAsync(Guid creatorId, CancellationToken cancellationToken) =>
         [.. (await db.Contents.Where(content => content.CreatorId == creatorId).OrderByDescending(content => content.CreatedAt).ToListAsync(cancellationToken)).Select(row => row.ToDomain())];
 
+    public async Task<ContentItem?> FindContentAsync(string platform, string externalId, CancellationToken cancellationToken) =>
+        (await db.Contents.FirstOrDefaultAsync(content => content.Platform == platform && content.ExternalId == externalId, cancellationToken))?.ToDomain();
+
+    public async Task<IReadOnlyList<ContentItem>> ListContentsOfAccountAsync(Guid connectedAccountId, CancellationToken cancellationToken) =>
+        [.. (await db.Contents.Where(content => content.ConnectedAccountId == connectedAccountId).ToListAsync(cancellationToken)).Select(row => row.ToDomain())];
+
     public async Task StageContentAsync(ContentItem content, CancellationToken cancellationToken)
     {
         var row = await db.Contents.FindAsync([content.Id], cancellationToken);
@@ -113,6 +119,46 @@ internal sealed class ContentRepository(CreatorsDbContext db, TimeProvider clock
         if (await db.Tips.FindAsync([creatorId, poiId], cancellationToken) is { } row)
         {
             db.Tips.Remove(row);
+        }
+    }
+}
+
+internal sealed class ConnectedAccountRepository(CreatorsDbContext db) : IConnectedAccountRepository
+{
+    public async Task<IReadOnlyList<ConnectedAccount>> ListAsync(Guid creatorId, CancellationToken cancellationToken) =>
+        [.. (await db.ConnectedAccounts.AsNoTracking().Where(account => account.CreatorId == creatorId).OrderBy(account => account.Platform).ToListAsync(cancellationToken)).Select(row => row.ToDomain())];
+
+    public async Task<ConnectedAccount?> FindAsync(Guid id, CancellationToken cancellationToken) =>
+        (await db.ConnectedAccounts.FindAsync([id], cancellationToken))?.ToDomain();
+
+    public async Task<ConnectedAccount?> FindAsync(Guid creatorId, string platform, CancellationToken cancellationToken) =>
+        (await db.ConnectedAccounts.FirstOrDefaultAsync(account => account.CreatorId == creatorId && account.Platform == platform, cancellationToken))?.ToDomain();
+
+    public async Task<IReadOnlyList<Guid>> ListDueAsync(DateTimeOffset before, int limit, CancellationToken cancellationToken) =>
+        await db.ConnectedAccounts.AsNoTracking()
+            .Where(account => account.Status == ConnectionStatuses.Active && account.AccessTokenProtected != null && (account.LastSyncAt == null || account.LastSyncAt < before))
+            .OrderBy(account => account.LastSyncAt).Select(account => account.Id).Take(limit).ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyDictionary<Guid, int>> CountContentsAsync(IReadOnlyCollection<Guid> accountIds, CancellationToken cancellationToken) =>
+        await db.Contents.AsNoTracking().Where(content => content.ConnectedAccountId != null && accountIds.Contains(content.ConnectedAccountId.Value) && content.Status != ContentStatuses.Removed)
+            .GroupBy(content => content.ConnectedAccountId!.Value).Select(group => new { Id = group.Key, Count = group.Count() }).ToDictionaryAsync(item => item.Id, item => item.Count, cancellationToken);
+
+    public async Task StageAsync(ConnectedAccount account, CancellationToken cancellationToken)
+    {
+        var row = await db.ConnectedAccounts.FindAsync([account.Id], cancellationToken);
+        if (row is null)
+        {
+            throw new InvalidOperationException("A connected account is created by the connector, which holds its tokens.");
+        }
+
+        account.CopyTo(row);
+    }
+
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken)
+    {
+        if (await db.ConnectedAccounts.FindAsync([id], cancellationToken) is { } row)
+        {
+            db.ConnectedAccounts.Remove(row);
         }
     }
 }

@@ -1,13 +1,14 @@
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using OnVoyage.Creators.Application.Features;
+using OnVoyage.Creators.Application.Ports;
 using OnVoyage.Creators.Domain;
 using OnVoyage.ServiceDefaults.Exports;
 using Wolverine.EntityFrameworkCore;
 
 namespace OnVoyage.Creators.Infrastructure.Persistence;
 
-internal sealed class DataRightsStore(IDbContextOutbox<CreatorsDbContext> outbox, ExportStorage exports) : IDataRightsStore
+internal sealed class DataRightsStore(IDbContextOutbox<CreatorsDbContext> outbox, ExportStorage exports, ISocialConnector connector, IThumbnailStore thumbnails) : IDataRightsStore
 {
     private static readonly JsonSerializerOptions Json = new(JsonSerializerDefaults.Web) { WriteIndented = true };
 
@@ -26,6 +27,17 @@ internal sealed class DataRightsStore(IDbContextOutbox<CreatorsDbContext> outbox
         var creator = await Db.Creators.FirstOrDefaultAsync(row => row.AccountId == travelerId, cancellationToken);
         if (creator is not null)
         {
+            // The tokens go: revoked at the platform when it can, then deleted with the profile (cascade). So do the copies of the thumbnails.
+            foreach (var account in await Db.ConnectedAccounts.AsNoTracking().Where(account => account.CreatorId == creator.Id).Select(account => account.Id).ToListAsync(cancellationToken))
+            {
+                await connector.RevokeAsync(account, cancellationToken);
+            }
+
+            foreach (var cover in await Db.Contents.AsNoTracking().Where(content => content.CreatorId == creator.Id && content.CoverPath != null).Select(content => content.CoverPath!).ToListAsync(cancellationToken))
+            {
+                await thumbnails.DeleteAsync(cover, cancellationToken);
+            }
+
             var online = await Db.Contents.Where(content => content.CreatorId == creator.Id).ToDictionaryAsync(content => content.Id, cancellationToken);
             var published = await Db.PlaceLinks.Where(link => link.CreatorId == creator.Id && link.Status == PlaceLinkStatuses.Validated).ToListAsync(cancellationToken);
             foreach (var link in published.Where(link => link.ContentId is null || online[link.ContentId.Value].Status == ContentStatuses.Imported))
@@ -76,6 +88,9 @@ internal sealed class DataRightsStore(IDbContextOutbox<CreatorsDbContext> outbox
                     .Select(content => new { content.Platform, content.Permalink, content.Title, content.CaptionExcerpt, content.PublishedAt, content.DurationS, content.Kind, content.IsCommercial, content.Status }).ToListAsync(cancellationToken),
                 placeLinks = await Db.PlaceLinks.AsNoTracking().Where(link => link.CreatorId == creator.Id).OrderBy(link => link.CreatedAt)
                     .Select(link => new { link.PoiId, link.ContentId, link.StartS, link.Status, link.ValidatedAt }).ToListAsync(cancellationToken),
+                // Which accounts are connected, never the tokens.
+                connectedAccounts = await Db.ConnectedAccounts.AsNoTracking().Where(account => account.CreatorId == creator.Id).OrderBy(account => account.CreatedAt)
+                    .Select(account => new { account.Platform, account.Username, account.Scopes, account.Status, account.LastSyncAt, account.CreatedAt }).ToListAsync(cancellationToken),
                 tips = await Db.Tips.AsNoTracking().Where(tip => tip.CreatorId == creator.Id).OrderBy(tip => tip.UpdatedAt)
                     .Select(tip => new { tip.PoiId, tip.Text, tip.Status, tip.UpdatedAt }).ToListAsync(cancellationToken),
             };

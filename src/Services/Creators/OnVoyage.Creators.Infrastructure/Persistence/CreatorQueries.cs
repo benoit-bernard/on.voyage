@@ -112,6 +112,7 @@ internal sealed class CreatorQueries(CreatorsDbContext db) : ICreatorQueries
         var followers = await db.Follows.CountAsync(follow => follow.CreatorId == creator.Id, cancellationToken);
         var isFollowing = viewer is { } traveler && await db.Follows.AnyAsync(follow => follow.CreatorId == creator.Id && follow.TravelerId == traveler, cancellationToken);
         var domain = creator.ToDomain();
+        var connected = await db.ConnectedAccounts.AsNoTracking().Where(account => account.CreatorId == creator.Id).OrderBy(account => account.Platform).Select(account => account.Platform).ToListAsync(cancellationToken);
 
         return new CreatorPageDto(
             creator.Id,
@@ -128,7 +129,8 @@ internal sealed class CreatorQueries(CreatorsDbContext db) : ICreatorQueries
             rows.Select(row => row.DestinationId).Distinct().Count(),
             isFollowing,
             places,
-            recent);
+            recent,
+            connected);
     }
 
     public async Task<CreatorListDto> ListPublishedAsync(string? destinationSlug, string? specialty, int offset, int limit, CancellationToken cancellationToken)

@@ -75,6 +75,14 @@ var factoryApi = builder.AddProject<Projects.OnVoyage_Factory_Api>("factory-api"
 // Audio produced by the worker is served by Catalog under /media: both read the same directory (local volume in MVP-0, object storage later).
 var mediaDirectory = Path.Combine(Path.GetTempPath(), "onvoyage-media");
 catalog.WithEnvironment("Media__RootPath", mediaDirectory);
+
+// Creators copies the thumbnails of imported contents into the same media root (under creators/), so Catalog serves them. The imports themselves
+// (Instagram, YouTube) stay off until Creators:Social:<Platform>:Enabled and its credentials are set (H-008: docs/CONFIGURATION.md).
+creators.WithEnvironment("Creators__Social__MediaDirectory", mediaDirectory);
+if (builder.ExecutionContext.IsRunMode)
+{
+    creators.WithEnvironment("Creators__DataProtection__KeysDirectory", Path.Combine(Path.GetTempPath(), "onvoyage-creators-keys"));
+}
 factoryWorker.WithEnvironment("Factory__MediaDirectory", mediaDirectory);
 
 // Parts of the data exports (T-507): every service writes its part here, Platform assembles the archive.

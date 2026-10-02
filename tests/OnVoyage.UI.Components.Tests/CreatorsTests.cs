@@ -164,7 +164,7 @@ public sealed class CreatorsTests : BunitContext
         [new CreatorLinkDto("youtube", "https://www.youtube.com/@marie")], followers, followers is null, 1, 1, following,
         [new CreatorPlaceDto(Poi, "Fort Saint-Jean", "Marseille", "Montez au coucher du soleil.",
             [new CreatorContentDto(Guid.NewGuid(), "youtube", "video", "Le fort en 90 secondes", "https://www.youtube.com/watch?v=abcdefghijk&t=30s", 30, 90, null, true, null)])],
-        []);
+        [], ["youtube"]);
 
     [Fact]
     public void The_creator_page_shows_the_profile_the_validated_places_and_links_out_only()
@@ -176,6 +176,7 @@ public sealed class CreatorsTests : BunitContext
         cut.WaitForAssertion(() => cut.Find("h1").TextContent.ShouldBe("Marie Dupont"));
         cut.Find(".handle").TextContent.ShouldBe("@marie");
         cut.Find(".stats").TextContent.ShouldContain("Nouveau créateur");
+        cut.Find("#verified").TextContent.ShouldBe("Comptes vérifiés : YouTube");
         cut.Find(".place h3 a").GetAttribute("href").ShouldBe("lieu/fort-saint-jean");
         cut.Find(".place .tip").TextContent.ShouldContain("coucher du soleil");
         cut.Find(".place .ad").TextContent.ShouldBe("Publicité");

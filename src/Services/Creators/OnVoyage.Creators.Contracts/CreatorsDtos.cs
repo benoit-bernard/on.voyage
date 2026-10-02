@@ -13,7 +13,10 @@ public sealed record CreatorContentDto(Guid Id, string Platform, string Kind, st
 
 public sealed record CreatorPlaceDto(Guid PoiId, string Name, string? City, string? Tip, IReadOnlyList<CreatorContentDto> Contents);
 
-/// <summary><c>FollowerCount</c> is null below the display threshold (20): the page then says "Nouveau créateur" (<c>IsNew</c>).</summary>
+/// <summary>
+/// <c>FollowerCount</c> is null below the display threshold (20): the page then says "Nouveau créateur" (<c>IsNew</c>). <c>ConnectedPlatforms</c> are the
+/// platforms whose account the creator proved they own by connecting it (F-26 badge): names only, never an account name or a token.
+/// </summary>
 public sealed record CreatorPageDto(
     Guid Id,
     string Handle,
@@ -29,7 +32,8 @@ public sealed record CreatorPageDto(
     int DestinationCount,
     bool IsFollowing,
     IReadOnlyList<CreatorPlaceDto> Places,
-    IReadOnlyList<CreatorContentDto> RecentContents);
+    IReadOnlyList<CreatorContentDto> RecentContents,
+    IReadOnlyList<string>? ConnectedPlatforms = null);
 
 public sealed record PoiCreatorItemDto(CreatorSummaryDto Creator, string? Tip, CreatorContentDto? Content);
 
