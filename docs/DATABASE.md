@@ -5,7 +5,7 @@ Source : les `DbContext` et les instantanés de modèle EF Core des quatre servi
 ## Organisation
 
 - **Une base PostgreSQL** (`onvoyage`, image `postgis/postgis:16-3.4`), **un schéma par service**, une `DbContext` par service. Aucun service ne lit le schéma d'un autre : ils échangent des événements d'intégration (voir [ARCHITECTURE.md](ARCHITECTURE.md)).
-- Extensions utilisées : `postgis` (Catalog, Factory), `pg_trgm` (Catalog, Factory, Creators), `unaccent` (Catalog), `citext` (Creators). Les migrations les créent (`CREATE EXTENSION IF NOT EXISTS`) : le rôle de connexion doit pouvoir le faire. **pgvector n'est pas utilisé** (le vecteur d'intérêts est un `real[]`, ADR-0011).
+- Extensions utilisées : `postgis` (Catalog, Factory), `pg_trgm` (Catalog, Factory, Creators), `unaccent` (Catalog), `citext` (Creators). Les migrations les créent (`CREATE EXTENSION IF NOT EXISTS`) : le rôle de connexion doit pouvoir le faire. **pgvector n'est pas utilisé** (le vecteur d'intérêts est un `real[]`, ADR-0011 ; la recherche de voisins du filtrage collaboratif est exacte, en mémoire, derrière le port `INeighborSearch`, [ADR-0020](adr/0020-filtrage-collaboratif.md)).
 - **Un seul rôle de connexion** est utilisé par tous les services (chaîne `ConnectionStrings:onvoyage`). Le rôle par service et par schéma exigé par SEC-07 n'est **pas encore en place** (en staging, l'utilisateur `POSTGRES_USER` est super-utilisateur).
 - Les migrations sont appliquées **au démarrage de chaque hôte** (`Platform:Migrate`, `Catalog:Migrate`, `Discovery:Migrate`, `Factory:Migrate`, `Creators:Migrate`, vrais par défaut), avant qu'il accepte des requêtes. Elles doivent rester rétrocompatibles d'une version (§21).
 - Identifiants : UUID v7 (`Guid.CreateVersion7()`), dates en `timestamptz` (UTC).
@@ -33,7 +33,7 @@ Les durées du §16.2 sont **configurées** dans la clé de configuration distan
 | Schéma | Tables à données personnelles | Nature |
 | --- | --- | --- |
 | `platform` | `account`, `otp_challenge`, `refresh_token`, `consent` | e-mail (facultatif), identifiant voyageur, empreintes de codes et de jetons, consentements |
-| `discovery` | `traveler`, `interest_vector`, `interaction`, `poi_rating`, `visit`, `impression` | profil de goûts et historique de lieux (donnée de localisation au sens du RGPD, §16.2), sans coordonnées |
+| `discovery` | `traveler`, `interest_vector`, `interaction`, `poi_rating`, `cf_score`, `visit`, `impression` | profil de goûts et historique de lieux (donnée de localisation au sens du RGPD, §16.2), sans coordonnées |
 | `factory` | `story_report` | identifiant voyageur et motif du signalement |
 | `creators` | `follow`, `moderation_case` (référence du voyageur qui signale), `creator` (profil public d'un créateur, identifiant de compte, référence du consentement signé) | abonnements (jamais exposés), signalements, profil publié avec consentement |
 | `catalog` | aucune | contenu éditorial |
@@ -430,6 +430,23 @@ Projection des lieux publiés lue par le moteur (poids, importance, qualité, fr
 | `slug` | `text` | non |  |
 | `version` | `integer` | non |  |
 | `weights` | `jsonb` | non |  |
+
+#### `discovery.cf_score`
+
+Score collaboratif d'un lieu pour un voyageur (§6.5), calculé par le job périodique à partir des notes de ses voisins les plus proches ([ADR-0020](adr/0020-filtrage-collaboratif.md)). Ne contient ni voisin ni note individuelle : un score et le nombre de voisins derrière lui.
+
+| Colonne | Type | Nul | Remarque |
+| --- | --- | --- | --- |
+| `traveler_id` | `uuid` | non | clé primaire (composite) |
+| `poi_id` | `uuid` | non | clé primaire (composite) |
+| `destination` | `text` | non | pour la lecture par destination (`/me/cf-scores`) |
+| `score` | `real` | non | `CF` ∈ [−1, 1] |
+| `support` | `integer` | non | voisins ayant noté le lieu, au moins 3 |
+| `computed_at` | `timestamp with time zone` | non |  |
+
+- Clé primaire : (`traveler_id`, `poi_id`) ; index (`traveler_id`, `destination`)
+- Clé étrangère (`traveler_id`) → `discovery.traveler`, suppression : Cascade
+- Contrainte `ck_cf_score_range` : `score between -1 and 1 and support > 0`
 
 #### `discovery.poi_rating`
 

@@ -45,6 +45,17 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | --- | --- | --- |
 | `Discovery:Migrate` | `true` | Migrations au démarrage. |
 | `Media:PublicBaseUrl` | `/media` | Préfixe des adresses audio des extraits d'onboarding. |
+| `Discovery:Cf:Enabled` | `true` | Job de filtrage collaboratif (§6.5) : recalcule `discovery.cf_score` ([ADR-0020](adr/0020-filtrage-collaboratif.md)). `false` l'arrête ; `POST /admin/cf-scores/recompute` reste disponible. |
+| `Discovery:Cf:IntervalHours` | `6` | Période du job. |
+| `Discovery:Cf:StartupDelayMinutes` | `2` | Délai avant le premier calcul après le démarrage du service. |
+| `Discovery:Cf:Neighbors` | `50` | `K`, nombre de voisins consultés. |
+| `Discovery:Cf:MinNeighborDepth` | `10` | Profondeur de profil minimale d'un voisin. |
+| `Discovery:Cf:ActiveDays` | `365` | Un voisin a été actif dans ce nombre de jours (et un voyageur n'est calculé que s'il l'a été). |
+| `Discovery:Cf:Lambda` | `5` | Lissage `λ` de `CF = Σ sim·r / (Σ|sim| + λ)`. |
+| `Discovery:Cf:MaxScoresPerTraveler` | `200` | Meilleurs scores gardés par voyageur et destination. |
+| `Discovery:Cf:MinSupport` | `3` | **Vie privée** : un lieu noté par moins de voisins n'a pas de score (il reflèterait ce qu'une seule personne a dit). |
+| `Discovery:Cf:MinPool` | `20` | **Vie privée** : sous ce nombre de voisins éligibles, aucun score n'est produit et ceux d'avant sont supprimés (même seuil k = 20 que les statistiques). |
+| `Discovery:Cf:TargetMinDepth` | `5` | Profondeur à partir de laquelle on calcule pour un voyageur (avant : démarrage à froid, `w_cf = 0`, §6.7). |
 | `Discovery:AllowTextOnlyStories` | `true` | `GET /me/candidates` propose aussi les lieux dont l'histoire est publiée **sans audio** (marquée `textOnly`) : l'appareil lit le texte avec sa voix (ADR-0018). `false` : histoires enregistrées seulement. |
 
 ## Creators (`creators-api`)

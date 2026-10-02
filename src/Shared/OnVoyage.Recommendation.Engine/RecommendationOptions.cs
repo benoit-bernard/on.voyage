@@ -14,6 +14,13 @@ public sealed record RecommendationOptions
     /// <summary><c>w_creator</c> of §6.15.</summary>
     public double CreatorWeight { get; init; } = 0.10;
     public int ColdStartDepth { get; init; } = 5;
+
+    /// <summary>A place rated by this many neighbours gets the whole <c>w_cf</c>; fewer, a proportional share (§6.5).</summary>
+    public int CollaborativeSupportFull { get; init; } = 10;
+
+    /// <summary>The collaborative reason of §6.9 is given when the neighbours make up more than this share of the score.</summary>
+    public double CollaborativeExplainShare { get; init; } = 0.30;
+
     public int CompatibilityCap { get; init; } = 98;
     public EthicalLevel Ethical { get; init; } = EthicalLevel.Balanced;
 

@@ -54,6 +54,17 @@ internal sealed class TravelerReader(DiscoveryDbContext db) : ITravelerReader
     public async Task<IReadOnlyDictionary<Guid, double>> RatingsAsync(Guid travelerId, CancellationToken cancellationToken) =>
         await db.Ratings.AsNoTracking().Where(r => r.TravelerId == travelerId).ToDictionaryAsync(r => r.PoiId, r => r.Rating, cancellationToken);
 
+    public async Task<IReadOnlyDictionary<Guid, CfScoreInfo>> CfScoresAsync(Guid travelerId, string? destination, CancellationToken cancellationToken)
+    {
+        var scores = db.CfScores.AsNoTracking().Where(s => s.TravelerId == travelerId);
+        if (destination is not null)
+        {
+            scores = scores.Where(s => s.Destination == destination);
+        }
+
+        return await scores.ToDictionaryAsync(s => s.PoiId, s => new CfScoreInfo(s.Score, s.Support), cancellationToken);
+    }
+
     public async Task<IReadOnlyList<(Guid PoiId, DateTimeOffset SavedAt)>> SavedAsync(Guid travelerId, CancellationToken cancellationToken) =>
         [.. (await db.Saved.AsNoTracking().Where(s => s.TravelerId == travelerId).ToListAsync(cancellationToken)).Select(s => (s.PoiId, s.SavedAt))];
 

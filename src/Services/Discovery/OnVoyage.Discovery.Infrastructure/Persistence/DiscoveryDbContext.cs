@@ -16,6 +16,7 @@ internal sealed class DiscoveryDbContext(DbContextOptions<DiscoveryDbContext> op
     public DbSet<OnboardingClipRow> Clips => Set<OnboardingClipRow>();
     public DbSet<SavedPoiRow> Saved => Set<SavedPoiRow>();
     public DbSet<StoryProjectionRow> Stories => Set<StoryProjectionRow>();
+    public DbSet<CfScoreRow> CfScores => Set<CfScoreRow>();
     public DbSet<CategoryAffinityRow> Affinities => Set<CategoryAffinityRow>();
     public DbSet<CreatorProjectionRow> Creators => Set<CreatorProjectionRow>();
     public DbSet<CreatorPlaceLinkRow> CreatorLinks => Set<CreatorPlaceLinkRow>();
@@ -101,6 +102,14 @@ internal sealed class DiscoveryDbContext(DbContextOptions<DiscoveryDbContext> op
             e.HasKey(r => r.StoryId);
             e.HasIndex(r => r.PoiId);
             e.Property(r => r.AudioParts).HasColumnType("jsonb");
+        });
+
+        modelBuilder.Entity<CfScoreRow>(e =>
+        {
+            e.ToTable("cf_score", t => t.HasCheckConstraint("ck_cf_score_range", "score between -1 and 1 and support > 0"));
+            e.HasKey(r => new { r.TravelerId, r.PoiId });
+            e.HasIndex(r => new { r.TravelerId, r.Destination });
+            e.HasOne<TravelerRow>().WithMany().HasForeignKey(r => r.TravelerId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<CategoryAffinityRow>(e =>

@@ -115,7 +115,10 @@ public sealed record CreatorForMeDto(Guid CreatorId, string Handle, string Displ
 
 public sealed record CreatorsForMeDto(string Destination, IReadOnlyList<CreatorForMeDto> Items, string Cohort);
 
-/// <summary>Precomputed scores for the offline pack: <see cref="Cf"/> is null until collaborative filtering exists; <see cref="CreatorSignal"/> is in [0, 1].</summary>
-public sealed record CfScoreDto(Guid PoiId, double? Cf, double CreatorSignal);
+/// <summary>
+/// Precomputed scores for the offline pack. <see cref="Cf"/> is the collaborative score <c>CF</c> in [−1, 1] and <see cref="Support"/> the number of
+/// neighbours who rated the place; both are null when too few did (or for the control cohort). <see cref="CreatorSignal"/> is in [0, 1].
+/// </summary>
+public sealed record CfScoreDto(Guid PoiId, double? Cf, double CreatorSignal, int? Support = null);
 
 public sealed record CfScoresDto(IReadOnlyList<CfScoreDto> Items, string Cohort, DateTimeOffset GeneratedAt);
