@@ -2,6 +2,7 @@
   <ItemGroup>
     <ProjectReference Include="../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
     <ProjectReference Include="../../Services/Platform/OnVoyage.Platform.Contracts/OnVoyage.Platform.Contracts.csproj" />
+    <ProjectReference Include="../../Services/Creators/OnVoyage.Creators.Contracts/OnVoyage.Creators.Contracts.csproj" />
     <ProjectReference Include="../../Shared/OnVoyage.Taxonomy/OnVoyage.Taxonomy.csproj" />
   </ItemGroup>
 </Project>

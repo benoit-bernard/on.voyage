@@ -3,11 +3,9 @@ using OnVoyage.Web.Admin.Api;
 
 namespace OnVoyage.Web.Admin.Components;
 
-/// <summary>What every back-office page needs: the API, a status line, and a way to run an action that reports its own failure.</summary>
-public abstract class AdminPageBase : ComponentBase
+/// <summary>What every back-office page needs, whichever API it talks to: a status line, and a way to run an action that reports its own failure.</summary>
+public abstract class AdminActionBase : ComponentBase
 {
-    [Inject] protected IAdminApi Api { get; set; } = default!;
-
     [Inject] protected NavigationManager Navigation { get; set; } = default!;
 
     protected string? Message { get; set; }
@@ -59,4 +57,10 @@ public abstract class AdminPageBase : ComponentBase
 
         return default;
     }
+}
+
+/// <summary>The pages of the editorial back-office (places, stories, configuration…), which talk to <see cref="IAdminApi"/>.</summary>
+public abstract class AdminPageBase : AdminActionBase
+{
+    [Inject] protected IAdminApi Api { get; set; } = default!;
 }

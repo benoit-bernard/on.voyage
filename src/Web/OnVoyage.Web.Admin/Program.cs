@@ -53,6 +53,7 @@ builder.Services.AddSingleton<AdminTokenStore>();
 builder.Services.AddSingleton<PlatformAuthClient>();
 builder.Services.AddScoped<AdminSession>();
 builder.Services.AddScoped<IAdminApi, HttpAdminApi>();
+builder.Services.AddScoped<ICreatorsAdminApi, HttpCreatorsAdminApi>();
 builder.Services.AddSingleton(new AdminOptions(builder.Configuration["Admin:MediaBaseUrl"] is { Length: > 0 } media ? media : gateway));
 
 var app = builder.Build();

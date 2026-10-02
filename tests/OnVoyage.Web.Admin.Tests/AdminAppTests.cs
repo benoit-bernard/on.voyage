@@ -168,6 +168,33 @@ public sealed partial class AdminAppTests : IDisposable
     }
 
     [Fact]
+    public async Task The_creator_screens_are_for_administrators_only_and_are_in_the_menu()
+    {
+        using var traveler = NewBrowser();
+        await SignInAsync(traveler, "voyageur@onvoyage.test");
+        foreach (var path in new[] { "/admin/creators", "/admin/creators/" + Guid.NewGuid(), "/admin/moderation" })
+        {
+            (await traveler.GetAsync(path, TestContext.Current.CancellationToken)).StatusCode.ShouldBe(HttpStatusCode.Forbidden, path);
+        }
+
+        using var admin = NewBrowser();
+        await SignInAsync(admin, "admin@onvoyage.test");
+
+        var creators = await admin.GetAsync("/admin/creators", TestContext.Current.CancellationToken);
+        var moderation = await admin.GetAsync("/admin/moderation", TestContext.Current.CancellationToken);
+
+        creators.StatusCode.ShouldBe(HttpStatusCode.OK);
+        moderation.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var html = await creators.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
+        html.ShouldContain("Créateurs fondateurs");
+        html.ShouldContain("href=\"/admin/creators\"");
+        html.ShouldContain("href=\"/admin/moderation\"");
+        (await moderation.Content.ReadAsStringAsync(TestContext.Current.CancellationToken)).ShouldContain("Modération des créateurs");
+        _gateway.Calls.ShouldContain(call => call.Path == "/api/creators/v1/admin/creators" && call.Authorization == "Bearer access-admin");
+        _gateway.Calls.ShouldContain(call => call.Path == "/api/creators/v1/admin/moderation" && call.Authorization == "Bearer access-admin");
+    }
+
+    [Fact]
     public async Task A_wrong_code_does_not_sign_anyone_in()
     {
         using var browser = NewBrowser();

@@ -8,58 +8,17 @@ namespace OnVoyage.Web.Admin.Api;
 
 internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession session) : IAdminApi
 {
-    public const string ClientName = "gateway";
+    public const string ClientName = GatewayCaller.ClientName;
     private const string Factory = "api/factory/v1/admin";
     private const string Platform = "api/platform/v1/admin";
 
-    private static JsonSerializerOptions Json => AdminJson.Options;
+    private readonly GatewayCaller _gateway = new(clients, session);
 
-    private async Task<HttpResponseMessage> SendAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
-    {
-        var token = await session.GetAccessTokenAsync(cancellationToken) ?? throw new AdminApiException("Your session has expired: sign in again.", 401);
-        using var request = new HttpRequestMessage(method, path);
-        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
-        if (body is not null)
-        {
-            request.Content = JsonContent.Create(body, options: Json);
-        }
+    private Task<T> GetAsync<T>(string path, CancellationToken cancellationToken) => _gateway.GetAsync<T>(path, cancellationToken);
 
-        var response = await clients.CreateClient(ClientName).SendAsync(request, cancellationToken);
-        if (response.IsSuccessStatusCode)
-        {
-            return response;
-        }
+    private Task<T> WriteAsync<T>(HttpMethod method, string path, object? body, CancellationToken cancellationToken) => _gateway.WriteAsync<T>(method, path, body, cancellationToken);
 
-        string title;
-        try
-        {
-            title = (await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken)).TryGetProperty("title", out var value) ? value.GetString() ?? response.ReasonPhrase ?? "Error" : response.ReasonPhrase ?? "Error";
-        }
-        catch (Exception exception) when (exception is JsonException or NotSupportedException)
-        {
-            title = response.ReasonPhrase ?? "Error";
-        }
-
-        response.Dispose();
-        throw new AdminApiException(title, (int)response.StatusCode);
-    }
-
-    private async Task<T> GetAsync<T>(string path, CancellationToken cancellationToken)
-    {
-        using var response = await SendAsync(HttpMethod.Get, path, null, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<T>(Json, cancellationToken) ?? throw new AdminApiException("Empty response.", 502);
-    }
-
-    private async Task<T> WriteAsync<T>(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
-    {
-        using var response = await SendAsync(method, path, body, cancellationToken);
-        return await response.Content.ReadFromJsonAsync<T>(Json, cancellationToken) ?? throw new AdminApiException("Empty response.", 502);
-    }
-
-    private async Task WriteAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken)
-    {
-        using var response = await SendAsync(method, path, body ?? new { }, cancellationToken);
-    }
+    private Task WriteAsync(HttpMethod method, string path, object? body, CancellationToken cancellationToken) => _gateway.WriteAsync(method, path, body, cancellationToken);
 
     public Task<IReadOnlyList<DestinationItem>> GetDestinationsAsync(CancellationToken cancellationToken = default) =>
         GetAsync<IReadOnlyList<DestinationItem>>($"{Factory}/destinations", cancellationToken);

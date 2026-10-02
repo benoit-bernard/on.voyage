@@ -1,0 +1,96 @@
+@page "/admin/moderation"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminActionBase
+@inject ICreatorsAdminApi CreatorsApi
+
+<h1>Modération des créateurs</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <div class="row">
+        <div>
+            <label for="status">Statut</label>
+            <select id="status" @onchange="OnStatusChanged">
+                <option value="open" selected="@(_status == "open")">À traiter</option>
+                <option value="decided" selected="@(_status == "decided")">Décidés</option>
+                <option value="" selected="@(_status == string.Empty)">Tous</option>
+            </select>
+        </div>
+    </div>
+    <p class="muted">Un voyageur peut signaler un profil, un contenu, une association ou un conseil. Vous ne voyez jamais qui a signalé. Retenir un signalement retire l'élément (profil suspendu, contenu masqué, association rejetée, conseil masqué) et demande un exposé des motifs (DSA, art. 17). Les signalements d'« autre », d'usurpation et de publicité non déclarée se traitent de la même façon.</p>
+</section>
+
+@if (_cases.Count == 0)
+{
+    <p class="muted" id="empty">Aucun signalement dans cet état.</p>
+}
+
+@foreach (var item in _cases)
+{
+    <section class="card case @item.Status" id="case-@item.Id">
+        <h2>@item.TargetLabel</h2>
+        <p>
+            <strong>@Labels.ModerationReason(item.Reason)</strong> · signalé le @item.CreatedAt.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)
+            @if (item.CreatorId is { } creatorId)
+            {
+                <span> · <a href="/admin/creators/@creatorId">@@@item.CreatorHandle</a></span>
+            }
+        </p>
+        @if (item.Status == "open")
+        {
+            <label for="statement-@item.Id">Exposé des motifs</label>
+            <textarea id="statement-@item.Id" rows="2" maxlength="2000" @bind="Statement(item.Id).Text" @bind:event="oninput"></textarea>
+            <div class="row actions">
+                <button type="button" class="ghost" disabled="@Busy" @onclick='() => DecideAsync(item, "dismissed")'>Classer sans suite</button>
+                <button type="button" class="danger" disabled="@(Busy || string.IsNullOrWhiteSpace(Statement(item.Id).Text))" @onclick='() => DecideAsync(item, "upheld")'>Retenir et retirer l'élément</button>
+            </div>
+        }
+        else
+        {
+            <p class="decision"><strong>@Labels.ModerationDecision(item.Decision)</strong> le @item.DecidedAt?.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)</p>
+            @if (!string.IsNullOrEmpty(item.StatementOfReasons))
+            {
+                <p class="muted">@item.StatementOfReasons</p>
+            }
+        }
+    </section>
+}
+
+@code {
+    private sealed class StatementBox
+    {
+        public string Text { get; set; } = string.Empty;
+    }
+
+    private string _status = "open";
+    private IReadOnlyList<ModerationCaseDto> _cases = [];
+    private readonly Dictionary<Guid, StatementBox> _statements = [];
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private StatementBox Statement(Guid id)
+    {
+        if (!_statements.TryGetValue(id, out var box))
+        {
+            _statements[id] = box = new StatementBox();
+        }
+
+        return box;
+    }
+
+    private async Task ReloadAsync() =>
+        _cases = await LoadAsync(() => CreatorsApi.ListModerationAsync(string.IsNullOrEmpty(_status) ? null : _status)) ?? [];
+
+    private async Task OnStatusChanged(ChangeEventArgs args)
+    {
+        _status = args.Value?.ToString() ?? string.Empty;
+        await ReloadAsync();
+    }
+
+    private async Task DecideAsync(ModerationCaseDto item, string decision)
+    {
+        var statement = Statement(item.Id).Text.Trim();
+        await RunAsync(async () => await CreatorsApi.DecideAsync(item.Id, decision, statement.Length == 0 ? null : statement), decision == "upheld" ? "Signalement retenu : l'élément est retiré." : "Signalement classé sans suite.");
+        await ReloadAsync();
+    }
+}

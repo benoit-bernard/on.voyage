@@ -1,0 +1,403 @@
+@page "/admin/creators/{Id:guid}"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminActionBase
+@inject ICreatorsAdminApi CreatorsApi
+
+@if (_creator is null)
+{
+    <h1>Créateur</h1>
+    <Status Message="@Message" Error="@Error" />
+    @if (Error is null)
+    {
+        <p>Chargement…</p>
+    }
+    <p><a href="/admin/creators">Retour à la liste</a></p>
+}
+else
+{
+    var publishBlock = Labels.PublishBlock(_creator.PublishBlock?.Code);
+    <h1>@@@_creator.Handle <span class="tag" id="status">@Labels.CreatorStatus(_creator.Status)</span></h1>
+    <p><a href="/admin/creators">Retour à la liste</a> · @_creator.DisplayName · @_creator.FollowerCount abonné(s) · <span class="muted">les abonnés ne sont jamais exposés au créateur</span></p>
+    <Status Message="@Message" Error="@Error" />
+
+    <section class="card" id="publication">
+        <h2>Publication</h2>
+        @if (_creator.Status != "published" && publishBlock is not null)
+        {
+            <p class="alert warn" id="publish-block" role="status">@publishBlock</p>
+        }
+
+        <div class="row actions">
+            @if (_creator.Status != "published")
+            {
+                <button type="button" id="publish" class="primary" disabled="@(Busy || publishBlock is not null)" aria-describedby="@(publishBlock is null ? null : "publish-block")" @onclick="PublishAsync">@(_creator.Status == "suspended" ? "Lever la suspension et publier" : "Publier")</button>
+            }
+            else
+            {
+                <button type="button" id="unpublish" disabled="@(Busy || string.IsNullOrWhiteSpace(_reason))" @onclick="UnpublishAsync">Dépublier</button>
+            }
+
+            @if (_creator.Status != "suspended")
+            {
+                <button type="button" id="suspend" class="danger" disabled="@(Busy || string.IsNullOrWhiteSpace(_reason))" @onclick="SuspendAsync">Suspendre</button>
+            }
+
+            <div>
+                <label for="reason">Motif (obligatoire pour dépublier ou suspendre)</label>
+                <input id="reason" @bind="_reason" @bind:event="oninput" maxlength="200" />
+            </div>
+        </div>
+        <p class="muted">Publier rend la page visible dans l'app et sur le web ; dépublier ou suspendre la retire aussitôt (et son motif est transmis aux services concernés).</p>
+    </section>
+
+    <section class="card" id="profile">
+        <h2>Profil</h2>
+        <CreatorProfileForm Input="_profile" IdPrefix="profile" SubmitLabel="Enregistrer le profil" Busy="Busy" OnSubmit="SaveProfileAsync" />
+    </section>
+
+    <section class="card" id="consent">
+        <h2>Consentement et compte</h2>
+        <p>
+            Consentement : <strong id="consent-state">@Labels.Consent(_creator.TermsVersion)</strong>
+            @if (_creator.TermsAcceptedAt is { } acceptedAt)
+            {
+                <span> le @acceptedAt.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)</span>
+            }
+
+            @if (!string.IsNullOrEmpty(_creator.TermsDocumentRef))
+            {
+                <span> · document : <code>@_creator.TermsDocumentRef</code></span>
+            }
+        </p>
+        <div class="row">
+            <div>
+                <label for="document-ref">Référence du document de consentement signé</label>
+                <input id="document-ref" @bind="_documentRef" @bind:event="oninput" placeholder="H-009/marie-2026-10-01.pdf" maxlength="200" />
+            </div>
+            <button type="button" id="record-consent" disabled="@(Busy || string.IsNullOrWhiteSpace(_documentRef))" @onclick="RecordConsentAsync">Enregistrer le consentement fondateur</button>
+        </div>
+        <p>
+            Compte ON.VOYAGE : @(_creator.AccountId is { } account ? account.ToString() : "non rattaché")
+            <span class="muted">— avec le consentement, le rôle « creator » est donné à ce compte (compte avec e-mail vérifié uniquement).</span>
+        </p>
+        <div class="row">
+            <div>
+                <label for="account-id">Identifiant du compte</label>
+                <input id="account-id" @bind="_accountId" @bind:event="oninput" placeholder="00000000-0000-0000-0000-000000000000" />
+            </div>
+            <button type="button" id="link-account" disabled="@(Busy || !Guid.TryParse(_accountId, out _))" @onclick="LinkAccountAsync">Rattacher le compte</button>
+        </div>
+    </section>
+
+    <section class="card" id="contents">
+        <h2>Contenus (par URL)</h2>
+        <p class="muted">Un contenu reste sur sa plateforme : seule la référence (lien, titre, durée, chapitres) est enregistrée, et le bouton « Voir » ouvre le lien d'origine.</p>
+        @if (_creator.Contents.Count == 0)
+        {
+            <p class="muted">Aucun contenu.</p>
+        }
+        else
+        {
+            <table>
+                <thead><tr><th>Contenu</th><th>Plateforme</th><th>Chapitres</th><th>Statut</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var content in _creator.Contents)
+                    {
+                        <tr class="content @content.Status">
+                            <td><a href="@content.Permalink" target="_blank" rel="noopener noreferrer">@content.Title</a>@if (content.IsCommercial) { <span class="tag"> · Publicité</span> }</td>
+                            <td>@Labels.Platform(content.Platform)</td>
+                            <td>@content.Chapters.Count</td>
+                            <td>@Labels.ContentStatus(content.Status)</td>
+                            <td>
+                                @if (content.Status != "removed")
+                                {
+                                    <button type="button" class="ghost" disabled="@Busy" @onclick="() => RemoveContentAsync(content.Id)">Retirer</button>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h3>Ajouter un contenu</h3>
+        <div class="row">
+            <div>
+                <label for="content-url">Adresse (YouTube, Instagram, TikTok)</label>
+                <input id="content-url" @bind="_contentUrl" @bind:event="oninput" size="48" placeholder="https://www.youtube.com/watch?v=…" />
+            </div>
+            <div>
+                <label for="content-title">Titre</label>
+                <input id="content-title" @bind="_contentTitle" @bind:event="oninput" maxlength="200" />
+            </div>
+            <div>
+                <label for="content-duration">Durée (secondes)</label>
+                <input id="content-duration" type="number" min="0" @bind="_contentDuration" />
+            </div>
+            <label class="check"><input id="content-commercial" type="checkbox" checked="@_contentCommercial" @onchange="e => _contentCommercial = e.Value is true" /> Collaboration commerciale (étiquette « Publicité »)</label>
+        </div>
+        <label for="content-chapters">Chapitres (un par ligne, « 02:15 Gordes »)</label>
+        <textarea id="content-chapters" rows="3" @bind="_contentChapters"></textarea>
+        <button type="button" id="add-content" class="primary" disabled="@(Busy || string.IsNullOrWhiteSpace(_contentUrl) || string.IsNullOrWhiteSpace(_contentTitle))" @onclick="AddContentAsync">Ajouter le contenu</button>
+    </section>
+
+    <section class="card" id="places">
+        <h2>Lieux associés et conseils</h2>
+        <p class="muted">Seules les associations <em>validées</em> sont publiées. Ici, l'administrateur agit avec le consentement du créateur : une association ajoutée est validée d'emblée. Un conseil seul (sans contenu) recommande le lieu.</p>
+        @if (_creator.PlaceLinks.Count == 0)
+        {
+            <p class="muted">Aucune association.</p>
+        }
+        else
+        {
+            <table id="place-links">
+                <thead><tr><th>Lieu</th><th>Contenu</th><th>Statut</th><th></th></tr></thead>
+                <tbody>
+                    @foreach (var link in _creator.PlaceLinks)
+                    {
+                        <tr class="link @link.Status">
+                            <td>@link.PoiName</td>
+                            <td>@(link.ContentTitle ?? "conseil seul")@if (link.StartSeconds is { } start) { <span class="muted"> à @ChapterText.FormatTime(start)</span> }</td>
+                            <td>@Labels.LinkStatus(link.Status)</td>
+                            <td class="actions">
+                                @if (link.Status != "validated")
+                                {
+                                    <button type="button" disabled="@Busy" @onclick='() => SetLinkStatusAsync(link.Id, "validated")'>Valider</button>
+                                }
+                                else
+                                {
+                                    <button type="button" disabled="@Busy" @onclick='() => SetLinkStatusAsync(link.Id, "rejected")'>Retirer de la publication</button>
+                                }
+
+                                <button type="button" class="ghost" disabled="@Busy" @onclick="() => RemoveLinkAsync(link.Id)">Supprimer</button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        <h3>Associer un lieu</h3>
+        <div class="row">
+            <div>
+                <label for="place-query">Chercher un lieu du répertoire</label>
+                <input id="place-query" @bind="_placeQuery" @bind:event="oninput" placeholder="Fort Saint-Jean" />
+            </div>
+            <button type="button" id="search-places" disabled="@(Busy || _placeQuery.Trim().Length < 2)" @onclick="SearchPlacesAsync">Chercher</button>
+        </div>
+        @if (_places.Count > 0)
+        {
+            <ul class="candidates" id="place-results">
+                @foreach (var place in _places)
+                {
+                    <li>
+                        <span>@place.Name <span class="muted">· @place.City@(place.IsPublished ? "" : " · non publié")</span></span>
+                        <button type="button" disabled="@Busy" @onclick="() => Choose(place)">Choisir</button>
+                    </li>
+                }
+            </ul>
+        }
+
+        @if (_chosen is not null)
+        {
+            <div class="card" id="chosen">
+                <h3>@_chosen.Name</h3>
+                <div class="row">
+                    <div>
+                        <label for="link-content">Contenu</label>
+                        <select id="link-content" @bind="_linkContent">
+                            <option value="">Aucun (conseil seul)</option>
+                            @foreach (var content in _creator.Contents.Where(content => content.Status != "removed"))
+                            {
+                                <option value="@content.Id">@content.Title</option>
+                            }
+                        </select>
+                    </div>
+                    <div>
+                        <label for="link-start">Horodatage (secondes, facultatif)</label>
+                        <input id="link-start" type="number" min="0" @bind="_linkStart" />
+                    </div>
+                    <button type="button" id="add-link" class="primary" disabled="@(Busy || (_linkStart is not null && _linkContent == string.Empty))" @onclick="AddLinkAsync">Associer ce lieu</button>
+                </div>
+                <label for="tip">Conseil du créateur (280 caractères, sans note chiffrée)</label>
+                <textarea id="tip" rows="2" maxlength="280" @bind="_tip" @bind:event="oninput"></textarea>
+                <button type="button" id="save-tip" disabled="@(Busy || string.IsNullOrWhiteSpace(_tip))" @onclick="SetTipAsync">Enregistrer le conseil</button>
+            </div>
+        }
+
+        @if (_creator.Tips.Count > 0)
+        {
+            <h3>Conseils</h3>
+            <ul id="tips">
+                @foreach (var tip in _creator.Tips)
+                {
+                    <li>
+                        <strong>@tip.PoiName</strong> — @tip.Text @if (tip.Status == "hidden") { <span class="tag">masqué par la modération</span> }
+                        <button type="button" class="ghost" disabled="@Busy" @onclick="() => RemoveTipAsync(tip.PoiId)">Supprimer</button>
+                    </li>
+                }
+            </ul>
+        }
+    </section>
+
+    <section class="card" id="claim">
+        <h2>Réclamation de handle</h2>
+        <p class="muted">Usurpation (F-33) : si le vrai titulaire d'un handle l'a réclamé, saisissez-le ici pour ce créateur. Le créateur qui le détient est dépublié et renommé.</p>
+        <div class="row">
+            <div>
+                <label for="claim-handle">Handle réclamé</label>
+                <input id="claim-handle" @bind="_claimHandle" @bind:event="oninput" />
+            </div>
+            <div>
+                <label for="claim-reason">Motif (preuve de titularité)</label>
+                <input id="claim-reason" @bind="_claimReason" @bind:event="oninput" maxlength="200" />
+            </div>
+            <button type="button" id="claim-button" class="danger" disabled="@(Busy || string.IsNullOrWhiteSpace(_claimHandle) || string.IsNullOrWhiteSpace(_claimReason))" @onclick="ClaimAsync">Réclamer ce handle</button>
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public Guid Id { get; set; }
+
+    private AdminCreatorDetailDto? _creator;
+    private CreatorProfileInput _profile = new();
+    private string _reason = string.Empty;
+    private string _documentRef = string.Empty;
+    private string _accountId = string.Empty;
+    private string _contentUrl = string.Empty;
+    private string _contentTitle = string.Empty;
+    private int? _contentDuration;
+    private bool _contentCommercial;
+    private string _contentChapters = string.Empty;
+    private string _placeQuery = string.Empty;
+    private IReadOnlyList<PoiSearchResultDto> _places = [];
+    private PoiSearchResultDto? _chosen;
+    private string _linkContent = string.Empty;
+    private int? _linkStart;
+    private string _tip = string.Empty;
+    private string _claimHandle = string.Empty;
+    private string _claimReason = string.Empty;
+
+    protected override async Task OnParametersSetAsync() => Show(await LoadAsync(() => CreatorsApi.GetCreatorAsync(Id)));
+
+    private void Show(AdminCreatorDetailDto? creator)
+    {
+        if (creator is null)
+        {
+            return;
+        }
+
+        _creator = creator;
+        _profile = CreatorProfileInput.From(creator);
+    }
+
+    private async Task ChangeAsync(Func<Task<AdminCreatorDetailDto>> action, string done) =>
+        await RunAsync(async () => Show(await action()), done);
+
+    private async Task ReloadAsync() => Show(await LoadAsync(() => CreatorsApi.GetCreatorAsync(Id)));
+
+    private Task PublishAsync() => ChangeAsync(() => CreatorsApi.PublishAsync(Id), "Profil publié.");
+
+    private async Task UnpublishAsync()
+    {
+        await ChangeAsync(() => CreatorsApi.UnpublishAsync(Id, _reason.Trim()), "Profil dépublié.");
+        _reason = Error is null ? string.Empty : _reason;
+    }
+
+    private async Task SuspendAsync()
+    {
+        await ChangeAsync(() => CreatorsApi.SuspendAsync(Id, _reason.Trim()), "Profil suspendu.");
+        _reason = Error is null ? string.Empty : _reason;
+    }
+
+    private Task SaveProfileAsync() => ChangeAsync(() => CreatorsApi.UpdateCreatorAsync(Id, _profile.ToRequest()), "Profil enregistré.");
+
+    private async Task RecordConsentAsync()
+    {
+        await ChangeAsync(() => CreatorsApi.RecordConsentAsync(Id, _documentRef.Trim(), null), "Consentement fondateur enregistré.");
+        _documentRef = Error is null ? string.Empty : _documentRef;
+    }
+
+    private Task LinkAccountAsync() => ChangeAsync(() => CreatorsApi.LinkAccountAsync(Id, Guid.Parse(_accountId.Trim())), "Compte rattaché.");
+
+    private async Task ClaimAsync()
+    {
+        await ChangeAsync(() => CreatorsApi.ClaimHandleAsync(Id, _claimHandle.Trim(), _claimReason.Trim()), "Handle réclamé : l'ancien titulaire a été dépublié et renommé.");
+        if (Error is null)
+        {
+            _claimHandle = _claimReason = string.Empty;
+        }
+    }
+
+    private async Task AddContentAsync()
+    {
+        var (chapters, problem) = ChapterText.Parse(_contentChapters);
+        if (chapters is null)
+        {
+            Error = problem;
+            return;
+        }
+
+        var request = new AddContentRequest(_contentUrl.Trim(), _contentTitle.Trim(), null, null, null, _contentDuration, null, _contentCommercial, chapters);
+        await RunAsync(async () => await CreatorsApi.AddContentAsync(Id, request), "Contenu ajouté.");
+        if (Error is null)
+        {
+            _contentUrl = _contentTitle = _contentChapters = string.Empty;
+            _contentDuration = null;
+            _contentCommercial = false;
+            await ReloadAsync();
+        }
+    }
+
+    private async Task RemoveContentAsync(Guid contentId)
+    {
+        await RunAsync(() => CreatorsApi.RemoveContentAsync(Id, contentId), "Contenu retiré : les lieux qu'il appuyait ne sont plus publiés.");
+        await ReloadAsync();
+    }
+
+    private async Task SearchPlacesAsync() =>
+        await RunAsync(async () => _places = await CreatorsApi.SearchPlacesAsync(_placeQuery.Trim()));
+
+    private void Choose(PoiSearchResultDto place)
+    {
+        _chosen = place;
+        _places = [];
+        _tip = _creator?.Tips.FirstOrDefault(tip => tip.PoiId == place.PoiId)?.Text ?? string.Empty;
+    }
+
+    private async Task AddLinkAsync()
+    {
+        var contentId = Guid.TryParse(_linkContent, out var parsed) ? parsed : (Guid?)null;
+        await RunAsync(async () => await CreatorsApi.AddPlaceLinkAsync(Id, new AddPlaceLinkRequest(_chosen!.PoiId, contentId, _linkStart, null)), "Lieu associé.");
+        if (Error is null)
+        {
+            _linkStart = null;
+            await ReloadAsync();
+        }
+    }
+
+    private async Task SetLinkStatusAsync(Guid linkId, string status)
+    {
+        await RunAsync(async () => await CreatorsApi.SetPlaceLinkStatusAsync(Id, linkId, status), status == "validated" ? "Association validée." : "Association retirée de la publication.");
+        await ReloadAsync();
+    }
+
+    private async Task RemoveLinkAsync(Guid linkId)
+    {
+        await RunAsync(() => CreatorsApi.RemovePlaceLinkAsync(Id, linkId), "Association supprimée.");
+        await ReloadAsync();
+    }
+
+    private async Task SetTipAsync()
+    {
+        await RunAsync(async () => await CreatorsApi.SetTipAsync(Id, _chosen!.PoiId, _tip.Trim()), "Conseil enregistré.");
+        await ReloadAsync();
+    }
+
+    private async Task RemoveTipAsync(Guid poiId)
+    {
+        await RunAsync(() => CreatorsApi.RemoveTipAsync(Id, poiId), "Conseil supprimé.");
+        await ReloadAsync();
+    }
+}

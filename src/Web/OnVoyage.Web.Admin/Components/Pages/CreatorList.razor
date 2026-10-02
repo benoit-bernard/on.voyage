@@ -1,0 +1,94 @@
+@page "/admin/creators"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminActionBase
+@inject ICreatorsAdminApi CreatorsApi
+
+<h1>Créateurs</h1>
+<Status Message="@Message" Error="@Error" />
+
+<section class="card">
+    <p class="muted">Créateurs fondateurs (MVP-0) : le profil est créé avec le consentement écrit du créateur, dont la référence du document est enregistrée. Un profil n'est publiable qu'avec ce consentement (ou les CGU créateurs) et au moins une spécialité.</p>
+    <div class="row">
+        <div>
+            <label for="status">Statut</label>
+            <select id="status" @bind="_status">
+                <option value="">Tous</option>
+                <option value="draft">Brouillons</option>
+                <option value="published">Publiés</option>
+                <option value="suspended">Suspendus</option>
+            </select>
+        </div>
+        <div>
+            <label for="search">Recherche</label>
+            <input id="search" @bind="_search" placeholder="handle ou nom" />
+        </div>
+        <button type="button" disabled="@Busy" @onclick="ReloadAsync">Afficher</button>
+    </div>
+</section>
+
+<section class="card">
+    @if (_creators.Count == 0)
+    {
+        <p class="muted">Aucun créateur pour ces critères.</p>
+    }
+    else
+    {
+        <table id="creators">
+            <thead><tr><th>Créateur</th><th>Statut</th><th>Consentement</th><th>Spécialités</th><th>Lieux validés</th><th>Publication</th></tr></thead>
+            <tbody>
+                @foreach (var creator in _creators)
+                {
+                    <tr class="creator @creator.Status">
+                        <td><a href="/admin/creators/@creator.Id">@@@creator.Handle</a><br /><span class="muted">@creator.DisplayName</span></td>
+                        <td>@Labels.CreatorStatus(creator.Status)</td>
+                        <td>@Labels.Consent(creator.TermsVersion)</td>
+                        <td>@creator.SpecialtyCount</td>
+                        <td>@creator.ValidatedPlaceCount</td>
+                        <td>
+                            @if (creator.Status == "published")
+                            {
+                                <span class="ok-text">En ligne</span>
+                            }
+                            else if (creator.PublishBlock is { } block)
+                            {
+                                <span class="bad">@Labels.PublishBlock(block.Code)</span>
+                            }
+                            else
+                            {
+                                <span class="ok-text">Prêt à publier</span>
+                            }
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+</section>
+
+<section class="card">
+    <h2>Nouveau créateur fondateur</h2>
+    <p class="muted">Le profil est créé en brouillon. Enregistrez ensuite le consentement signé, ses contenus et ses lieux depuis sa fiche.</p>
+    <CreatorProfileForm Input="_new" IdPrefix="new" SubmitLabel="Créer le profil" Busy="Busy" OnSubmit="CreateAsync" />
+</section>
+
+@code {
+    private IReadOnlyList<AdminCreatorSummaryDto> _creators = [];
+    private string _status = string.Empty;
+    private string _search = string.Empty;
+    private readonly CreatorProfileInput _new = new();
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync() =>
+        _creators = await LoadAsync(() => CreatorsApi.ListCreatorsAsync(string.IsNullOrEmpty(_status) ? null : _status, string.IsNullOrWhiteSpace(_search) ? null : _search.Trim())) ?? [];
+
+    private async Task CreateAsync()
+    {
+        AdminCreatorDetailDto? created = null;
+        await RunAsync(async () => created = await CreatorsApi.CreateFounderAsync(_new.ToRequest()), "Profil créé.");
+        if (created is not null)
+        {
+            Navigation.NavigateTo($"/admin/creators/{created.Id}");
+        }
+    }
+}
