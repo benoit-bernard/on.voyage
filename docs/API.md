@@ -78,7 +78,7 @@ Groupe entier en `traveler_or_internal` (un voyageur, anonyme compris, ou un hô
 | `GET /destinations/{slug}/pois` | requête : `lat`, `lon` (ensemble ou absents), `radius` en mètres (défaut 50 000 ; 50 à 200 000), `limit` (défaut 100 ; 1 à 500) | liste de `PoiSummaryDto` : id, slug, nom, catégorie, coordonnées, importance, qualité, `crowdLevel`, `hiddenGem`, `distanceMeters`, `audioSeconds`, `weights`, `storyId`, `fragile`, `audioParts` | Sans `lat`/`lon`, pas de distance. Seule route qui reçoit une position. |
 | `GET /pois/{slug}` | — | `PoiDetailDto` : histoires (`StoryDto` avec `text`, `audioUrl`, `aiGenerated`, `audioParts`), `attributions`, `links` (`LinkDto` : Wikipédia, vidéos, site officiel) | |
 
-Fichiers audio : `GET /media/{chemin}` sur le Gateway (anonyme, GET et HEAD), servis par Catalog depuis `Media:RootPath`.
+Fichiers audio : `GET /media/{chemin}` sur le Gateway (anonyme, GET et HEAD, requêtes `Range` comprises : réponse 206), servis par Catalog depuis `Media:RootPath`. Les adresses renvoyées dans `audioUrl` et `audioParts` commencent par `Media:PublicBaseUrl`, qui doit être l'adresse **publique du Gateway** (`http://localhost:5080/media` en local). Une histoire sans audio (aucune voix configurée) a `audioUrl = null` et son `text`.
 
 ## Discovery — `/api/discovery/v1`
 
@@ -132,6 +132,8 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 | --- | --- | --- |
 | `POST /stories/{id}/reports` | `{ reason }` — **politique `traveler`** (F-20) | `{ received: true }` |
 | `POST /admin/imports`, `/admin/enrichments`, `/admin/scorings` | `{ destination }` | 202 |
+| `POST /admin/snapshot-imports` | `{ destination }` | 202 : charge le snapshot versionné `data-pipeline/<destination>/` (idempotent, [ADR-0017](adr/0017-snapshot-et-amorcage-d-une-destination.md)) |
+| `POST /admin/bootstrap` | `{ destination, maxPlaces?, minImportance?, lang?, budgetUsd, autoPublish?, forceImport?, skipImport? }` | 202 : amorçage de bout en bout plafonné par `budgetUsd` ([runbook](runbooks/bootstrap-marseille.md)) |
 | `GET /admin/destinations` | — | destinations configurées |
 | `GET /admin/places` | `destination`, `status?`, `limit` (50) | liste de lieux |
 | `GET /admin/places/{id}` | — | lieu, intérêts, éthique, affluence |

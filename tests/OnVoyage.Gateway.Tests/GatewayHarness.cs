@@ -35,6 +35,8 @@ internal sealed class DownstreamStub : IAsyncDisposable
 
     public ConcurrentQueue<string> EdgeCallTokens { get; } = new();
 
+    public ConcurrentQueue<string> MediaSeen { get; } = new();
+
     public string SecurityJson { get; set; } = "{}";
 
     public bool EdgeConfigDown { get; set; }
@@ -56,6 +58,12 @@ internal sealed class DownstreamStub : IAsyncDisposable
 
             self.EdgeCallTokens.Enqueue(http.Request.Headers.Authorization.ToString());
             return Results.Text("{\"revision\":\"x\",\"config\":{\"security\":" + self.SecurityJson + "},\"flags\":{}}", "application/json");
+        });
+        // Catalog serves the audio of Factory under /media with byte ranges (static files); the stub does the same.
+        app.MapMethods("/media/{**path}", ["GET", "HEAD"], (HttpContext http) =>
+        {
+            self!.MediaSeen.Enqueue($"{http.Request.Method} {http.Request.Path} range={http.Request.Headers.Range}");
+            return Results.File(new byte[256], "audio/mpeg", enableRangeProcessing: true);
         });
         app.Map("/api/{**rest}", (HttpContext http) =>
         {

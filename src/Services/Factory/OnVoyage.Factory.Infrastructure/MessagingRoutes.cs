@@ -27,6 +27,8 @@ public static class MessagingRoutes
         options.PublishMessage<WriteStoryCommand>().ToPostgresqlQueue(JobQueue);
         options.PublishMessage<GenerateAudioCommand>().ToPostgresqlQueue(JobQueue);
         options.PublishMessage<RunBatchJobCommand>().ToPostgresqlQueue(JobQueue);
+        options.PublishMessage<OnVoyage.Factory.Application.Features.Snapshot.ImportSnapshotCommand>().ToPostgresqlQueue(JobQueue);
+        options.PublishMessage<OnVoyage.Factory.Application.Features.Bootstrap.BootstrapDestinationCommand>().ToPostgresqlQueue(JobQueue);
         return options;
     }
 

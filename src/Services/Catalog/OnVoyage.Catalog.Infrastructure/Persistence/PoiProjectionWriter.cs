@@ -19,15 +19,17 @@ internal sealed class PoiProjectionWriter(CatalogDbContext db, TimeProvider cloc
         var destination = await db.Destinations.FirstOrDefaultAsync(item => item.Slug == published.Destination.Slug, cancellationToken);
         if (destination is null)
         {
-            destination = new DestinationRow
-            {
-                Id = Guid.CreateVersion7(),
-                Slug = published.Destination.Slug,
-                NameFr = published.Destination.Name,
-                Center = PoiMapper.ToPoint(new Domain.GeoPoint(published.Destination.Latitude, published.Destination.Longitude)),
-                IsActive = true,
-            };
-            db.Destinations.Add(destination);
+            // Several places of a new destination can arrive at the same time (the queue handles messages in parallel): the insert must
+            // not fail on the unique slug, whoever gets there first creates the row and the others read it.
+            await db.Database.ExecuteSqlInterpolatedAsync(
+                $"""
+                insert into catalog.destination (id, slug, name_fr, center, is_active, sort_order)
+                values ({Guid.CreateVersion7()}, {published.Destination.Slug}, {published.Destination.Name},
+                        ST_SetSRID(ST_MakePoint({published.Destination.Longitude}, {published.Destination.Latitude}), 4326)::geography, true, 0)
+                on conflict (slug) do nothing
+                """,
+                cancellationToken);
+            destination = await db.Destinations.FirstAsync(item => item.Slug == published.Destination.Slug, cancellationToken);
         }
 
         if (row is null)

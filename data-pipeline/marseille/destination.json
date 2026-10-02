@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "slug": "marseille",
+  "name": "Marseille",
+  "latitude": 43.2965,
+  "longitude": 5.3698,
+  "snapshotVersion": "2026.10.1",
+  "review": "ai_draft_needs_human_review",
+  "note": "Brouillon rédigé par IA à partir de connaissances générales, sans accès aux sources en ligne. Les coordonnées sont approximatives (quelques dizaines à quelques centaines de mètres), les scores d'importance et de fréquentation sont des estimations éditoriales. Chaque texte cite la page Wikipédia correspondante comme source de référence sans en reprendre de phrase. Relecture humaine et vérification des faits requises avant toute mise en avant (docs/adr/0017)."
+}

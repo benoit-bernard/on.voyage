@@ -113,6 +113,7 @@ internal sealed class ContentStore(IDbContextOutbox<FactoryDbContext> outbox) : 
             Apply(archived);
         }
 
+        outbox.AllowMultipleFlushes();
         foreach (var integrationEvent in integrationEvents)
         {
             await outbox.PublishAsync(integrationEvent);

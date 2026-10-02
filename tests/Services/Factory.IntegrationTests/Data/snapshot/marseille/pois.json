@@ -1,0 +1,125 @@
+[
+  {
+    "slug": "vieux-port",
+    "name": "Vieux-Port",
+    "nameEn": null,
+    "latitude": 43.2952,
+    "longitude": 5.3745,
+    "interests": {
+      "history.maritime": 0.8,
+      "history.local": 0.7
+    },
+    "importance": 90,
+    "popularityPercentile": 95,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 3,
+      "shoulder": 4,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Vieux-Port de Marseille",
+    "wikipediaEn": null,
+    "story": {
+      "title": "Le port des origines",
+      "hook": "Une accroche.",
+      "text": "Ceci est un texte de test pour le lieu Vieux-Port. Il est assez long pour être lu à voix haute, avec plusieurs phrases courtes. Le lieu se trouve à Marseille, au bord de la mer. Les visiteurs y viennent pour la vue et pour l'histoire du quartier.",
+      "remoteIntro": "Parlons de Vieux-Port.",
+      "announceFront": "Devant vous, Vieux-Port.",
+      "announceLeft": "Sur votre gauche, Vieux-Port.",
+      "announceRight": "Sur votre droite, Vieux-Port.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Vieux-Port de Marseille — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Vieux-Port_de_Marseille",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "fort-saint-jean",
+    "name": "Fort Saint-Jean",
+    "nameEn": null,
+    "latitude": 43.2953,
+    "longitude": 5.3606,
+    "interests": {
+      "architecture.defensive": 1.0,
+      "history.military": 0.7
+    },
+    "importance": 70,
+    "popularityPercentile": 70,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Fort Saint-Jean (Marseille)",
+    "wikipediaEn": null,
+    "story": {
+      "title": "La sentinelle",
+      "hook": "Une accroche.",
+      "text": "Ceci est un texte de test pour le lieu Fort Saint-Jean. Il est assez long pour être lu à voix haute, avec plusieurs phrases courtes. Le lieu se trouve à Marseille, au bord de la mer. Les visiteurs y viennent pour la vue et pour l'histoire du quartier.",
+      "remoteIntro": "Parlons de Fort Saint-Jean.",
+      "announceFront": "Devant vous, Fort Saint-Jean.",
+      "announceLeft": "Sur votre gauche, Fort Saint-Jean.",
+      "announceRight": "Sur votre droite, Fort Saint-Jean.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Fort Saint-Jean (Marseille) — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Fort_Saint-Jean_(Marseille)",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "callelongue",
+    "name": "Callelongue",
+    "nameEn": null,
+    "latitude": 43.2105,
+    "longitude": 5.352,
+    "interests": {
+      "villages.fishing": 0.8,
+      "outdoors.hiking": 0.7
+    },
+    "importance": 40,
+    "popularityPercentile": 12,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": true,
+    "accessRegulated": false,
+    "wikipediaFr": "Callelongue",
+    "wikipediaEn": null,
+    "story": {
+      "title": "Le bout du monde",
+      "hook": "Une accroche.",
+      "text": "Ceci est un texte de test pour le lieu Callelongue. Il est assez long pour être lu à voix haute, avec plusieurs phrases courtes. Le lieu se trouve à Marseille, au bord de la mer. Les visiteurs y viennent pour la vue et pour l'histoire du quartier.",
+      "remoteIntro": "Parlons de Callelongue.",
+      "announceFront": "Devant vous, Callelongue.",
+      "announceLeft": "Sur votre gauche, Callelongue.",
+      "announceRight": "Sur votre droite, Callelongue.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Callelongue — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Callelongue",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  }
+]

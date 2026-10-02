@@ -29,6 +29,9 @@ public interface IStoryVerifier
 
 public interface ITextToSpeechProvider
 {
+    /// <summary>False when no voice is configured: stories are then published as text only (<c>audio_status</c> pending) instead of failing.</summary>
+    bool IsAvailable => true;
+
     Task<SpeechResult> SynthesizeAsync(SpeechRequest request, CancellationToken cancellationToken);
 }
 

@@ -113,6 +113,12 @@ Les migrations doivent rester **rétrocompatibles d'une version** (§21) : les a
 
 **Retour arrière** : lancer le workflow à la main avec `image_tag` = un SHA déjà publié (aucune construction). Une migration déjà appliquée n'est pas défaite ; en cas de dommage, restaurer la sauvegarde de sécurité ([runbooks/restore.md](runbooks/restore.md)).
 
+## Contenu de départ (Marseille)
+
+- Le **snapshot** `data-pipeline/<destination>/` (lieux, scores, brouillons d'histoires relisibles) est publié avec l'image `factory-worker` (`<exécutable>/data-pipeline/…`). Pour l'importer sur le staging : `POST /api/factory/v1/admin/snapshot-imports {"destination":"marseille"}` (jeton `admin`). L'opération est idempotente ; sans voix configurée (aucune clé OpenAI), les histoires sont publiées sans audio. `CATALOG_SEED_DEMO_DATA` charge un autre jeu, interne à Catalog, avec d'autres identifiants : ne pas cumuler les deux.
+- Le **catalogue réel** est généré par l'amorçage plafonné `POST /api/factory/v1/admin/bootstrap` ou `dotnet … Factory.Worker.dll bootstrap marseille` : [runbooks/bootstrap-marseille.md](runbooks/bootstrap-marseille.md). Il exige `osm2pgsql` et `ffmpeg` dans l'image du worker (déjà prévus par `RUNTIME_PACKAGES`), les tarifs `Factory__Llm__Pricing__…` et le réseau sortant listé dans le runbook.
+- Poste de développement sans Docker : [runbooks/dev-local.md](runbooks/dev-local.md).
+
 ## Sauvegardes et observabilité
 
 - Sauvegardes : service `backup` (dump chiffré quotidien, base backup hebdomadaire, WAL chiffrés, rétention 30 jours) et test de restauration mensuel en CI. Procédure : [runbooks/restore.md](runbooks/restore.md).

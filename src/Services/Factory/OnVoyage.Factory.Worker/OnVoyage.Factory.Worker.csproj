@@ -8,4 +8,8 @@
     <ProjectReference Include="../../../Aspire/OnVoyage.ServiceDefaults/OnVoyage.ServiceDefaults.csproj" />
     <ProjectReference Include="../../../Shared/OnVoyage.Messaging/OnVoyage.Messaging.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- The committed content snapshots (data-pipeline/<destination>/) travel with the worker: Factory:Snapshot reads <exe>/data-pipeline when nothing else is configured. -->
+    <Content Include="../../../../data-pipeline/*/destination.json;../../../../data-pipeline/*/pois.json" Link="data-pipeline/%(RecursiveDir)%(Filename)%(Extension)" CopyToPublishDirectory="PreserveNewest" CopyToOutputDirectory="Never" />
+  </ItemGroup>
 </Project>

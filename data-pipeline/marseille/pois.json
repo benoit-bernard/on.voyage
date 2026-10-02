@@ -1,0 +1,1562 @@
+[
+  {
+    "slug": "basilique-notre-dame-de-la-garde",
+    "name": "Notre-Dame de la Garde",
+    "nameEn": "Basilica of Notre-Dame de la Garde",
+    "latitude": 43.284,
+    "longitude": 5.3714,
+    "interests": {
+      "religion.churches": 1.0,
+      "nature.viewpoints": 0.9,
+      "architecture.religious": 0.7,
+      "religion.pilgrimage": 0.6,
+      "history.local": 0.5
+    },
+    "importance": 95,
+    "popularityPercentile": 98,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 3,
+      "shoulder": 4,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Basilique Notre-Dame-de-la-Garde",
+    "wikipediaEn": "Notre-Dame de la Garde",
+    "story": {
+      "title": "La Bonne Mère",
+      "hook": "Une basilique dorée qui veille sur toute la ville.",
+      "text": "Levez les yeux : tout là-haut, sur la colline, une statue dorée de la Vierge à l'Enfant brille au sommet du clocher. Les Marseillais l'appellent la Bonne Mère. La basilique actuelle date du dix-neuvième siècle, mais depuis des siècles, une chapelle puis un fort occupaient ce rocher, le point le plus haut du centre de la ville. Les marins et leurs familles montent ici pour confier leurs traversées à la protection de la Vierge. À l'intérieur, les murs sont couverts d'ex-voto : maquettes de bateaux, tableaux de tempêtes évitées, plaques de remerciement. Prenez le temps de monter jusqu'à la terrasse. D'ici, la rade, les îles, les toits du Panier et les collines autour s'étalent sous vos yeux. Pour comprendre Marseille, il suffit de venir regarder d'en haut ce qui la rassemble.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la basilique Notre-Dame de la Garde, à Marseille.",
+      "announceFront": "Devant vous, la basilique Notre-Dame de la Garde.",
+      "announceLeft": "Sur votre gauche, la basilique Notre-Dame de la Garde.",
+      "announceRight": "Sur votre droite, la basilique Notre-Dame de la Garde.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Basilique Notre-Dame-de-la-Garde — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Basilique_Notre-Dame-de-la-Garde",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "vieux-port",
+    "name": "Vieux-Port",
+    "nameEn": "Old Port",
+    "latitude": 43.2952,
+    "longitude": 5.3745,
+    "interests": {
+      "history.maritime": 0.8,
+      "history.local": 0.7,
+      "history.antiquity": 0.6,
+      "culture.traditions": 0.5,
+      "gastronomy.markets": 0.4,
+      "leisure.family": 0.4
+    },
+    "importance": 92,
+    "popularityPercentile": 97,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 3,
+      "shoulder": 4,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Vieux-Port de Marseille",
+    "wikipediaEn": "Old Port of Marseille",
+    "story": {
+      "title": "Là où tout a commencé",
+      "hook": "Le cœur de Marseille bat ici depuis plus de deux mille cinq cents ans.",
+      "text": "Vous êtes là où Marseille est née. Selon la tradition, des marins grecs venus de Phocée, en Asie Mineure, ont abordé cette calanque protégée vers l'an six cents avant notre ère et fondé Massalia. Depuis, le Vieux-Port n'a jamais cessé de servir : on y a chargé des navires pour toute la Méditerranée, on y a débarqué des voyageurs et des marchandises de partout. Aujourd'hui, les bateaux de plaisance ont remplacé une grande partie des voiliers de commerce, mais l'esprit est resté. Chaque matin, sur le quai des Belges, des pêcheurs vendent encore leur poisson directement depuis leur bateau. Et au bord du quai, un grand miroir géant en acier poli reflète les passants et le ciel : l'Ombrière, installée au moment où Marseille était capitale européenne de la culture. Levez la tête, faites-vous un selfie, ou simplement regardez la ville se refléter.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le Vieux-Port, à Marseille.",
+      "announceFront": "Devant vous, le Vieux-Port.",
+      "announceLeft": "Sur votre gauche, le Vieux-Port.",
+      "announceRight": "Sur votre droite, le Vieux-Port.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Vieux-Port de Marseille — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Vieux-Port_de_Marseille",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "fort-saint-jean",
+    "name": "Fort Saint-Jean",
+    "nameEn": "Fort Saint-Jean",
+    "latitude": 43.2953,
+    "longitude": 5.3606,
+    "interests": {
+      "architecture.defensive": 1.0,
+      "history.military": 0.7,
+      "history.middle_ages": 0.6,
+      "history.maritime": 0.5
+    },
+    "importance": 70,
+    "popularityPercentile": 70,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Fort Saint-Jean (Marseille)",
+    "wikipediaEn": "Fort Saint-Jean",
+    "story": {
+      "title": "La sentinelle de l'entrée du port",
+      "hook": "Une forteresse qui garde le port depuis le Moyen Âge.",
+      "text": "À l'entrée du Vieux-Port, ce fort massif surveille la mer depuis des siècles. Son histoire commence au Moyen Âge, avec un ordre de chevaliers hospitaliers installé sur ce promontoire. Au quinzième siècle, une haute tour carrée, la tour du Roi René, vient renforcer les défenses. Plus tard, sous Louis le quatorzième, les défenses du port sont renforcées, à une époque où le roi veut aussi tenir fermement une ville réputée frondeuse. Longtemps réservé aux militaires, le site s'est ouvert au public avec l'arrivée du MuCEM, auquel il est relié par une passerelle suspendue. Traversez-la : au-dessus de l'eau, la vue sur les remparts, la mer et la cathédrale est l'une des plus belles de la ville. Montez ensuite sur le chemin de ronde, et laissez-vous porter par le vent.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le fort Saint-Jean, à Marseille.",
+      "announceFront": "Devant vous, le fort Saint-Jean.",
+      "announceLeft": "Sur votre gauche, le fort Saint-Jean.",
+      "announceRight": "Sur votre droite, le fort Saint-Jean.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Fort Saint-Jean (Marseille) — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Fort_Saint-Jean_(Marseille)",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "mucem",
+    "name": "MuCEM",
+    "nameEn": "MuCEM",
+    "latitude": 43.2968,
+    "longitude": 5.3609,
+    "interests": {
+      "culture.museums": 1.0,
+      "architecture.modern": 0.8,
+      "history.maritime": 0.4,
+      "culture.traditions": 0.4
+    },
+    "importance": 82,
+    "popularityPercentile": 85,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 3,
+      "shoulder": 4,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Musée des Civilisations de l'Europe et de la Méditerranée",
+    "wikipediaEn": "Museum of European and Mediterranean Civilisations",
+    "story": {
+      "title": "Un cube de dentelle sur la mer",
+      "hook": "Un musée en forme de cube ajouré posé au bord de l'eau.",
+      "text": "Devant vous, un cube sombre entouré d'une résille de béton aux motifs ajourés : le MuCEM, le musée des Civilisations de l'Europe et de la Méditerranée. Ouvert en deux mille treize, au moment où Marseille était capitale européenne de la culture, il a été conçu par l'architecte Rudy Ricciotti. Le béton, travaillé comme une dentelle, laisse passer la lumière de la mer et dessine des ombres mouvantes sur les murs. Ici, on raconte ce que les peuples de la Méditerranée partagent : leurs récoltes, leurs fêtes, leurs croyances, leurs échanges. Même si vous n'entrez pas dans les salles, le bâtiment se parcourt : des passerelles, une terrasse sur le toit, des escaliers qui donnent sur les flots. Prenez de la hauteur, regardez l'horizon : c'est un très bel endroit pour une pause face à la mer.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le MuCEM, à Marseille.",
+      "announceFront": "Devant vous, le MuCEM.",
+      "announceLeft": "Sur votre gauche, le MuCEM.",
+      "announceRight": "Sur votre droite, le MuCEM.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Musée des Civilisations de l'Europe et de la Méditerranée — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Musée_des_Civilisations_de_l'Europe_et_de_la_Méditerranée",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "cathedrale-de-la-major",
+    "name": "Cathédrale de la Major",
+    "nameEn": "Marseille Cathedral",
+    "latitude": 43.3006,
+    "longitude": 5.3629,
+    "interests": {
+      "religion.churches": 1.0,
+      "architecture.religious": 0.8,
+      "architecture.19th_century": 0.8,
+      "history.19th_century": 0.4
+    },
+    "importance": 74,
+    "popularityPercentile": 60,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Cathédrale Sainte-Marie-Majeure de Marseille",
+    "wikipediaEn": "Marseille Cathedral",
+    "story": {
+      "title": "Une cathédrale rayée comme un coussin",
+      "hook": "Une immense cathédrale du dix-neuvième siècle, blanche et verte.",
+      "text": "Cette cathédrale au bord de l'eau se repère de loin avec ses coupoles et ses pierres de deux couleurs alternées, blanche et verte. Elle a été construite au dix-neuvième siècle, dans un style dit romano-byzantin, et compte parmi les plus vastes cathédrales édifiées en France à cette époque. Le projet était ambitieux : montrer, dans une ville en plein essor, la puissance retrouvée de l'Église. À côté se dressent encore quelques vestiges de l'ancienne cathédrale médiévale, beaucoup plus modeste, que la nouvelle est venue remplacer. Si la porte est ouverte, entrez : l'intérieur est vaste, orné de mosaïques et de marbres, et il fait toujours frais, même en plein été. Sur le parvis, regardez derrière vous : les grands paquebots et les ferrys qui partent vers la Corse ou le Maghreb rappellent que le port est tout proche.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la cathédrale de la Major, à Marseille.",
+      "announceFront": "Devant vous, la cathédrale de la Major.",
+      "announceLeft": "Sur votre gauche, la cathédrale de la Major.",
+      "announceRight": "Sur votre droite, la cathédrale de la Major.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Cathédrale Sainte-Marie-Majeure de Marseille — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Cathédrale_Sainte-Marie-Majeure_de_Marseille",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "le-panier",
+    "name": "Le Panier",
+    "nameEn": "Le Panier",
+    "latitude": 43.2985,
+    "longitude": 5.369,
+    "interests": {
+      "history.local": 0.9,
+      "architecture.vernacular": 0.8,
+      "culture.street_art": 0.6,
+      "history.antiquity": 0.5,
+      "villages.remarkable": 0.4
+    },
+    "importance": 80,
+    "popularityPercentile": 80,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 3,
+      "shoulder": 4,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Le Panier",
+    "wikipediaEn": "Le Panier",
+    "story": {
+      "title": "Le plus vieux quartier de la ville",
+      "hook": "Des ruelles, des façades colorées et vingt-six siècles d'histoire.",
+      "text": "Vous entrez dans le plus ancien quartier de Marseille. Selon la tradition, c'est sur cette colline que les premiers Grecs se sont installés, et la ville a poussé tout autour. Ici, pas de grandes avenues : des ruelles étroites, des escaliers, des façades ocre, rose ou bleu pâle, du linge qui sèche aux fenêtres. Pendant des générations, le Panier a accueilli les nouveaux arrivants : des Italiens, des Corses, des Arméniens, des Maghrébins. Ils ont fait de ce quartier un mélange de langues et de cuisines. Il a aussi subi des destructions pendant la Seconde Guerre mondiale, puis des années de pauvreté. Aujourd'hui, c'est un lieu d'ateliers d'artistes, de boutiques et de fresques sur les murs. Flânez sans but, levez les yeux, et laissez-vous perdre : c'est la meilleure façon de le découvrir.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le quartier du Panier, à Marseille.",
+      "announceFront": "Devant vous, le quartier du Panier.",
+      "announceLeft": "Sur votre gauche, le quartier du Panier.",
+      "announceRight": "Sur votre droite, le quartier du Panier.",
+      "careNote": "Un quartier où vivent des habitants : parlez doucement et respectez les entrées d'immeubles."
+    },
+    "sources": [
+      {
+        "title": "Le Panier — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Le_Panier",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "vieille-charite",
+    "name": "La Vieille Charité",
+    "nameEn": "La Vieille Charité",
+    "latitude": 43.3003,
+    "longitude": 5.3676,
+    "interests": {
+      "architecture.baroque": 0.9,
+      "culture.museums": 0.9,
+      "history.early_modern": 0.6,
+      "architecture.classical": 0.3
+    },
+    "importance": 72,
+    "popularityPercentile": 55,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Centre de la Vieille Charité",
+    "wikipediaEn": "La Vieille Charité",
+    "story": {
+      "title": "Un hospice devenu musée",
+      "hook": "Une cour de pierre rose et une chapelle baroque, au cœur du Panier.",
+      "text": "Poussez la grille : derrière les murs sévères, une cour entourée d'arcades de pierre rose s'ouvre comme une surprise. La Vieille Charité a été construite à partir du dix-septième siècle pour accueillir les pauvres et les sans-abri de la ville. On les y enfermait alors pour éviter qu'ils ne mendient dans les rues. Le chantier fut confié à un grand artiste marseillais, Pierre Puget, sculpteur et architecte, à qui l'on doit aussi la chapelle, avec son dôme ovale et son style baroque. Pendant près de trois siècles, le bâtiment a servi d'hospice, puis il a été sauvé de la ruine au vingtième siècle. Aujourd'hui, il abrite des musées, des expositions et un cinéma. Asseyez-vous dans la cour, écoutez le silence, et imaginez les générations de Marseillais qui y ont trouvé un toit.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la Vieille Charité, à Marseille.",
+      "announceFront": "Devant vous, la Vieille Charité.",
+      "announceLeft": "Sur votre gauche, la Vieille Charité.",
+      "announceRight": "Sur votre droite, la Vieille Charité.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Centre de la Vieille Charité — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Centre_de_la_Vieille_Charité",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "chateau-d-if",
+    "name": "Château d'If",
+    "nameEn": "Château d'If",
+    "latitude": 43.28,
+    "longitude": 5.3256,
+    "interests": {
+      "culture.literature": 0.9,
+      "architecture.defensive": 0.9,
+      "history.early_modern": 0.7,
+      "history.military": 0.5,
+      "curiosities.legends": 0.5,
+      "history.maritime": 0.4
+    },
+    "importance": 85,
+    "popularityPercentile": 88,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 3,
+      "shoulder": 4,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Château d'If",
+    "wikipediaEn": "Château d'If",
+    "story": {
+      "title": "La prison du comte de Monte-Cristo",
+      "hook": "Une forteresse sur un îlot, devenue célèbre grâce à un roman.",
+      "text": "À quelques minutes en bateau du Vieux-Port, un îlot de calcaire blanc porte une petite forteresse : le château d'If. Il a été bâti au seizième siècle, sous le roi François premier, pour protéger Marseille des attaques par la mer. Mais très vite, il a servi surtout de prison, notamment pour des prisonniers politiques et des protestants. Sa gloire vient pourtant d'un roman : Alexandre Dumas y a enfermé son héros, Edmond Dantès, qui s'évade en se glissant dans un sac, avant de devenir le comte de Monte-Cristo. Le personnage est inventé, mais des visiteurs du monde entier viennent chercher sa cellule. Montez sur les remparts : la vue sur la rade, la ville et les îles du Frioul est superbe. Vous comprendrez pourquoi s'évader d'ici semblait impossible.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le château d'If, à Marseille.",
+      "announceFront": "Devant vous, le château d'If.",
+      "announceLeft": "Sur votre gauche, le château d'If.",
+      "announceRight": "Sur votre droite, le château d'If.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Château d'If — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Château_d'If",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "iles-du-frioul",
+    "name": "Îles du Frioul",
+    "nameEn": "Frioul Islands",
+    "latitude": 43.279,
+    "longitude": 5.305,
+    "interests": {
+      "nature.coast": 0.9,
+      "history.maritime": 0.6,
+      "outdoors.hiking": 0.6,
+      "history.military": 0.4,
+      "leisure.beaches": 0.4,
+      "nature.fauna": 0.4
+    },
+    "importance": 60,
+    "popularityPercentile": 40,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": true,
+    "accessRegulated": false,
+    "wikipediaFr": "Archipel du Frioul",
+    "wikipediaEn": "Frioul archipelago",
+    "story": {
+      "title": "Un archipel à vingt minutes du centre",
+      "hook": "Des îles rocheuses et sauvages, à portée de ferry.",
+      "text": "Au large de Marseille, quatre îlots de calcaire blanc, sans arbres ou presque, forment l'archipel du Frioul. Deux d'entre eux, Pomègues et Ratonneau, sont reliés par une digue, et c'est là que les promeneurs arrivent en ferry depuis le Vieux-Port. L'archipel a longtemps servi de poste d'observation et de lieu de quarantaine. Au dix-neuvième siècle, on y isolait les équipages et les passagers venus de régions touchées par les épidémies, avant de les laisser entrer en ville. De cette époque, il reste un grand bâtiment, l'hôpital Caroline. Aujourd'hui, les îles sont un terrain de randonnée et de baignade, aux criques d'eau claire. On y croise des goélands, des cormorans et des lézards. Emportez de l'eau et un chapeau : il y a très peu d'ombre sur les sentiers.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de les îles du Frioul, à Marseille.",
+      "announceFront": "Devant vous, les îles du Frioul.",
+      "announceLeft": "Sur votre gauche, les îles du Frioul.",
+      "announceRight": "Sur votre droite, les îles du Frioul.",
+      "careNote": "Site naturel sensible : restez sur les sentiers et emportez vos déchets."
+    },
+    "sources": [
+      {
+        "title": "Archipel du Frioul — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Archipel_du_Frioul",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "abbaye-saint-victor",
+    "name": "Abbaye Saint-Victor",
+    "nameEn": "Abbey of Saint-Victor",
+    "latitude": 43.2898,
+    "longitude": 5.365,
+    "interests": {
+      "religion.abbeys": 1.0,
+      "history.middle_ages": 0.8,
+      "architecture.romanesque": 0.6,
+      "architecture.defensive": 0.5,
+      "culture.traditions": 0.5,
+      "religion.pilgrimage": 0.4
+    },
+    "importance": 68,
+    "popularityPercentile": 40,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Abbaye Saint-Victor de Marseille",
+    "wikipediaEn": "Abbey of Saint-Victor, Marseille",
+    "story": {
+      "title": "Les pierres les plus anciennes de la chrétienté marseillaise",
+      "hook": "Une abbaye fortifiée, avec des cryptes très anciennes sous vos pieds.",
+      "text": "Cette église fortifiée, avec ses murs épais et ses créneaux, ressemble plus à un château qu'à une abbaye. C'est que Saint-Victor a connu bien des dangers. Fondée dès l'Antiquité tardive autour de tombes de martyrs chrétiens, elle a été agrandie au Moyen Âge, quand elle devint l'un des grands monastères de Provence. Sous l'église, des cryptes conservent des sarcophages et des vestiges parmi les plus anciens témoignages du christianisme à Marseille. Chaque année, au début de février, la fête de la Chandeleur y perpétue une tradition très vivante. On bénit les navettes, de petits biscuits parfumés en forme de barque, vendus dans une boulangerie voisine. Si la porte est ouverte, descendez dans la crypte : l'atmosphère y est saisissante, entre ombre, pierre et silence.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de l'abbaye Saint-Victor, à Marseille.",
+      "announceFront": "Devant vous, l'abbaye Saint-Victor.",
+      "announceLeft": "Sur votre gauche, l'abbaye Saint-Victor.",
+      "announceRight": "Sur votre droite, l'abbaye Saint-Victor.",
+      "careNote": "Lieu de culte : tenue et silence appréciés."
+    },
+    "sources": [
+      {
+        "title": "Abbaye Saint-Victor de Marseille — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Abbaye_Saint-Victor_de_Marseille",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "palais-longchamp",
+    "name": "Palais Longchamp",
+    "nameEn": "Palais Longchamp",
+    "latitude": 43.3045,
+    "longitude": 5.3948,
+    "interests": {
+      "architecture.19th_century": 0.9,
+      "culture.museums": 0.8,
+      "leisure.parks_gardens": 0.7,
+      "curiosities.engineering": 0.5
+    },
+    "importance": 70,
+    "popularityPercentile": 50,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Palais Longchamp",
+    "wikipediaEn": "Palais Longchamp",
+    "story": {
+      "title": "Le château d'eau le plus spectaculaire de France",
+      "hook": "Une cascade monumentale pour fêter l'arrivée de l'eau.",
+      "text": "Devant vous, un décor de théâtre : des colonnades, des statues, des bassins et une cascade qui dégringole des marches. Pourtant, ce palais n'est pas un château : c'est d'abord un château d'eau. Au dix-neuvième siècle, Marseille manquait cruellement d'eau potable. On creusa donc un long canal pour amener les eaux de la Durance jusqu'à la ville, et le palais Longchamp fut conçu pour célébrer cette arrivée. L'eau jaillit ici au milieu d'un groupe sculpté, entre des taureaux et de grandes figures sculptées. Les deux ailes du palais abritent aujourd'hui un musée des beaux-arts et un muséum d'histoire naturelle. Derrière, un grand parc offre ombre et bancs, très appréciés des habitants du quartier. Venez à l'heure où le soleil descend : la pierre prend des tons dorés.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le palais Longchamp, à Marseille.",
+      "announceFront": "Devant vous, le palais Longchamp.",
+      "announceLeft": "Sur votre gauche, le palais Longchamp.",
+      "announceRight": "Sur votre droite, le palais Longchamp.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Palais Longchamp — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Palais_Longchamp",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "cite-radieuse",
+    "name": "La Cité radieuse",
+    "nameEn": "Unité d'Habitation (Cité radieuse)",
+    "latitude": 43.2615,
+    "longitude": 5.3963,
+    "interests": {
+      "architecture.modern": 1.0,
+      "culture.contemporary_art": 0.4,
+      "curiosities.engineering": 0.3,
+      "history.local": 0.3
+    },
+    "importance": 74,
+    "popularityPercentile": 55,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Cité radieuse (Marseille)",
+    "wikipediaEn": "Unité d'Habitation of Marseille",
+    "story": {
+      "title": "Un village vertical sur pilotis",
+      "hook": "Le Corbusier a imaginé ici une ville dans un immeuble.",
+      "text": "Cet immense bloc de béton posé sur de gros pilotis est l'une des œuvres les plus célèbres de l'architecte Le Corbusier. Terminée au début des années mille neuf cent cinquante, la Cité radieuse a été conçue après la guerre pour loger beaucoup de monde dans de bonnes conditions. L'idée : réunir dans un seul immeuble des appartements, des commerces, une école maternelle et des espaces collectifs, comme un petit village vertical. Les logements, qui s'imbriquent en duplex, reçoivent la lumière des deux côtés, et le toit-terrasse offre un jardin suspendu, un bassin et une vue sur la mer et les collines. L'ensemble fait partie des œuvres de Le Corbusier inscrites au patrimoine mondial de l'UNESCO. C'est toujours un immeuble habité : visitez en respectant le calme des résidents.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la Cité radieuse, à Marseille.",
+      "announceFront": "Devant vous, la Cité radieuse.",
+      "announceLeft": "Sur votre gauche, la Cité radieuse.",
+      "announceRight": "Sur votre droite, la Cité radieuse.",
+      "careNote": "Immeuble habité : restez discret dans les couloirs."
+    },
+    "sources": [
+      {
+        "title": "Cité radieuse (Marseille) — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Cité_radieuse_(Marseille)",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "stade-velodrome",
+    "name": "Stade Vélodrome",
+    "nameEn": "Stade Vélodrome",
+    "latitude": 43.2699,
+    "longitude": 5.3959,
+    "interests": {
+      "culture.traditions": 0.6,
+      "architecture.modern": 0.5,
+      "leisure.family": 0.3
+    },
+    "importance": 60,
+    "popularityPercentile": 70,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 3,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Stade Vélodrome",
+    "wikipediaEn": "Stade Vélodrome",
+    "story": {
+      "title": "La cathédrale du football marseillais",
+      "hook": "Un stade où la ville entière retient son souffle.",
+      "text": "Ici, on ne parle pas seulement de football : on parle d'une passion. Le Vélodrome est le stade de l'Olympique de Marseille, et les jours de match, le quartier tout entier bruit de chants, de fumigènes et de drapeaux. Le stade existe depuis les années mille neuf cent trente. Il a accueilli de grandes compétitions internationales, et il a été profondément transformé pour l'Euro deux mille seize, avec sa grande toiture qui couvre les tribunes et amplifie les chants. Ses supporters, réputés pour leur ferveur, y ont fait naître des traditions : des tribunes qui portent le nom de personnalités, des chants repris par tout le stade. Même sans match, l'architecture vaut le détour. Les jours de rencontre, évitez de venir en voiture : les transports en commun sont bien plus simples.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le stade Vélodrome, à Marseille.",
+      "announceFront": "Devant vous, le stade Vélodrome.",
+      "announceLeft": "Sur votre gauche, le stade Vélodrome.",
+      "announceRight": "Sur votre droite, le stade Vélodrome.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Stade Vélodrome — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Stade_Vélodrome",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "calanque-de-sormiou",
+    "name": "Calanque de Sormiou",
+    "nameEn": "Sormiou Calanque",
+    "latitude": 43.2147,
+    "longitude": 5.419,
+    "interests": {
+      "nature.coast": 1.0,
+      "nature.cliffs_gorges": 0.8,
+      "outdoors.hiking": 0.7,
+      "leisure.beaches": 0.6,
+      "outdoors.water_sports": 0.5,
+      "villages.fishing": 0.3
+    },
+    "importance": 75,
+    "popularityPercentile": 60,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 3,
+      "peak": 5
+    },
+    "fragile": true,
+    "accessRegulated": true,
+    "wikipediaFr": "Calanque de Sormiou",
+    "wikipediaEn": "Calanque de Sormiou",
+    "story": {
+      "title": "Une crique entre les falaises blanches",
+      "hook": "Une grande calanque aux cabanons de pêcheurs.",
+      "text": "Au bout d'une route sinueuse, la mer apparaît soudain entre deux falaises de calcaire blanc. Sormiou est l'une des plus vastes calanques de Marseille, et l'une des plus aimées. Au fond de l'anse, une plage de galets accueille les baigneurs, et une poignée de petites maisons, les cabanons, rappelle l'époque où pêcheurs et familles marseillaises venaient y passer l'été. Ces cabanons, très simples, sont souvent restés dans les mêmes familles. Le site fait partie du parc national des Calanques, un territoire protégé où l'on trouve des plantes rares, des oiseaux marins et des fonds marins fragiles. En été, l'accès en voiture est réglementé, notamment à cause du risque d'incendie : renseignez-vous avant de partir, ou venez à pied, par les sentiers.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la calanque de Sormiou, à Marseille.",
+      "announceFront": "Devant vous, la calanque de Sormiou.",
+      "announceLeft": "Sur votre gauche, la calanque de Sormiou.",
+      "announceRight": "Sur votre droite, la calanque de Sormiou.",
+      "careNote": "Parc national : ne faites pas de feu, emportez vos déchets, renseignez-vous sur l'accès et les risques d'incendie avant de partir."
+    },
+    "sources": [
+      {
+        "title": "Calanque de Sormiou — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Calanque_de_Sormiou",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "calanque-de-sugiton",
+    "name": "Calanque de Sugiton",
+    "nameEn": "Sugiton Calanque",
+    "latitude": 43.2143,
+    "longitude": 5.447,
+    "interests": {
+      "nature.cliffs_gorges": 0.9,
+      "nature.coast": 0.9,
+      "outdoors.hiking": 0.9,
+      "nature.viewpoints": 0.6
+    },
+    "importance": 70,
+    "popularityPercentile": 65,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 3,
+      "peak": 5
+    },
+    "fragile": true,
+    "accessRegulated": true,
+    "wikipediaFr": "Calanque de Sugiton",
+    "wikipediaEn": "Calanque de Sugiton",
+    "story": {
+      "title": "Une récompense au bout du sentier",
+      "hook": "Une calanque qu'on mérite après la marche.",
+      "text": "Pour arriver à Sugiton, il faut marcher. Le sentier part des hauteurs du campus de Luminy et grimpe un peu. Il traverse un paysage de garrigue, de pins et de rochers blancs, puis descend vers une eau d'un bleu intense. La récompense est à la hauteur : des dalles de roche lisses pour s'allonger, une mer limpide et, en face, les falaises qui plongent dans l'eau. Cette beauté attire beaucoup de monde. C'est pourquoi la fréquentation du site est encadrée en été, avec un système de réservation à vérifier avant de venir. Pensez à emporter de l'eau, un chapeau et de bonnes chaussures : il n'y a ni point d'eau ni commerce. Et si la calanque est complète ou le sentier fermé pour risque d'incendie, choisissez un autre jour, ou une autre balade.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la calanque de Sugiton, à Marseille.",
+      "announceFront": "Devant vous, la calanque de Sugiton.",
+      "announceLeft": "Sur votre gauche, la calanque de Sugiton.",
+      "announceRight": "Sur votre droite, la calanque de Sugiton.",
+      "careNote": "Accès réglementé en été : vérifiez les règles et les fermetures pour risque d'incendie avant de partir. Emportez eau et chapeau."
+    },
+    "sources": [
+      {
+        "title": "Calanque de Sugiton — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Calanque_de_Sugiton",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "calanque-de-morgiou",
+    "name": "Calanque de Morgiou",
+    "nameEn": "Morgiou Calanque",
+    "latitude": 43.213,
+    "longitude": 5.435,
+    "interests": {
+      "nature.coast": 0.9,
+      "nature.cliffs_gorges": 0.8,
+      "villages.fishing": 0.6,
+      "outdoors.hiking": 0.6
+    },
+    "importance": 62,
+    "popularityPercentile": 40,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 4
+    },
+    "fragile": true,
+    "accessRegulated": true,
+    "wikipediaFr": "Calanque de Morgiou",
+    "wikipediaEn": "Calanque de Morgiou",
+    "story": {
+      "title": "Un petit port tapi dans le rocher",
+      "hook": "Un village de pêcheurs de poche au pied des falaises.",
+      "text": "Morgiou est une calanque habitée. Au fond d'une crique longue et étroite, un petit port abrite des barques de pêcheurs, et quelques maisons s'accrochent à la pente. On y vient à pied depuis les hauteurs ou, en saison, en suivant une route étroite, parfois fermée en été. Plus loin, vers le large, la côte devient plus sauvage : le cap Morgiou marque la sortie vers la pleine mer. C'est aussi là que, dans les années mille neuf cent quatre-vingt, un plongeur a découvert l'entrée d'une grotte sous-marine : la grotte Cosquer. Elle conduit à des peintures vieilles de plusieurs dizaines de milliers d'années. Elle n'est pas visitable, mais une réplique a été ouverte au public dans le centre-ville. Ici, profitez du calme, de la lumière et du bruit de l'eau contre la roche.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la calanque de Morgiou, à Marseille.",
+      "announceFront": "Devant vous, la calanque de Morgiou.",
+      "announceLeft": "Sur votre gauche, la calanque de Morgiou.",
+      "announceRight": "Sur votre droite, la calanque de Morgiou.",
+      "careNote": "Parc national : respectez les règles d'accès, surtout en été."
+    },
+    "sources": [
+      {
+        "title": "Calanque de Morgiou — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Calanque_de_Morgiou",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "calanque-de-marseilleveyre",
+    "name": "Calanque de Marseilleveyre",
+    "nameEn": "Marseilleveyre Calanque",
+    "latitude": 43.2117,
+    "longitude": 5.356,
+    "interests": {
+      "outdoors.hiking": 1.0,
+      "nature.cliffs_gorges": 0.8,
+      "nature.viewpoints": 0.7,
+      "nature.flora": 0.5,
+      "nature.geology": 0.4
+    },
+    "importance": 50,
+    "popularityPercentile": 20,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": true,
+    "accessRegulated": false,
+    "wikipediaFr": "Calanque de Marseilleveyre",
+    "wikipediaEn": "Calanque de Marseilleveyre",
+    "story": {
+      "title": "La plus sauvage des calanques proches de la ville",
+      "hook": "Un sentier de caillasse blanche, loin de la foule.",
+      "text": "Depuis Callelongue, où la route s'arrête, un sentier file entre le massif et la mer. Il mène à Marseilleveyre, une calanque beaucoup moins fréquentée que ses célèbres voisines. Ici, les falaises sont hautes, la végétation rase, et le paysage a des airs de bout du monde, même si la ville est à quelques kilomètres. Le chemin demande de bonnes chaussures : le sol est caillouteux, parfois glissant, et il n'y a presque pas d'ombre. En contrepartie, on y croise le romarin, le thym, les pins d'Alep, et on entend les goélands au loin. Si vous aimez marcher et le silence, c'est un coin à préférer. Pensez à vérifier la météo et les alertes d'incendie avant de partir : le massif peut être fermé en été.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la calanque de Marseilleveyre, à Marseille.",
+      "announceFront": "Devant vous, la calanque de Marseilleveyre.",
+      "announceLeft": "Sur votre gauche, la calanque de Marseilleveyre.",
+      "announceRight": "Sur votre droite, la calanque de Marseilleveyre.",
+      "careNote": "Massif parfois fermé en été pour risque d'incendie : vérifiez avant de partir. Emportez de l'eau."
+    },
+    "sources": [
+      {
+        "title": "Calanque de Marseilleveyre — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Calanque_de_Marseilleveyre",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "callelongue",
+    "name": "Callelongue",
+    "nameEn": "Callelongue",
+    "latitude": 43.2105,
+    "longitude": 5.352,
+    "interests": {
+      "villages.fishing": 0.8,
+      "nature.coast": 0.8,
+      "outdoors.hiking": 0.7,
+      "nature.viewpoints": 0.4
+    },
+    "importance": 40,
+    "popularityPercentile": 12,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": true,
+    "accessRegulated": false,
+    "wikipediaFr": "Callelongue",
+    "wikipediaEn": "Callelongue",
+    "story": {
+      "title": "Le bout du monde marseillais",
+      "hook": "Là où la route s'arrête, un minuscule port et des sentiers.",
+      "text": "Vous êtes au bout de la route. Callelongue est le dernier hameau du littoral sud de Marseille, tout au bout de la côte, avant les falaises. Quelques maisons basses, un petit port de pêche minuscule, des barques qui dansent et des cabanons colorés : l'ambiance est celle d'un village de pêcheurs oublié. Pourtant, le centre-ville n'est qu'à une petite demi-heure en voiture. C'est surtout le point de départ de nombreux sentiers de randonnée qui s'enfoncent dans le parc national des Calanques. Avant ou après la marche, installez-vous face au port : on y mange, selon la saison, des plats de poisson simples. En été, le stationnement est vite saturé : venez tôt, ou préférez le bus et la marche.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le petit port de Callelongue, à Marseille.",
+      "announceFront": "Devant vous, le petit port de Callelongue.",
+      "announceLeft": "Sur votre gauche, le petit port de Callelongue.",
+      "announceRight": "Sur votre droite, le petit port de Callelongue.",
+      "careNote": "Site naturel fragile : restez sur les sentiers balisés, emportez vos déchets et vérifiez les alertes d'incendie avant de partir."
+    },
+    "sources": [
+      {
+        "title": "Callelongue — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Callelongue",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "vallon-des-auffes",
+    "name": "Vallon des Auffes",
+    "nameEn": "Vallon des Auffes",
+    "latitude": 43.2858,
+    "longitude": 5.3519,
+    "interests": {
+      "villages.fishing": 1.0,
+      "architecture.vernacular": 0.6,
+      "nature.coast": 0.6,
+      "gastronomy.local_cuisine": 0.5,
+      "culture.traditions": 0.4
+    },
+    "importance": 66,
+    "popularityPercentile": 55,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Vallon des Auffes",
+    "wikipediaEn": "Vallon des Auffes",
+    "story": {
+      "title": "Un village de pêcheurs sous le pont",
+      "hook": "Un port minuscule niché sous la route de la Corniche.",
+      "text": "Descendez les quelques marches et vous changez d'époque. Sous le grand pont qui porte la route de la Corniche, un petit port de pêche abrite des barques colorées, les pointus, et de modestes cabanons. Le lieu a longtemps été un village de pêcheurs, avec ses filets qui sèchent et ses bateaux tirés sur la cale. Le vallon est aussi réputé pour sa cuisine de la mer : la bouillabaisse, plat emblématique de Marseille, y a plusieurs adresses fameuses. Elle se prépare avec plusieurs poissons de roche, dans un bouillon parfumé de safran et de fenouil. Dans le quartier, tout se fait à pied : asseyez-vous sur les rochers, regardez les mouettes, et profitez de la lumière du soir, qui rend l'endroit particulièrement beau.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le vallon des Auffes, à Marseille.",
+      "announceFront": "Devant vous, le vallon des Auffes.",
+      "announceLeft": "Sur votre gauche, le vallon des Auffes.",
+      "announceRight": "Sur votre droite, le vallon des Auffes.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Vallon des Auffes — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Vallon_des_Auffes",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "corniche-kennedy",
+    "name": "Corniche Kennedy",
+    "nameEn": "Corniche Kennedy",
+    "latitude": 43.279,
+    "longitude": 5.358,
+    "interests": {
+      "nature.coast": 0.9,
+      "nature.viewpoints": 0.8,
+      "outdoors.cycling": 0.5,
+      "leisure.family": 0.3,
+      "history.local": 0.3
+    },
+    "importance": 70,
+    "popularityPercentile": 70,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Corniche Kennedy",
+    "wikipediaEn": "Corniche Kennedy",
+    "story": {
+      "title": "Une route au-dessus de la mer",
+      "hook": "Plusieurs kilomètres de balcon sur la Méditerranée.",
+      "text": "La Corniche, c'est la promenade préférée des Marseillais. Elle longe la mer sur plusieurs kilomètres, au pied de falaises basses, depuis les alentours du Vieux-Port jusqu'aux plages du Prado. Son nom officiel rend hommage au président américain John Kennedy. Mais tout le monde dit simplement la Corniche. D'un côté, des villas et des immeubles aux balcons fleuris ; de l'autre, la mer, parsemée d'îles, et des petites criques où l'on descend se rafraîchir. Le dimanche, on y croise des joggeurs, des cyclistes, des familles qui pique-niquent sur les pelouses. Au coucher du soleil, la lumière sur les îles du Frioul est l'un des plus beaux spectacles de la ville. Marchez sur le trottoir côté mer, mais attention aux voitures et aux vélos.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la Corniche Kennedy, à Marseille.",
+      "announceFront": "Devant vous, la Corniche Kennedy.",
+      "announceLeft": "Sur votre gauche, la Corniche Kennedy.",
+      "announceRight": "Sur votre droite, la Corniche Kennedy.",
+      "careNote": "Ne plongez pas depuis les rochers sans connaître les fonds : la mer peut être agitée."
+    },
+    "sources": [
+      {
+        "title": "Corniche Kennedy — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Corniche_Kennedy",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "plage-des-catalans",
+    "name": "Plage des Catalans",
+    "nameEn": "Catalans Beach",
+    "latitude": 43.29,
+    "longitude": 5.356,
+    "interests": {
+      "leisure.beaches": 0.8,
+      "leisure.family": 0.5,
+      "villages.fishing": 0.5,
+      "history.local": 0.4
+    },
+    "importance": 48,
+    "popularityPercentile": 45,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Anse des Catalans",
+    "wikipediaEn": "Anse des Catalans",
+    "story": {
+      "title": "La plage des citadins",
+      "hook": "Une plage à dix minutes du Vieux-Port.",
+      "text": "Ici, on se baigne en plein centre-ville. L'anse des Catalans tire son nom d'anciens pêcheurs catalans qui se seraient installés dans ce quartier, et l'on dit que leur présence a longtemps marqué les lieux. Aujourd'hui, c'est la plage la plus proche du Vieux-Port : l'été, on y vient pour se rafraîchir à la pause de midi, jouer au volley, regarder le coucher du soleil. Un peu plus haut, le quartier a gardé un petit air de village, avec ses ruelles, ses balcons et ses bars de quartier. Pour les amateurs de tranquillité, l'après-midi en semaine et la fin de soirée sont de meilleurs moments. Prenez de l'eau, un parasol, et de bonnes sandales : les galets peuvent être chauds comme la braise.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la plage des Catalans, à Marseille.",
+      "announceFront": "Devant vous, la plage des Catalans.",
+      "announceLeft": "Sur votre gauche, la plage des Catalans.",
+      "announceRight": "Sur votre droite, la plage des Catalans.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Anse des Catalans — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Anse_des_Catalans",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "parc-borely",
+    "name": "Parc Borély",
+    "nameEn": "Parc Borély",
+    "latitude": 43.26,
+    "longitude": 5.377,
+    "interests": {
+      "leisure.parks_gardens": 0.9,
+      "culture.museums": 0.6,
+      "leisure.family": 0.6,
+      "architecture.classical": 0.5,
+      "nature.flora": 0.5
+    },
+    "importance": 55,
+    "popularityPercentile": 30,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Parc Borély",
+    "wikipediaEn": "Parc Borély",
+    "story": {
+      "title": "Un château dans un parc",
+      "hook": "Un grand parc à la française, à deux pas de la mer.",
+      "text": "Entre les plages du Prado et le sud de la ville, le parc Borély est un havre de verdure. Son château, élégant et symétrique, a été bâti au dix-huitième siècle pour une famille de négociants marseillais, les Borély. Aujourd'hui, il abrite un musée consacré aux arts décoratifs, à la faïence et à la mode. Le parc, lui, mêle plusieurs styles. Devant le château, des allées et des pelouses à la française ; plus loin, un parc à l'anglaise avec des bassins, un jardin botanique et une roseraie. Le dimanche, familles, joggeurs et pique-niqueurs partagent les allées. Les enfants adorent le petit lac et les canards. Prenez un banc à l'ombre, et pensez que, il y a trois cents ans, tout cela n'était que campagne aux portes de la ville.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le parc Borély, à Marseille.",
+      "announceFront": "Devant vous, le parc Borély.",
+      "announceLeft": "Sur votre gauche, le parc Borély.",
+      "announceRight": "Sur votre droite, le parc Borély.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Parc Borély — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Parc_Borély",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "palais-du-pharo",
+    "name": "Palais du Pharo",
+    "nameEn": "Palais du Pharo",
+    "latitude": 43.2935,
+    "longitude": 5.3547,
+    "interests": {
+      "nature.viewpoints": 0.8,
+      "history.19th_century": 0.8,
+      "architecture.19th_century": 0.7,
+      "leisure.parks_gardens": 0.6,
+      "history.maritime": 0.3
+    },
+    "importance": 55,
+    "popularityPercentile": 35,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Palais du Pharo",
+    "wikipediaEn": "Palais du Pharo",
+    "story": {
+      "title": "Le cadeau d'un empereur",
+      "hook": "Un palais impérial avec la plus belle vue sur le port.",
+      "text": "Sur la colline du Pharo, un palais blanc domine l'entrée du Vieux-Port. Napoléon le troisième l'a fait construire au milieu du dix-neuvième siècle, pour l'impératrice Eugénie, afin de lui offrir une résidence marseillaise. Elle n'y a pourtant presque jamais séjourné. Le palais a ensuite changé plusieurs fois d'usage : école de médecine, hôpital militaire, aujourd'hui centre de congrès. Le palais lui-même n'est pas toujours accessible, mais les jardins sont ouverts, et c'est tout l'intérêt de la visite. Depuis les pelouses, la vue est exceptionnelle : le fort Saint-Jean, la cathédrale, le MuCEM, et les bateaux qui entrent dans le port. Il y a de l'ombre, des bancs, et une brise rafraîchissante, ce qui en fait un très bon coin de repos.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le palais du Pharo, à Marseille.",
+      "announceFront": "Devant vous, le palais du Pharo.",
+      "announceLeft": "Sur votre gauche, le palais du Pharo.",
+      "announceRight": "Sur votre droite, le palais du Pharo.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Palais du Pharo — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Palais_du_Pharo",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "cours-julien",
+    "name": "Cours Julien",
+    "nameEn": "Cours Julien",
+    "latitude": 43.2935,
+    "longitude": 5.3835,
+    "interests": {
+      "culture.street_art": 1.0,
+      "culture.music": 0.5,
+      "culture.contemporary_art": 0.5
+    },
+    "importance": 55,
+    "popularityPercentile": 50,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Cours Julien",
+    "wikipediaEn": "Cours Julien",
+    "story": {
+      "title": "Le quartier des murs peints",
+      "hook": "Des escaliers, des terrasses et des fresques à chaque coin de rue.",
+      "text": "Ce quartier bohème s'organise autour d'une longue place en pente, bordée de cafés, de librairies et de petits théâtres. Mais ce sont surtout les murs qui retiennent l'attention : fresques géantes, collages, pochoirs, graffitis qui se renouvellent sans cesse. Le cours Julien est l'un des hauts lieux de l'art urbain à Marseille, et les artistes de rue du monde entier y laissent leur marque. Montez les escaliers vers la place de la Plaine : chaque palier révèle une nouvelle œuvre, une nouvelle couleur. Le soir, la place se remplit de terrasses, de musiciens et de discussions animées. Le quartier a gardé un esprit populaire et créatif, loin des circuits touristiques classiques. Prenez le temps de lever les yeux et de lire les murs, comme on lit un journal à ciel ouvert.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le cours Julien, à Marseille.",
+      "announceFront": "Devant vous, le cours Julien.",
+      "announceLeft": "Sur votre gauche, le cours Julien.",
+      "announceRight": "Sur votre droite, le cours Julien.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Cours Julien — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Cours_Julien",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "marche-des-capucins",
+    "name": "Marché des Capucins",
+    "nameEn": "Capucins Market",
+    "latitude": 43.2948,
+    "longitude": 5.3807,
+    "interests": {
+      "gastronomy.markets": 1.0,
+      "culture.traditions": 0.5,
+      "gastronomy.local_cuisine": 0.4,
+      "history.local": 0.3
+    },
+    "importance": 52,
+    "popularityPercentile": 40,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Marché des Capucins",
+    "wikipediaEn": "Marché des Capucins",
+    "story": {
+      "title": "Le ventre de Noailles",
+      "hook": "Un marché populaire où l'on goûte le monde entier.",
+      "text": "Fruits, légumes, épices, olives, pains, fleurs : ce petit marché de quartier vit au rythme de ses vendeurs, qui crient leurs prix et leurs promotions. Nous sommes à Noailles, un quartier qu'on appelle souvent le ventre de Marseille. Il a été façonné par les vagues d'immigration successives, et on y trouve des produits d'Afrique du Nord, d'Italie, d'Arménie, d'Asie, aux côtés des primeurs de Provence. Les étals débordent d'herbes aromatiques, de dattes, de citrons, de tomates anciennes. Alentour, les commerces proposent des pâtisseries orientales, des fromages, des cafés torréfiés. Venez le matin, quand les produits sont les plus frais et l'ambiance la plus animée. Gardez la monnaie sous la main, parlez avec les vendeurs, et laissez-vous guider par les odeurs.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le marché des Capucins, à Marseille.",
+      "announceFront": "Devant vous, le marché des Capucins.",
+      "announceLeft": "Sur votre gauche, le marché des Capucins.",
+      "announceRight": "Sur votre droite, le marché des Capucins.",
+      "careNote": "Foule en milieu de matinée : gardez vos affaires près de vous."
+    },
+    "sources": [
+      {
+        "title": "Marché des Capucins — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Marché_des_Capucins",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "l-estaque",
+    "name": "L'Estaque",
+    "nameEn": "L'Estaque",
+    "latitude": 43.3612,
+    "longitude": 5.318,
+    "interests": {
+      "culture.painting": 0.9,
+      "villages.fishing": 0.7,
+      "history.industrial": 0.6,
+      "nature.coast": 0.5,
+      "gastronomy.local_cuisine": 0.5
+    },
+    "importance": 45,
+    "popularityPercentile": 20,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "L'Estaque",
+    "wikipediaEn": "L'Estaque",
+    "story": {
+      "title": "Là où les peintres ont inventé la lumière",
+      "hook": "Un ancien village de pêcheurs qui a inspiré Cézanne et ses amis.",
+      "text": "Au nord de la ville, face à la rade, l'Estaque a longtemps été un village à part. Autrefois, on y fabriquait des tuiles et des briques, dans des usines dont il reste quelques cheminées, et on y pêchait. À la fin du dix-neuvième siècle, ses collines, ses toits rouges et la mer en contrebas séduisent des peintres. Cézanne, Renoir, puis Braque, Derain, Dufy viennent y poser leur chevalet, et la lumière du Midi bouscule leurs couleurs. Un parcours jalonné de reproductions de leurs tableaux permet de retrouver, sur place, les vues qu'ils ont peintes. Au port, on goûte les chichis, de longs beignets sucrés, et les panisses, des galettes de farine de pois chiche. Pour y aller, prenez la route ou le train régional : c'est un autre Marseille, plus calme et plus secret.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le village de l'Estaque, à Marseille.",
+      "announceFront": "Devant vous, le village de l'Estaque.",
+      "announceLeft": "Sur votre gauche, le village de l'Estaque.",
+      "announceRight": "Sur votre droite, le village de l'Estaque.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "L'Estaque — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/L'Estaque",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "les-goudes",
+    "name": "Les Goudes",
+    "nameEn": "Les Goudes",
+    "latitude": 43.2155,
+    "longitude": 5.3478,
+    "interests": {
+      "villages.fishing": 0.9,
+      "nature.coast": 0.7,
+      "outdoors.hiking": 0.4,
+      "culture.traditions": 0.3
+    },
+    "importance": 42,
+    "popularityPercentile": 15,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Les Goudes",
+    "wikipediaEn": "Les Goudes",
+    "story": {
+      "title": "Un village au bord du monde",
+      "hook": "Un hameau de pêcheurs en bout de côte, loin du centre.",
+      "text": "À l'extrémité sud de Marseille, après des kilomètres de route côtière, le village des Goudes semble appartenir à une autre époque. Ses maisons s'étagent le long d'un petit port, entre le massif de Marseilleveyre et la mer. C'est un village de pêcheurs, devenu avec le temps un lieu de résidence et de week-end pour de nombreux Marseillais. Le dimanche, on y vient déjeuner, on regarde les barques revenir, on se baigne sur les rochers. Les paysages alentour sont sauvages : la roche blanche, les pins, l'eau très claire. Les Goudes sont aussi un point de départ pour la randonnée vers les calanques de Callelongue et de Marseilleveyre. Venez en bus si vous le pouvez : la route est étroite, et le stationnement difficile dès les beaux jours.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le village des Goudes, à Marseille.",
+      "announceFront": "Devant vous, le village des Goudes.",
+      "announceLeft": "Sur votre gauche, le village des Goudes.",
+      "announceRight": "Sur votre droite, le village des Goudes.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Les Goudes — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Les_Goudes",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "docks-de-la-joliette",
+    "name": "Les Docks",
+    "nameEn": "The Docks",
+    "latitude": 43.3045,
+    "longitude": 5.366,
+    "interests": {
+      "history.industrial": 0.9,
+      "architecture.industrial": 0.9,
+      "architecture.19th_century": 0.6,
+      "history.19th_century": 0.5
+    },
+    "importance": 48,
+    "popularityPercentile": 30,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Docks de Marseille",
+    "wikipediaEn": "Docks de Marseille",
+    "story": {
+      "title": "Les entrepôts qui ont nourri la ville",
+      "hook": "Des halles de pierre devenues bureaux, boutiques et cafés.",
+      "text": "Ces longues façades de pierre, percées de petites fenêtres régulières, sont les anciens Docks de Marseille. Au milieu du dix-neuvième siècle, le port s'agrandit pour accueillir le commerce avec les colonies. On construit alors ici de gigantesques entrepôts, pour stocker les grains, les huiles, les épices, les cotonnades. Pendant plus d'un siècle, ils sont au cœur de l'économie portuaire. Puis le commerce change, les ports se déplacent vers le nord, et les Docks se vident. Ils sont aujourd'hui rénovés et occupés par des bureaux, des boutiques, des cafés et des restaurants, dans le cadre d'un grand projet de renouvellement de ce quartier. Marchez dans les cours intérieures : les voûtes, les rails et les piliers rappellent le passé industriel du lieu, tout en le mêlant aux usages d'aujourd'hui.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de les Docks de la Joliette, à Marseille.",
+      "announceFront": "Devant vous, les Docks de la Joliette.",
+      "announceLeft": "Sur votre gauche, les Docks de la Joliette.",
+      "announceRight": "Sur votre droite, les Docks de la Joliette.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Docks de Marseille — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Docks_de_Marseille",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "jardin-des-vestiges",
+    "name": "Jardin des Vestiges",
+    "nameEn": "Garden of the Ruins",
+    "latitude": 43.2975,
+    "longitude": 5.3755,
+    "interests": {
+      "history.antiquity": 1.0,
+      "culture.museums": 0.7,
+      "history.local": 0.6,
+      "history.maritime": 0.5
+    },
+    "importance": 50,
+    "popularityPercentile": 20,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Jardin des Vestiges",
+    "wikipediaEn": "Jardin des Vestiges",
+    "story": {
+      "title": "Le port grec sous vos pieds",
+      "hook": "Les ruines de l'ancien port antique, au cœur du centre commercial.",
+      "text": "Dans le centre-ville, à deux pas d'un grand centre commercial, un jardin descend en contrebas : c'est le jardin des Vestiges. Il a été découvert à la fin des années mille neuf cent soixante. Des travaux de construction ont alors mis au jour des pans de remparts et des quais de l'ancien port grec de Massalia. Aujourd'hui, ces vestiges sont visibles, entourés de verdure. On y distingue l'ancienne ligne du rivage, les fortifications antiques, et un chemin qui servait d'entrée à la ville. Le musée d'Histoire de Marseille, à côté, présente des objets issus des fouilles, dont une épave de navire antique retrouvée dans le port. Le lieu est calme, souvent presque désert, et on y mesure d'un coup que la ville s'est construite sur des couches d'histoire successives.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le jardin des Vestiges, à Marseille.",
+      "announceFront": "Devant vous, le jardin des Vestiges.",
+      "announceLeft": "Sur votre gauche, le jardin des Vestiges.",
+      "announceRight": "Sur votre droite, le jardin des Vestiges.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Jardin des Vestiges — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Jardin_des_Vestiges",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "friche-la-belle-de-mai",
+    "name": "La Friche la Belle de Mai",
+    "nameEn": "La Friche la Belle de Mai",
+    "latitude": 43.3106,
+    "longitude": 5.3812,
+    "interests": {
+      "culture.contemporary_art": 0.9,
+      "architecture.industrial": 0.6,
+      "history.industrial": 0.5,
+      "culture.music": 0.4,
+      "culture.street_art": 0.4
+    },
+    "importance": 45,
+    "popularityPercentile": 15,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Friche la Belle de Mai",
+    "wikipediaEn": "Friche la Belle de Mai",
+    "story": {
+      "title": "Une usine à tabac devenue usine à idées",
+      "hook": "Un immense site industriel transformé en lieu de création.",
+      "text": "Derrière la gare Saint-Charles, un grand bâtiment de brique et de béton abrite la Friche la Belle de Mai. Pendant longtemps, c'était une manufacture de tabac, qui a fermé à la fin du vingtième siècle. Plutôt que de la démolir, des artistes et des associations s'y sont installés, et ont peu à peu transformé les lieux en centre culturel. On y trouve aujourd'hui des ateliers, des salles de concert, des expositions, un skatepark, des jardins partagés, une crèche, des restaurants. Le toit-terrasse est l'un des plus beaux endroits de la ville pour voir Marseille d'en haut, sans la foule des sites touristiques : les collines, le port, la mer au loin. Consultez le programme avant de venir : les événements y sont nombreux, et souvent gratuits.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la Friche la Belle de Mai, à Marseille.",
+      "announceFront": "Devant vous, la Friche la Belle de Mai.",
+      "announceLeft": "Sur votre gauche, la Friche la Belle de Mai.",
+      "announceRight": "Sur votre droite, la Friche la Belle de Mai.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Friche la Belle de Mai — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Friche_la_Belle_de_Mai",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "escalier-de-la-gare-saint-charles",
+    "name": "Escalier de la gare Saint-Charles",
+    "nameEn": "Saint-Charles station staircase",
+    "latitude": 43.303,
+    "longitude": 5.3807,
+    "interests": {
+      "architecture.classical": 0.5,
+      "nature.viewpoints": 0.5,
+      "history.local": 0.4
+    },
+    "importance": 35,
+    "popularityPercentile": 10,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 2
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Gare de Marseille-Saint-Charles",
+    "wikipediaEn": "Marseille Saint-Charles station",
+    "story": {
+      "title": "Un escalier face à la ville",
+      "hook": "Plus de cent marches monumentales, avec la ville au bout.",
+      "text": "Beaucoup de voyageurs arrivent à Marseille par le train et filent vers la sortie sans se retourner. C'est dommage : la gare Saint-Charles est installée sur une butte. Son grand escalier monumental, construit dans les années mille neuf cent vingt, descend vers la ville avec solennité. Il était pensé comme une vraie porte d'entrée, pour que le voyageur qui arrive découvre d'abord Marseille d'en haut. Aujourd'hui encore, du haut des marches, la vue s'ouvre sur les toits, les tours et, au loin, la colline de Notre-Dame de la Garde. Descendez lentement, observez les sculptures et les balustrades, puis laissez-vous porter par la pente jusqu'au centre-ville. L'escalier est aussi un bon endroit pour attendre votre train en regardant la ville vivre.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de le grand escalier de la gare Saint-Charles, à Marseille.",
+      "announceFront": "Devant vous, le grand escalier de la gare Saint-Charles.",
+      "announceLeft": "Sur votre gauche, le grand escalier de la gare Saint-Charles.",
+      "announceRight": "Sur votre droite, le grand escalier de la gare Saint-Charles.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Gare de Marseille-Saint-Charles — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Gare_de_Marseille-Saint-Charles",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "tour-cma-cgm",
+    "name": "Tour CMA CGM",
+    "nameEn": "CMA CGM Tower",
+    "latitude": 43.3062,
+    "longitude": 5.3672,
+    "interests": {
+      "architecture.modern": 1.0,
+      "curiosities.engineering": 0.6
+    },
+    "importance": 40,
+    "popularityPercentile": 25,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 1,
+      "peak": 1
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Tour CMA CGM",
+    "wikipediaEn": "CMA CGM Tower",
+    "story": {
+      "title": "Le gratte-ciel signé Zaha Hadid",
+      "hook": "Une tour de verre aux lignes courbes, symbole du renouveau du quartier.",
+      "text": "Au bord des anciens docks, une haute tour de verre, légèrement courbe, se dresse vers le ciel : c'est le siège d'un grand armateur marseillais. Elle a été dessinée par l'architecte Zaha Hadid et achevée en deux mille dix. Avec plus de cent quarante mètres, elle est l'un des bâtiments les plus hauts de la ville. Sa forme particulière, qui semble se plier à mi-hauteur, la rend reconnaissable de très loin. La tour est le signe le plus visible de la transformation du quartier de la Joliette, jadis industriel et portuaire, aujourd'hui tourné vers les bureaux et les loisirs. Elle ne se visite pas, mais on peut la contempler du parvis, et surtout depuis la mer ou le haut des collines.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la tour CMA CGM, à Marseille.",
+      "announceFront": "Devant vous, la tour CMA CGM.",
+      "announceLeft": "Sur votre gauche, la tour CMA CGM.",
+      "announceRight": "Sur votre droite, la tour CMA CGM.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Tour CMA CGM — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Tour_CMA_CGM",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "pointe-rouge",
+    "name": "La Pointe Rouge",
+    "nameEn": "La Pointe Rouge",
+    "latitude": 43.244,
+    "longitude": 5.374,
+    "interests": {
+      "leisure.beaches": 0.7,
+      "outdoors.water_sports": 0.6,
+      "leisure.family": 0.4
+    },
+    "importance": 38,
+    "popularityPercentile": 15,
+    "hiddenGem": true,
+    "crowd": {
+      "offpeak": 1,
+      "shoulder": 2,
+      "peak": 3
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Pointe-Rouge",
+    "wikipediaEn": "Pointe Rouge",
+    "story": {
+      "title": "La plage des Marseillais du sud",
+      "hook": "Un port de plaisance et une plage loin des itinéraires touristiques.",
+      "text": "Au sud de la ville, le quartier de la Pointe Rouge s'organise autour d'un port de plaisance et d'une plage de sable, très prisée des familles. Ici, pas de grands monuments, mais une atmosphère de station balnéaire à la marseillaise. On joue au ballon sur le sable, on loue une planche à voile ou un kayak, on mange une glace en regardant les voiliers rentrer. C'est un coin surtout fréquenté par les habitants, ce qui lui donne un charme tranquille, hors des sentiers battus. En fin d'après-midi, les terrasses du port se remplissent et la lumière rase colore les voiles de doré. Vous êtes à une courte distance des calanques : si vous voulez poursuivre votre journée, il suffit de continuer vers le sud, à pied ou en bus.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la Pointe Rouge, à Marseille.",
+      "announceFront": "Devant vous, la Pointe Rouge.",
+      "announceLeft": "Sur votre gauche, la Pointe Rouge.",
+      "announceRight": "Sur votre droite, la Pointe Rouge.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Pointe-Rouge — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Pointe-Rouge",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "la-canebiere",
+    "name": "La Canebière",
+    "nameEn": "La Canebière",
+    "latitude": 43.296,
+    "longitude": 5.3785,
+    "interests": {
+      "history.local": 0.8,
+      "history.19th_century": 0.5,
+      "culture.traditions": 0.4,
+      "architecture.19th_century": 0.4
+    },
+    "importance": 70,
+    "popularityPercentile": 70,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 3,
+      "shoulder": 4,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "La Canebière",
+    "wikipediaEn": "La Canebière",
+    "story": {
+      "title": "L'avenue qui a donné son nom à tout un accent",
+      "hook": "L'avenue emblématique de Marseille, du Vieux-Port aux Réformés.",
+      "text": "Elle part du Vieux-Port et file tout droit vers l'est : la Canebière, l'avenue emblématique de Marseille. Son nom vient d'un mot provençal qui désigne le chanvre, car des cordiers fabriquaient ici les cordages dont les navires avaient besoin. Au dix-neuvième siècle, l'avenue devient l'artère élégante de la ville : hôtels, cafés, théâtres, grands magasins. On disait même que si Paris avait eu la Canebière, ce serait un petit Marseille. Elle a perdu un peu de son éclat, mais elle reste un lieu de passage, de rencontres et de manifestations. On y croise des commerces, des façades de pierre et des passants de tous horizons. Marchez-la jusqu'au bout, au rythme de la ville, et observez les façades : chaque immeuble a son histoire.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la Canebière, à Marseille.",
+      "announceFront": "Devant vous, la Canebière.",
+      "announceLeft": "Sur votre gauche, la Canebière.",
+      "announceRight": "Sur votre droite, la Canebière.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "La Canebière — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/La_Canebière",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "cosquer-mediterranee",
+    "name": "Cosquer Méditerranée",
+    "nameEn": "Cosquer Méditerranée",
+    "latitude": 43.2965,
+    "longitude": 5.3615,
+    "interests": {
+      "nature.caves": 0.8,
+      "curiosities.science": 0.7,
+      "culture.museums": 0.6,
+      "culture.painting": 0.5
+    },
+    "importance": 62,
+    "popularityPercentile": 55,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 4
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Grotte Cosquer",
+    "wikipediaEn": "Cosquer Cave",
+    "story": {
+      "title": "Une grotte préhistorique sous la mer",
+      "hook": "Des peintures vieilles de plus de vingt mille ans, fidèlement reproduites.",
+      "text": "Il existe, près des calanques, une grotte dont l'entrée est sous la mer : la grotte Cosquer. Un plongeur, Henri Cosquer, l'a découverte dans les années mille neuf cent quatre-vingt. Au bout d'un long couloir englouti, les parois portent des dessins de chevaux, de bisons, de bouquetins, et même des phoques et des pingouins, des mains posées sur la roche. Ils ont été réalisés il y a plus de vingt mille ans, quand le niveau de la mer était beaucoup plus bas et que la grotte était à sec. Aujourd'hui, la grotte est interdite au public pour la protéger. Mais une réplique très précise a été installée dans la Villa Méditerranée, près du MuCEM. On la parcourt dans de petits véhicules, comme si l'on s'enfonçait dans la roche, en écoutant l'histoire de ses habitants.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de la réplique de la grotte Cosquer, à Marseille.",
+      "announceFront": "Devant vous, la réplique de la grotte Cosquer.",
+      "announceLeft": "Sur votre gauche, la réplique de la grotte Cosquer.",
+      "announceRight": "Sur votre droite, la réplique de la grotte Cosquer.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Grotte Cosquer — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Grotte_Cosquer",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  },
+  {
+    "slug": "plages-du-prado",
+    "name": "Plages du Prado",
+    "nameEn": "Prado beaches",
+    "latitude": 43.268,
+    "longitude": 5.375,
+    "interests": {
+      "leisure.beaches": 0.7,
+      "leisure.family": 0.6,
+      "outdoors.water_sports": 0.4
+    },
+    "importance": 50,
+    "popularityPercentile": 60,
+    "hiddenGem": false,
+    "crowd": {
+      "offpeak": 2,
+      "shoulder": 3,
+      "peak": 5
+    },
+    "fragile": false,
+    "accessRegulated": false,
+    "wikipediaFr": "Prado (Marseille)",
+    "wikipediaEn": "Prado Beaches",
+    "story": {
+      "title": "Un David au bord de la plage",
+      "hook": "Le grand parc balnéaire de la ville, avec sa statue célèbre.",
+      "text": "Ce vaste parc balnéaire aligne pelouses, plages et promenades au bord de la mer. C'est l'un des lieux de détente favoris des habitants : l'été, on y vient en famille pour se baigner, pique-niquer, jouer au volley ou promener le chien le matin. Un peu à l'écart de la plage, une copie du célèbre David de Michel-Ange se dresse au milieu d'un rond-point, entourée de verdure. C'est un repère que les Marseillais citent pour se donner rendez-vous. Le Prado offre aussi un grand espace de promenade, plat et facile, idéal à vélo ou en rollers. Les pelouses sont prisées dès les premiers beaux jours, alors n'hésitez pas à venir tôt le matin ou en semaine pour profiter d'un endroit plus calme.",
+      "remoteIntro": "Aujourd'hui, nous allons parler de les plages du Prado, à Marseille.",
+      "announceFront": "Devant vous, les plages du Prado.",
+      "announceLeft": "Sur votre gauche, les plages du Prado.",
+      "announceRight": "Sur votre droite, les plages du Prado.",
+      "careNote": null
+    },
+    "sources": [
+      {
+        "title": "Prado (Marseille) — Wikipédia",
+        "publisher": "Wikipédia",
+        "url": "https://fr.wikipedia.org/wiki/Prado_(Marseille)",
+        "license": "CC BY-SA 4.0"
+      }
+    ]
+  }
+]

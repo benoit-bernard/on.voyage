@@ -32,10 +32,10 @@ Puis, en local :
 | http://localhost:5090 | PWA |
 | http://localhost:5190 | Back-office (Blazor) |
 
-- Le catalogue de démonstration de Marseille est chargé au démarrage (`Catalog__SeedDemoData`).
+- Le catalogue de Marseille (36 lieux, histoires, audio `espeak-ng` si disponible) vient du snapshot `data-pipeline/marseille/`, importé au démarrage du worker Factory (`Factory__Snapshot__ImportOnStart`). Sans Docker : `scripts/dev-local.sh up` puis `scripts/smoke-local.sh` ([docs/runbooks/dev-local.md](docs/runbooks/dev-local.md)).
 - La connexion par e-mail n'envoie rien en local : le code à 6 chiffres est écrit dans le journal du service `platform-api` (ligne `DEVELOPMENT sign-in code`).
 - Pour entrer dans le back-office, l'adresse utilisée doit recevoir le rôle `admin` : renseigner `Auth__BootstrapAdminEmails__0` pour `platform-api` (variable d'environnement du processus qui lance l'AppHost, que les services lancés héritent ; non vérifié dans cette tranche).
-- Sans clé OpenAI, Factory tourne avec `Factory__Llm__Provider=disabled` : l'import et le classement de lieux fonctionnent, pas la rédaction ni la voix.
+- Sans clé OpenAI, Factory tourne avec `Factory__Llm__Provider=offline` : adaptateurs déterministes et voix `espeak-ng` (`apt install espeak-ng`), sans réseau ; le contenu vient du snapshot. Le chemin réel (OpenAI, Wikipédia, plafond de coût) : [docs/runbooks/bootstrap-marseille.md](docs/runbooks/bootstrap-marseille.md).
 
 ## Structure
 

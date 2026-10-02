@@ -76,6 +76,9 @@ internal sealed class FactoryHarness : IAsyncDisposable
 
     public string MediaDirectory { get; }
 
+    /// <summary>A private copy of <c>Data/snapshot</c> (the committed-snapshot format) that tests may edit between imports.</summary>
+    public string SnapshotDirectory { get; private init; } = string.Empty;
+
     public HttpClient Admin { get; }
 
     public HttpClient Traveler { get; }
@@ -116,6 +119,8 @@ internal sealed class FactoryHarness : IAsyncDisposable
         var dataDirectory = Path.Combine(Path.GetTempPath(), "onvoyage-factory-tests", Guid.NewGuid().ToString("N"));
         var mediaDirectory = Path.Combine(dataDirectory, "media");
         var content = new FakeContentServices();
+        var snapshotRoot = Path.Combine(dataDirectory, "snapshot");
+        CopyDirectory(Path.Combine(AppContext.BaseDirectory, "Data", "snapshot"), snapshotRoot);
 
         void Configure(Microsoft.AspNetCore.Hosting.IWebHostBuilder builder)
         {
@@ -128,6 +133,7 @@ internal sealed class FactoryHarness : IAsyncDisposable
             builder.UseSetting("Factory:Retry:DelaysSeconds:1", "0.2");
             builder.UseSetting("Factory:Retry:DelaysSeconds:2", "0.2");
             builder.UseSetting("Factory:MediaDirectory", mediaDirectory);
+            builder.UseSetting("Factory:Snapshot:Directory", snapshotRoot);
             builder.ConfigureTestServices(services =>
             {
                 services.RemoveAll<IWikidataClient>();
@@ -151,7 +157,20 @@ internal sealed class FactoryHarness : IAsyncDisposable
         });
 
         Directory.CreateDirectory(mediaDirectory);
-        return new FactoryHarness(connection, wikidata, pageviews, api, worker, catalog, content, mediaDirectory);
+        return new FactoryHarness(connection, wikidata, pageviews, api, worker, catalog, content, mediaDirectory) { SnapshotDirectory = snapshotRoot };
+    }
+
+    private static void CopyDirectory(string source, string target)
+    {
+        foreach (var directory in Directory.EnumerateDirectories(source, "*", SearchOption.AllDirectories).Prepend(source))
+        {
+            Directory.CreateDirectory(Path.Combine(target, Path.GetRelativePath(source, directory)));
+        }
+
+        foreach (var file in Directory.EnumerateFiles(source, "*", SearchOption.AllDirectories))
+        {
+            File.Copy(file, Path.Combine(target, Path.GetRelativePath(source, file)), overwrite: true);
+        }
     }
 
     public async Task<T> QueryAsync<T>(string sql, Func<NpgsqlDataReader, T> read)
@@ -215,6 +234,14 @@ internal sealed class FactoryHarness : IAsyncDisposable
         response.EnsureSuccessStatusCode();
         (await EventuallyAsync(async () => await CountAsync("select count(*) from factory.place where importance_score is not null") >= 9))
             .ShouldBeTrue("the pipeline did not finish: import, enrichment and scoring run through the worker");
+    }
+
+    /// <summary>Runs the bootstrap in the worker host, the way the command line does, and returns its report.</summary>
+    public async Task<Result<OnVoyage.Factory.Application.Features.Bootstrap.BootstrapReport>> BootstrapAsync(OnVoyage.Factory.Application.Features.Bootstrap.BootstrapDestinationCommand command)
+    {
+        using var scope = _worker.Services.CreateScope();
+        var bus = scope.ServiceProvider.GetRequiredService<Wolverine.IMessageBus>();
+        return await bus.InvokeAsync<Result<OnVoyage.Factory.Application.Features.Bootstrap.BootstrapReport>>(command, TestContext.Current.CancellationToken);
     }
 
     public async Task<JsonElement> GetPlaceAsync(string slug)

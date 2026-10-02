@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using OnVoyage.Factory.Application.Content;
+using OnVoyage.Factory.Application.Features.Bootstrap;
 using OnVoyage.Factory.Application.Features.Videos;
 
 namespace Factory.IntegrationTests;
@@ -26,13 +27,17 @@ internal sealed class FakeContentServices
 
     public FakeExtractor Extractor { get; } = new();
 
-    public FakeWriter Writer { get; } = new();
+    public FakeUsage Usage { get; } = new();
+
+    public FakeWriter Writer { get; }
 
     public FakeVerifier Verifier { get; } = new();
 
     public FakeSpeech Speech { get; } = new();
 
     public FakeVideoSearch Videos { get; } = new();
+
+    public FakeContentServices() => Writer = new FakeWriter { Usage = Usage };
 
     public void Register(IServiceCollection services)
     {
@@ -46,6 +51,8 @@ internal sealed class FakeContentServices
         services.AddSingleton<IStoryVerifier>(Verifier);
         services.RemoveAll<ITextToSpeechProvider>();
         services.AddSingleton<ITextToSpeechProvider>(Speech);
+        services.RemoveAll<IUsageReader>();
+        services.AddSingleton<IUsageReader>(Usage);
         services.RemoveAll<IVideoSearch>();
         services.AddSingleton<IVideoSearch>(Videos);
     }
@@ -89,13 +96,33 @@ internal sealed class FakeExtractor : IFactExtractor
     }
 }
 
+/// <summary>The cost of the model calls, as <c>factory.llm_call</c> would report it: each story written costs <see cref="CostPerStory"/>.</summary>
+internal sealed class FakeUsage : IUsageReader
+{
+    private readonly List<(DateTimeOffset At, double Cost)> _calls = [];
+
+    public double CostPerStory { get; set; } = 1d;
+
+    public string? Problem { get; set; }
+
+    public void Record() => _calls.Add((DateTimeOffset.UtcNow, CostPerStory));
+
+    public Task<double> CostSinceAsync(DateTimeOffset since, CancellationToken cancellationToken) =>
+        Task.FromResult(_calls.Where(call => call.At >= since).Sum(call => call.Cost));
+
+    public string? PriceProblem() => Problem;
+}
+
 internal sealed class FakeWriter : IStoryWriter
 {
     public List<StoryWriteRequest> Requests { get; } = [];
 
+    public FakeUsage? Usage { get; init; }
+
     public Task<StoryDraft> WriteAsync(StoryWriteRequest request, CancellationToken cancellationToken)
     {
         Requests.Add(request);
+        Usage?.Record();
         var words = new StringBuilder();
         for (var i = 0; i < 12; i++)
         {
@@ -118,6 +145,11 @@ internal sealed class FakeVerifier : IStoryVerifier
 internal sealed class FakeSpeech : ITextToSpeechProvider
 {
     public List<SpeechRequest> Requests { get; } = [];
+
+    /// <summary>False simulates a deployment with no voice: stories are then published as text only.</summary>
+    public bool Available { get; set; } = true;
+
+    public bool IsAvailable => Available;
 
     public Task<SpeechResult> SynthesizeAsync(SpeechRequest request, CancellationToken cancellationToken)
     {

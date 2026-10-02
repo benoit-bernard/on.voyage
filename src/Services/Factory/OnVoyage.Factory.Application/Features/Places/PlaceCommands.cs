@@ -95,12 +95,16 @@ public static class PublishPlaceHandler
     private static async Task<IReadOnlyList<PoiLinkV1>> LinksAsync(PlaceRecord place, IVideoStore videos, CancellationToken cancellationToken)
     {
         List<PoiLinkV1> links = [];
-        if (place.Enrichment?.WikipediaFr is { Length: > 0 } fr)
+
+        // Places that come from a committed snapshot carry no Wikidata item; their articles are in the OSM-style `wikipedia` tags.
+        var articleFr = place.Enrichment?.WikipediaFr ?? (place.OsmTags.TryGetValue("wikipedia", out var tagged) && tagged.StartsWith("fr:", StringComparison.Ordinal) ? tagged[3..] : null);
+        var articleEn = place.Enrichment?.WikipediaEn ?? (place.OsmTags.TryGetValue("wikipedia:en", out var taggedEn) ? taggedEn : null);
+        if (articleFr is { Length: > 0 } fr)
         {
             links.Add(new PoiLinkV1("wikipedia", "fr", WikipediaUrl("fr", fr), fr));
         }
 
-        if (place.Enrichment?.WikipediaEn is { Length: > 0 } en)
+        if (articleEn is { Length: > 0 } en)
         {
             links.Add(new PoiLinkV1("wikipedia", "en", WikipediaUrl("en", en), en));
         }

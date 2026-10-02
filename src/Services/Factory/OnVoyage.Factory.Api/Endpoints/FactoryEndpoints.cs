@@ -3,11 +3,13 @@ using OnVoyage.Factory.Application;
 using OnVoyage.Factory.Application.Content;
 using OnVoyage.Factory.Application.Features.Admin;
 using OnVoyage.Factory.Application.Features.Batches;
+using OnVoyage.Factory.Application.Features.Bootstrap;
 using OnVoyage.Factory.Application.Features.Content;
 using OnVoyage.Factory.Application.Features.EnrichPlaces;
 using OnVoyage.Factory.Application.Features.ImportPlaces;
 using OnVoyage.Factory.Application.Features.Places;
 using OnVoyage.Factory.Application.Features.ScorePlaces;
+using OnVoyage.Factory.Application.Features.Snapshot;
 using OnVoyage.Factory.Application.Features.Videos;
 using OnVoyage.Factory.Application.Ports;
 using OnVoyage.Factory.Domain.Content;
@@ -25,6 +27,8 @@ internal sealed record EthicsRequest(bool Fragile, bool AccessRegulated);
 internal sealed record InterestsRequest(Dictionary<string, double> Weights);
 
 internal sealed record DestinationRequest(string Destination);
+
+internal sealed record BootstrapRequest(string Destination, int? MaxPlaces, int? MinImportance, string? Lang, double? BudgetUsd, bool? AutoPublish, bool? ForceImport, bool? SkipImport);
 
 internal sealed record DecideFactRequest(bool Accept, string? Reason);
 
@@ -89,6 +93,35 @@ internal static class FactoryEndpoints
         admin.MapPost("/scorings", async (DestinationRequest request, IMessageBus bus) =>
         {
             await bus.SendAsync(new ScorePlacesCommand(request.Destination));
+            return Results.Accepted();
+        });
+
+        // Loads the committed content snapshot of the destination (ADR-0017); idempotent.
+        admin.MapPost("/snapshot-imports", async (DestinationRequest request, IMessageBus bus) =>
+        {
+            await bus.SendAsync(new ImportSnapshotCommand(request.Destination));
+            return Results.Accepted();
+        });
+
+        // Opens a destination end to end with the real providers, capped by a budget (docs/runbooks/bootstrap-marseille.md).
+        admin.MapPost("/bootstrap", async (BootstrapRequest request, IMessageBus bus) =>
+        {
+            if (string.IsNullOrWhiteSpace(request.Destination) || request.BudgetUsd is not > 0)
+            {
+                return Results.Problem(title: "A destination and a budget above zero are required.", statusCode: StatusCodes.Status400BadRequest, type: "https://on.voyage/problems/validation");
+            }
+
+            var defaults = new BootstrapDestinationCommand(request.Destination);
+            await bus.SendAsync(defaults with
+            {
+                MaxPlaces = request.MaxPlaces ?? defaults.MaxPlaces,
+                MinImportance = request.MinImportance,
+                Lang = request.Lang ?? defaults.Lang,
+                BudgetUsd = request.BudgetUsd.Value,
+                AutoPublish = request.AutoPublish ?? false,
+                ForceImport = request.ForceImport ?? false,
+                SkipImport = request.SkipImport ?? false,
+            });
             return Results.Accepted();
         });
 
