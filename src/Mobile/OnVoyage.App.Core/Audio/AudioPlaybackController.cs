@@ -12,6 +12,7 @@ public sealed class AudioPlaybackController
     public const string AiNoticeFlag = "ai_voice_notice_seen";
 
     private readonly IAudioPlayer _player;
+    private readonly ITextNarrator _narrator;
     private readonly IAnalyticsSink _analytics;
     private readonly IFlagStore _flags;
     private readonly TimeProvider _clock;
@@ -35,9 +36,11 @@ public sealed class AudioPlaybackController
     private DateTimeOffset? _interruptedAt;
     private readonly HashSet<Guid> _playedThisSession = [];
 
-    public AudioPlaybackController(IAudioPlayer player, IAnalyticsSink analytics, IFlagStore flags, TimeProvider clock, AudioSettings? settings = null)
+    public AudioPlaybackController(IAudioPlayer player, IAnalyticsSink analytics, IFlagStore flags, TimeProvider clock, AudioSettings? settings = null, ITextNarrator? narrator = null)
     {
         _player = player;
+        _narrator = narrator ?? new NullTextNarrator();
+        _narrator.Event += OnNarrationEvent;
         _analytics = analytics;
         _flags = flags;
         _clock = clock;
@@ -89,7 +92,7 @@ public sealed class AudioPlaybackController
             return;
         }
 
-        await _player.PauseAsync();
+        await PauseOutputAsync();
         _phase = PlaybackPhase.Paused;
         Publish();
     }
@@ -101,7 +104,7 @@ public sealed class AudioPlaybackController
             return;
         }
 
-        await _player.ResumeAsync();
+        await ResumeOutputAsync();
         _phase = PlaybackPhase.Playing;
         Publish();
     }
@@ -111,9 +114,9 @@ public sealed class AudioPlaybackController
     /// <summary>Back or forward by 10 s inside the main part, never past its ends.</summary>
     public async Task SkipAsync(double seconds)
     {
-        if (_current is null || _duration <= TimeSpan.Zero)
+        if (_current is null || _duration <= TimeSpan.Zero || IsNarrating)
         {
-            return;
+            return; // a voice read by the device cannot be moved by seconds
         }
 
         var target = _position + TimeSpan.FromSeconds(seconds);
@@ -132,9 +135,15 @@ public sealed class AudioPlaybackController
         Publish();
     }
 
+    /// <summary>True where the platform has a voice to read the text of a story that has no recording.</summary>
+    public bool CanNarrate => _narrator.IsAvailable;
+
+    /// <summary>False while the device reads a story with a voice whose rate cannot change (the speed button is then hidden).</summary>
+    public bool CanChangeSpeed => !IsNarrating || _narrator.SupportsSpeed;
+
     public async Task SetSpeedAsync(double speed)
     {
-        if (!AudioSettings.Speeds.Contains(speed) || speed == _speed)
+        if (!AudioSettings.Speeds.Contains(speed) || speed == _speed || !CanChangeSpeed)
         {
             return;
         }
@@ -142,7 +151,15 @@ public sealed class AudioPlaybackController
         _speed = speed;
         if (_current is not null)
         {
-            await _player.SetSpeedAsync(speed);
+            if (IsNarrating)
+            {
+                await _narrator.SetSpeedAsync(speed);
+            }
+            else
+            {
+                await _player.SetSpeedAsync(speed);
+            }
+
             Track("audio_speed_changed", ("speed", speed));
         }
 
@@ -166,7 +183,15 @@ public sealed class AudioPlaybackController
         _reported80 = false;
         _reportedMilestone = 0;
         _completed = false;
-        await _player.SeekAsync(TimeSpan.Zero);
+        if (IsNarrating)
+        {
+            await _narrator.SpeakAsync(_current.NarrationText!, _current.NarrationLanguage, _speed, CancellationToken.None);
+        }
+        else
+        {
+            await _player.SeekAsync(TimeSpan.Zero);
+        }
+
         _position = TimeSpan.Zero;
         Publish();
     }
@@ -190,11 +215,17 @@ public sealed class AudioPlaybackController
 
     private async Task StartAsync(PlayRequest request, CancellationToken cancellationToken)
     {
-        if (request.Parts.Count == 0 || request.Parts.All(part => part.Role != AudioRole.Main))
+        if (!request.HasMainAudio)
         {
-            _error = "Cette histoire n'a pas d'audio.";
-            Publish();
-            return;
+            // A story published without audio is read by the device from its text, when the platform has a voice.
+            if (!request.HasNarration || !_narrator.IsAvailable)
+            {
+                _error = request.HasNarration ? "La lecture à voix haute n'est pas disponible sur cet appareil." : "Cette histoire n'a pas d'audio.";
+                Publish();
+                return;
+            }
+
+            request = request with { Parts = [.. request.Parts.Where(part => part.Role != AudioRole.Main), new AudioSource(AudioSource.NarrationUri, AudioRole.Main)] };
         }
 
         _error = null;
@@ -224,7 +255,14 @@ public sealed class AudioPlaybackController
         Publish();
         try
         {
-            await _player.PlayAsync(part, _speed, request.Title, cancellationToken);
+            if (part.IsNarration)
+            {
+                await _narrator.SpeakAsync(request.NarrationText!, request.NarrationLanguage, _speed, cancellationToken);
+            }
+            else
+            {
+                await _player.PlayAsync(part, _speed, request.Title, cancellationToken);
+            }
         }
         catch (Exception exception) when (exception is not OperationCanceledException)
         {
@@ -247,6 +285,51 @@ public sealed class AudioPlaybackController
 
         Publish();
     }
+
+    /// <summary>True while the current part is the device reading the text of the story.</summary>
+    private bool IsNarrating => _current is not null && _current.Parts[_partIndex].IsNarration;
+
+    private Task PauseOutputAsync() => IsNarrating ? _narrator.PauseAsync() : _player.PauseAsync();
+
+    private Task ResumeOutputAsync() => IsNarrating ? _narrator.ResumeAsync() : _player.ResumeAsync();
+
+    private async Task StopOutputAsync()
+    {
+        if (IsNarrating)
+        {
+            await _narrator.StopAsync();
+        }
+        else
+        {
+            await _player.StopAsync();
+        }
+    }
+
+    /// <summary>The device voice reports a share of the text read; the duration is the one announced for the story, or an estimate from the length of the text.</summary>
+    private void OnNarrationEvent(NarrationEvent narration)
+    {
+        if (!IsNarrating)
+        {
+            return;
+        }
+
+        switch (narration)
+        {
+            case NarrationEvent.Progress progress:
+                var duration = TimeSpan.FromSeconds(_current!.DurationSeconds is > 0 ? _current.DurationSeconds.Value : EstimateSeconds(_current.NarrationText!));
+                OnPosition(new AudioPlayerEvent.PositionChanged(duration * Math.Clamp(progress.Fraction, 0d, 1d), duration));
+                break;
+            case NarrationEvent.Ended:
+                _ = OnPartEndedAsync();
+                break;
+            case NarrationEvent.Failed:
+                _ = FailAsync();
+                break;
+        }
+    }
+
+    /// <summary>About 150 words a minute, at normal speed.</summary>
+    private static double EstimateSeconds(string text) => Math.Max(1d, text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).Length / 2.5d);
 
     private void OnPlayerEvent(AudioPlayerEvent playerEvent)
     {
@@ -353,7 +436,7 @@ public sealed class AudioPlaybackController
             _wasPlayingBeforeInterruption = _phase == PlaybackPhase.Playing;
             if (_wasPlayingBeforeInterruption)
             {
-                await _player.PauseAsync();
+                await PauseOutputAsync();
                 _phase = PlaybackPhase.Paused;
                 Publish();
             }
@@ -396,7 +479,7 @@ public sealed class AudioPlaybackController
 
         if (skipped)
         {
-            await _player.StopAsync();
+            await StopOutputAsync();
             if (!_completed && _highestPercent < 10d && _position < TimeSpan.FromSeconds(20) && _current?.Parts[_partIndex].Role == AudioRole.Main)
             {
                 Listening?.Invoke(request, ListeningSignal.AbandonedEarly);
@@ -454,7 +537,7 @@ public sealed class AudioPlaybackController
         NowPlaying? now = _current is null
             ? null
             : new NowPlaying(_current.StoryId, _current.PoiId, _current.Title, _current.Parts[_partIndex].Role, _position, _duration, _current.Origin);
-        State = new PlaybackState(_phase, now, _waiting?.Title, _speed, _noticePending, _error);
+        State = new PlaybackState(_phase, now, _waiting?.Title, _speed, _noticePending, _error, IsNarrating);
         Changed?.Invoke();
     }
 

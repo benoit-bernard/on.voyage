@@ -79,7 +79,8 @@ public sealed record DestinationForMeDto(
     string Cohort,
     int WeightsVersion);
 
-public sealed record CandidateStoryDto(Guid StoryId, string Kind, int DurationSeconds, IReadOnlyDictionary<string, string> AudioParts);
+/// <summary><see cref="TextOnly"/>: published without a <c>main</c> audio part; the device reads the text of the story (fetched from the catalog) with its own voice.</summary>
+public sealed record CandidateStoryDto(Guid StoryId, string Kind, int DurationSeconds, IReadOnlyDictionary<string, string> AudioParts, bool TextOnly = false);
 
 /// <summary>A place the discovery mode may tell. <see cref="BaseScore"/> leaves out Distance, Context and CrowdPenalty: the device adds them (§12.4).</summary>
 public sealed record CandidateDto(

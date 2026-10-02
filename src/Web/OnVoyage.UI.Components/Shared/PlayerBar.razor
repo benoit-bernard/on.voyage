@@ -30,13 +30,26 @@
                     <span class="time">Annonce…</span>
                 }
                 <span class="ai">@AudioSettings.VoiceNotice</span>
+                @if (_state.Narrated)
+                {
+                    <span class="ai device-voice">@AudioSettings.DeviceVoiceNotice</span>
+                }
             </span>
         </div>
         <div class="player-controls">
-            <button type="button" aria-label="Reculer de 10 secondes" @onclick="() => Player.SkipAsync(-AudioSettings.SkipSeconds)">−10</button>
+            @if (!_state.Narrated)
+            {
+                <button type="button" aria-label="Reculer de 10 secondes" @onclick="() => Player.SkipAsync(-AudioSettings.SkipSeconds)">−10</button>
+            }
             <button type="button" class="play" aria-label="@(_state.Phase == PlaybackPhase.Playing ? "Pause" : "Lecture")" @onclick="Player.TogglePauseAsync">@(_state.Phase == PlaybackPhase.Playing ? "❚❚" : "▶")</button>
-            <button type="button" aria-label="Avancer de 10 secondes" @onclick="() => Player.SkipAsync(AudioSettings.SkipSeconds)">+10</button>
-            <button type="button" class="speed" aria-label="Vitesse de lecture" @onclick="Player.CycleSpeedAsync">@SpeedLabel(_state.Speed)</button>
+            @if (!_state.Narrated)
+            {
+                <button type="button" aria-label="Avancer de 10 secondes" @onclick="() => Player.SkipAsync(AudioSettings.SkipSeconds)">+10</button>
+            }
+            @if (Player.CanChangeSpeed)
+            {
+                <button type="button" class="speed" aria-label="Vitesse de lecture" @onclick="Player.CycleSpeedAsync">@SpeedLabel(_state.Speed)</button>
+            }
             @if (_state.WaitingTitle is not null)
             {
                 <button type="button" aria-label="Histoire suivante : @_state.WaitingTitle" @onclick="Player.NextAsync">Suivante</button>

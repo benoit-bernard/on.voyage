@@ -36,6 +36,8 @@ public static class MauiProgram
         builder.Services.AddSingleton<ILocationProvider, DeviceLocationProvider>();
         builder.Services.AddSingleton<MediaElementAudioPlayer>();
         builder.Services.AddSingleton<IAudioPlayer>(provider => provider.GetRequiredService<MediaElementAudioPlayer>());
+        builder.Services.AddSingleton<ISpeechEngine, MauiSpeechEngine>();
+        builder.Services.AddSingleton<ITextNarrator, SequentialTextNarrator>(); // stories published without audio are read by the device voice
         builder.Services.AddSingleton<ILocationSource, MauiLocationSource>();
         builder.Services.AddSingleton<IScreenKeepAwake, MauiKeepAwake>();
         builder.Services.AddLocalData(Path.Combine(FileSystem.AppDataDirectory, "user.db"));

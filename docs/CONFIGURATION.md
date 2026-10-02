@@ -45,6 +45,7 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | --- | --- | --- |
 | `Discovery:Migrate` | `true` | Migrations au démarrage. |
 | `Media:PublicBaseUrl` | `/media` | Préfixe des adresses audio des extraits d'onboarding. |
+| `Discovery:AllowTextOnlyStories` | `true` | `GET /me/candidates` propose aussi les lieux dont l'histoire est publiée **sans audio** (marquée `textOnly`) : l'appareil lit le texte avec sa voix (ADR-0018). `false` : histoires enregistrées seulement. |
 
 ## Creators (`creators-api`)
 

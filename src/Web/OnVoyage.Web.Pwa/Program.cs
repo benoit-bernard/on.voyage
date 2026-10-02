@@ -4,6 +4,7 @@ using OnVoyage.App.Core;
 using OnVoyage.App.Core.Auth;
 using OnVoyage.App.Infrastructure;
 using OnVoyage.UI.Components;
+using OnVoyage.UI.Components.Audio;
 using OnVoyage.Web.Pwa;
 
 var builder = WebAssemblyHostBuilder.CreateDefault(args);
@@ -26,5 +27,9 @@ builder.Services.AddSingleton<ILocationProvider>(provider => provider.GetRequire
 builder.Services.AddSingleton<OnVoyage.App.Core.Discovery.ILocationSource>(provider => provider.GetRequiredService<OnVoyage.UI.Components.Device.BrowserLocation>());
 builder.Services.AddSingleton<OnVoyage.App.Core.Discovery.IScreenKeepAwake, OnVoyage.UI.Components.Device.BrowserKeepAwake>();
 builder.Services.AddSingleton<OnVoyage.App.Core.Audio.IAudioPlayer, OnVoyage.UI.Components.Audio.BrowserAudioPlayer>();
+// Stories published without audio are read by the browser's own (local) voice.
+builder.Services.AddBrowserTextNarration();
 
-await builder.Build().RunAsync();
+var host = builder.Build();
+host.Services.InitializeBrowserNarration();
+await host.RunAsync();

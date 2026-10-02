@@ -56,6 +56,10 @@ Voir ADR-0010. Pour la carte : renseigner `Map:TilesUrl` (fichier `.pmtiles` ser
 
 Voir ADR-0011. Les interactions (retours, enregistrements, signaux d'écoute, visites) partent vers `POST /api/discovery/v1/me/interactions` ; sur téléphone elles attendent dans la file de `user.db` (le planificateur de 60 s démarre dans `MauiProgram`). Pages : `/envies`, `/destination`, `/carte`.
 
+## Histoires sans audio : lecture par la voix de l'appareil
+
+Une histoire publiée sans audio (aucune voix de synthèse n'était disponible à la production, comme dans l'extrait de Marseille) se lit avec la voix de l'appareil (ADR-0018). Le port est `ITextNarrator` (`OnVoyage.App.Core`) ; `SequentialTextNarrator` découpe le texte en phrases et gère pause, reprise, vitesse et progression au-dessus d'un `ISpeechEngine` : la PWA utilise l'API Web Speech (`wwwroot/js/device.js`, **voix locales seulement**, jamais une voix réseau qui enverrait le texte à un tiers), l'app MAUI `TextToSpeech` (`MauiSpeechEngine`, sans réglage de vitesse : le bouton de vitesse est masqué). Le mode découverte annonce ces lieux par le jingle puis lit le texte (réglage distant `trigger.text_only_stories`, vrai par défaut). La mention « voix générée par intelligence artificielle » reste affichée, avec « Voix de synthèse de votre appareil ». `MauiSpeechEngine` et la déclaration `<queries>` TTS d'`AndroidManifest.xml` ne sont **pas compilés** dans l'image du dépôt (pas de SDK Android) : à vérifier sur appareil.
+
 ## Reste à faire pour le MVP-0 mobile
 
 Essai sur appareil (audio écran verrouillé, GPS réel), traces GPX réelles de H-001, fichier PMTiles et polices de la carte, signature des builds (H-003), endpoint d'événements de la plateforme pour vider la file d'envoi.

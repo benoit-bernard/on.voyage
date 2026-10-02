@@ -123,6 +123,12 @@ public sealed record TriggerSettings
     public double VisitMaxSpeedKmh { get; init; } = 2;
     public double AutoStopIdleHours { get; init; } = 2;
 
+    /// <summary>
+    /// A story published without audio (no TTS voice when it was produced) may be announced and read by the device's own voice (MVP-0: on).
+    /// It only counts where the platform has a voice. Remote key <c>text_only_stories</c>.
+    /// </summary>
+    public bool AllowTextOnlyStories { get; init; } = true;
+
     public double MaxAccuracyFor(TravelMode mode) => mode switch { TravelMode.Walk => WalkMaxAccuracyMeters, TravelMode.Bike => BikeMaxAccuracyMeters, _ => CarMaxAccuracyMeters };
 
     public int MinImportanceFor(TravelMode mode) => mode switch { TravelMode.Walk => WalkMinImportance, TravelMode.Bike => BikeMinImportance, _ => CarMinImportance };
@@ -178,6 +184,7 @@ public sealed record TriggerSettings
             VisitFullMinutes = Number(section, "visit_full_minutes", defaults.VisitFullMinutes),
             VisitMaxSpeedKmh = Number(section, "visit_max_speed_kmh", defaults.VisitMaxSpeedKmh),
             AutoStopIdleHours = Number(section, "auto_stop_idle_hours", defaults.AutoStopIdleHours),
+            AllowTextOnlyStories = section.ValueKind == JsonValueKind.Object && section.TryGetProperty("text_only_stories", out var textOnly) && textOnly.ValueKind is JsonValueKind.True or JsonValueKind.False ? textOnly.GetBoolean() : defaults.AllowTextOnlyStories,
         };
     }
 }

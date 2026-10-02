@@ -4,6 +4,7 @@
 @inject InteractionRecorder Recorder
 @inject TimeProvider Clock
 @inject IReportClient Reports
+@inject AudioPlaybackController Player
 
 <PageTitle>@(_poi?.Name ?? "Lieu") · ON.VOYAGE</PageTitle>
 
@@ -43,7 +44,16 @@ else
     {
         <article>
             <h2>@story.Title</h2>
-            <AudioPlayer Source="@story.AudioUrl" />
+            @if (string.IsNullOrEmpty(story.AudioUrl) && !string.IsNullOrWhiteSpace(story.Text) && Player.CanNarrate)
+            {
+                @* Published without a recorded voice: the device reads the text itself (ITextNarrator). Nothing leaves the device. *@
+                <button type="button" class="btn btn-soft narrate" @onclick="() => NarrateAsync(story)">🔊 Écouter avec la voix de l'appareil</button>
+                <p class="note">@AudioSettings.DeviceVoiceNotice. L'enregistrement de cette histoire n'est pas encore disponible.</p>
+            }
+            else
+            {
+                <AudioPlayer Source="@story.AudioUrl" />
+            }
             <details class="transcript">
                 <summary>Transcription de l'histoire</summary>
                 <p>@story.Text</p>
@@ -178,6 +188,9 @@ else
             await Recorder.RecordAsync(InteractionKinds.Save, _poi.Id, _weights);
         }
     }
+
+    private Task NarrateAsync(StoryDto story) =>
+        Player.PlayNowAsync(new PlayRequest(story.Id, _poi!.Id, story.Title, [], PlayOrigin.Manual, story.DurationSeconds > 0 ? story.DurationSeconds : null, _weights, story.Text, story.Language));
 
     private Task RecordAsync(string kind) => Recorder.RecordAsync(kind, _poi!.Id, _weights);
 }

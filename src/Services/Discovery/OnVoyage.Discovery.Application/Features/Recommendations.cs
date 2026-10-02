@@ -177,10 +177,12 @@ public static class GetCandidatesHandler
 {
     /// <summary>
     /// What the discovery mode caches (§12.4): every place of the destination with a standard story, its flags and a <c>baseScore</c> that leaves
-    /// out Distance, Context and CrowdPenalty (the device knows the position, the hour and the mode). Premium stories are left out.
+    /// out Distance, Context and CrowdPenalty (the device knows the position, the hour and the mode). Premium stories are left out. A place whose
+    /// story has no <c>main</c> audio part (published without a TTS voice) is proposed too, flagged <c>TextOnly</c>, while
+    /// <see cref="DiscoveryOptions.AllowTextOnlyStories"/> is on (MVP-0: on): the device reads its text aloud.
     /// </summary>
     public static async Task<Result<CandidatesDto>> Handle(
-        GetCandidatesQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, IMediaUrls media, TimeProvider clock, CancellationToken cancellationToken)
+        GetCandidatesQuery query, IDiscoveryStore store, ITravelerReader travelers, IPlaceReader places, ICreatorReader creators, IMediaUrls media, DiscoveryOptions options, TimeProvider clock, CancellationToken cancellationToken)
     {
         var destination = await places.DestinationAsync(query.Destination, cancellationToken);
         if (destination is null)
@@ -191,7 +193,7 @@ public static class GetCandidatesHandler
         var context = await RankingContext.LoadAsync(query.TravelerId, query.Destination, store, travelers, places, creators, clock, cancellationToken);
         var stories = context.Stories.Where(s => !s.IsPremium).ToLookup(s => s.PoiId);
         var items = context.Eligible(null, null, null)
-            .Where(p => stories[p.PoiId].Any(s => s.Kind == "standard" && s.AudioParts.ContainsKey("main")))
+            .Where(p => stories[p.PoiId].Any(s => s.Kind == "standard" && (options.AllowTextOnlyStories || s.AudioParts.ContainsKey("main"))))
             .Select(p =>
             {
                 var candidate = context.ToCandidate(p, null, null, remote: true);
@@ -199,7 +201,7 @@ public static class GetCandidatesHandler
                 return new CandidateDto(
                     p.PoiId, p.Slug, p.Name, p.Latitude, p.Longitude, p.Importance, p.Fragile, CarAccessible: false, VisibleFromRoad: false, p.CrowdLevel,
                     Math.Round(Math.Clamp(baseScore, 0d, 1d), 4),
-                    [.. stories[p.PoiId].Select(s => new CandidateStoryDto(s.StoryId, s.Kind, s.DurationSeconds, s.AudioParts.ToDictionary(part => part.Key, part => media.Url(part.Value))))]);
+                    [.. stories[p.PoiId].Select(s => new CandidateStoryDto(s.StoryId, s.Kind, s.DurationSeconds, s.AudioParts.ToDictionary(part => part.Key, part => media.Url(part.Value)), !s.AudioParts.ContainsKey("main")))]);
             })
             .OrderBy(c => c.PoiId)
             .ToArray();

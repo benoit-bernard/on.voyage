@@ -12,7 +12,13 @@ public enum AudioRole
     Main,
 }
 
-public sealed record AudioSource(string Uri, AudioRole Role);
+public sealed record AudioSource(string Uri, AudioRole Role)
+{
+    /// <summary>Stands for "the device reads the text of the story" in the list of parts, in place of an audio file.</summary>
+    public const string NarrationUri = "narration://story";
+
+    public bool IsNarration => Uri == NarrationUri;
+}
 
 public enum PlayOrigin
 {
@@ -28,9 +34,24 @@ public enum PlayOrigin
 
 /// <summary>
 /// A story to play. <see cref="Weights"/> is the place's taste vector, carried so that the feedback after the story can move the local profile
-/// without another call; it is null when the caller does not have it.
+/// without another call; it is null when the caller does not have it. A story published without audio carries its <see cref="NarrationText"/>
+/// instead of a main part: the device reads it aloud (<see cref="ITextNarrator"/>) in <see cref="NarrationLanguage"/>.
 /// </summary>
-public sealed record PlayRequest(Guid StoryId, Guid PoiId, string Title, IReadOnlyList<AudioSource> Parts, PlayOrigin Origin, int? DurationSeconds = null, IReadOnlyDictionary<string, double>? Weights = null);
+public sealed record PlayRequest(
+    Guid StoryId,
+    Guid PoiId,
+    string Title,
+    IReadOnlyList<AudioSource> Parts,
+    PlayOrigin Origin,
+    int? DurationSeconds = null,
+    IReadOnlyDictionary<string, double>? Weights = null,
+    string? NarrationText = null,
+    string NarrationLanguage = "fr")
+{
+    public bool HasMainAudio => Parts.Any(part => part.Role == AudioRole.Main && !part.IsNarration);
+
+    public bool HasNarration => !string.IsNullOrWhiteSpace(NarrationText);
+}
 
 public enum PlaybackPhase
 {
@@ -49,7 +70,8 @@ public sealed record PlaybackState(
     string? WaitingTitle,
     double Speed,
     bool ShowAiNotice,
-    string? Error)
+    string? Error,
+    bool Narrated = false)
 {
     public static PlaybackState Initial { get; } = new(PlaybackPhase.Idle, null, null, 1d, false, null);
 
@@ -140,6 +162,9 @@ public sealed record AudioSettings(double ResumeAfterInterruptionSeconds = 30d)
     public const double SkipSeconds = 10d;
 
     public const string VoiceNotice = "Voix générée par intelligence artificielle";
+
+    /// <summary>Shown while the device reads a story that has no recorded voice: the voice is synthetic too, and it is the device's.</summary>
+    public const string DeviceVoiceNotice = "Voix de synthèse de votre appareil";
 }
 
 /// <summary>What listening tells about taste, beyond the explicit feedback of F-07.</summary>

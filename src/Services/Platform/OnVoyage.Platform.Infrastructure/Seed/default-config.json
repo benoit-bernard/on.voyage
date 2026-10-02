@@ -240,7 +240,8 @@
     },
     "auto_stop_idle_hours": 2,
     "candidates_refresh_hours": 6,
-    "candidates_refresh_interactions": 10
+    "candidates_refresh_interactions": 10,
+    "text_only_stories": true
   },
   "reminders": {
     "walk_radius_m": 800,

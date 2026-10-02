@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.TryAddSingleton<OnVoyage.App.Core.Analytics.AnalyticsQueue>();
         services.TryAddSingleton<IAnalyticsSink>(provider => provider.GetRequiredService<OnVoyage.App.Core.Analytics.AnalyticsQueue>());
         services.TryAddSingleton<IFlagStore, InMemoryFlagStore>();
+        services.TryAddSingleton<ITextNarrator, NullTextNarrator>(); // the PWA and the phone apps register the voice of their platform
         services.AddSingleton<AudioPlaybackController>();
         services.TryAddSingleton<ITellHistoryStore, InMemoryTellHistoryStore>();
         services.TryAddSingleton<IVisitSink, NullVisitSink>();

@@ -41,12 +41,14 @@ public sealed class DiscoveryModeController(
     ICallMonitor calls,
     ITriggerSettingsProvider settings,
     IAnalyticsSink analytics,
-    TimeProvider clock) : IDisposable
+    TimeProvider clock,
+    ITextNarrator? narrator = null) : IDisposable
 {
     private static readonly TimeSpan TickEvery = TimeSpan.FromSeconds(5);
 
     private readonly SemaphoreSlim _gate = new(1, 1);
     private readonly Dictionary<Guid, Told> _stories = [];
+    private readonly HashSet<Guid> _unreadable = [];
     private TriggerEngine? _engine;
     private InMemoryTriggerHistory? _history;
     private ITimer? _timer;
@@ -79,7 +81,7 @@ public sealed class DiscoveryModeController(
             var profile = await profiles.LoadAsync(cancellationToken);
             var session = await sessions.EnsureSessionAsync(cancellationToken);
             var pois = await catalog.GetPoisAsync(profile.Destination, null, null, cancellationToken);
-            var (candidates, stories) = Build(pois, profile with { TravelerId = session.TravelerId });
+            var (candidates, stories) = Build(pois, profile with { TravelerId = session.TravelerId }, settings.Current.AllowTextOnlyStories && narrator is { IsAvailable: true });
             if (candidates.Count == 0)
             {
                 return DiscoveryStartResult.NothingToTell;
@@ -97,6 +99,7 @@ public sealed class DiscoveryModeController(
             }
 
             _stories.Clear();
+            _unreadable.Clear();
             foreach (var (poiId, story) in stories)
             {
                 _stories[poiId] = story;
@@ -200,7 +203,7 @@ public sealed class DiscoveryModeController(
             }
 
             // A "Pas pour moi" given during the trip takes effect on the next position.
-            _engine.SetExcluded((await profiles.LoadAsync(CancellationToken.None)).Excluded);
+            _engine.SetExcluded([.. (await profiles.LoadAsync(CancellationToken.None)).Excluded, .. _unreadable]);
             _engine.SetExternalPlayback(audio.State.Current is { Origin: PlayOrigin.Manual });
             var outcome = _engine.OnFix(fix);
             foreach (var visit in outcome.Visits)
@@ -216,8 +219,16 @@ public sealed class DiscoveryModeController(
                     ["mode"] = trigger.Mode.ToString().ToLowerInvariant(),
                     ["distance_m"] = trigger.DistanceMeters,
                 });
-                _lastTitle = story.Title;
-                await audio.PlayNowAsync(story.ToRequest(trigger.Direction, trigger.PoiId));
+                var request = story.HasMainAudio ? story.ToRequest(trigger.Direction, trigger.PoiId) : await NarratedRequestAsync(story, trigger.PoiId);
+                if (request is null)
+                {
+                    _unreadable.Add(trigger.PoiId); // no audio and no text to read: leave this place alone for the rest of the trip
+                }
+                else
+                {
+                    _lastTitle = story.Title;
+                    await audio.PlayNowAsync(request);
+                }
             }
 
             Publish();
@@ -226,6 +237,28 @@ public sealed class DiscoveryModeController(
         {
             _gate.Release();
         }
+    }
+
+    /// <summary>
+    /// The story has no recorded voice: its text comes from the catalog (the list of places does not carry texts) and the device reads it after the
+    /// jingle. Null when the text is not there (a Premium story, a network failure): nothing is said.
+    /// </summary>
+    private async Task<PlayRequest?> NarratedRequestAsync(Told story, Guid poiId)
+    {
+        if (story.Text is null)
+        {
+            try
+            {
+                var detail = await catalog.GetPoiAsync(story.Slug, CancellationToken.None);
+                story.Text = detail?.Stories.FirstOrDefault(s => s.Id == story.StoryId)?.Text;
+            }
+            catch (HttpRequestException)
+            {
+                return null;
+            }
+        }
+
+        return string.IsNullOrWhiteSpace(story.Text) ? null : story.ToNarratedRequest(poiId);
     }
 
     private void OnMainStarted(PlayRequest request)
@@ -284,9 +317,10 @@ public sealed class DiscoveryModeController(
     }
 
     /// <summary>Turns the catalog's places and the traveler's taste into what the engine needs, and keeps the audio addresses of each story.</summary>
-    internal static (IReadOnlyList<TriggerCandidate> Candidates, IReadOnlyDictionary<Guid, Told> Stories) Build(IReadOnlyList<PoiSummaryDto> pois, LocalProfile profile)
+    internal static (IReadOnlyList<TriggerCandidate> Candidates, IReadOnlyDictionary<Guid, Told> Stories) Build(IReadOnlyList<PoiSummaryDto> pois, LocalProfile profile, bool allowTextOnly = false)
     {
-        var withStory = pois.Where(poi => poi.StoryId is not null && poi.AudioParts is { } parts && parts.ContainsKey("main")).ToList();
+        // A place is told if its story has a recorded voice, or, when the device has a voice of its own and the setting allows it, only a text.
+        var withStory = pois.Where(poi => poi.StoryId is not null && (allowTextOnly || poi.AudioParts is { } parts && parts.ContainsKey("main"))).ToList();
         var control = ControlCohort.Contains(profile.TravelerId);
         var scores = new Dictionary<string, double>(StringComparer.Ordinal);
         var recommendation = withStory.Select(HomeFeedService.ToCandidate).ToArray();
@@ -306,7 +340,7 @@ public sealed class DiscoveryModeController(
             candidates.Add(new TriggerCandidate(
                 poi.Id, poi.Name, poi.Latitude, poi.Longitude, (int)Math.Round(poi.Importance * 100d), Math.Clamp(baseScore, 0d, 1d), poi.CrowdLevel,
                 poi.Fragile, VisibleFromRoad: false, CarAccessible: false, poi.StoryId!.Value));
-            stories[poi.Id] = new Told(poi.StoryId.Value, poi.Name, poi.AudioParts!, poi.Weights);
+            stories[poi.Id] = new Told(poi.StoryId.Value, poi.Name, poi.AudioParts ?? new Dictionary<string, string>(), poi.Weights) { Slug = poi.Slug };
         }
 
         return (candidates, stories);
@@ -315,6 +349,17 @@ public sealed class DiscoveryModeController(
     /// <summary>The audio of one story, ready to become a <see cref="PlayRequest"/> once the direction is known.</summary>
     internal sealed record Told(Guid StoryId, string Title, IReadOnlyDictionary<string, string> Parts, IReadOnlyDictionary<string, double>? Weights = null)
     {
+        public string Slug { get; init; } = string.Empty;
+
+        /// <summary>The text of a story without audio, fetched when it is first needed.</summary>
+        public string? Text { get; set; }
+
+        public bool HasMainAudio => Parts.ContainsKey("main");
+
+        /// <summary>The jingle, then the device reads the text. There is no recorded direction announcement for such a story.</summary>
+        public PlayRequest ToNarratedRequest(Guid poiId) =>
+            new(StoryId, poiId, Title, [new AudioSource("asset://jingle", AudioRole.Jingle)], PlayOrigin.Discovery, null, Weights, Text);
+
         public PlayRequest ToRequest(AnnouncementDirection direction, Guid poiId)
         {
             List<AudioSource> sources = [new AudioSource("asset://jingle", AudioRole.Jingle)];

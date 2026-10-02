@@ -31,6 +31,7 @@ public static class DependencyInjection
         services.AddScoped<IAffinityStore, AffinityStore>();
         services.AddHostedService<CategoryAffinityJob>();
         services.AddSingleton<IMediaUrls, ConfiguredMediaUrls>();
+        services.AddSingleton(new OnVoyage.Discovery.Application.DiscoveryOptions(configuration.GetValue("Discovery:AllowTextOnlyStories", true)));
         services.AddSingleton(TimeProvider.System);
         services.AddHealthChecks().AddCheck<DiscoveryDatabaseHealthCheck>("discovery-db", tags: ["ready"]);
         return services;
