@@ -25,6 +25,10 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
 
     public DbSet<BootstrapRunRow> BootstrapRuns => Set<BootstrapRunRow>();
 
+    public DbSet<YouTubeUsageRow> YouTubeUsage => Set<YouTubeUsageRow>();
+
+    public DbSet<YouTubeSearchRow> YouTubeSearches => Set<YouTubeSearchRow>();
+
     public DbSet<PlaceVideoRow> PlaceVideos => Set<PlaceVideoRow>();
 
     public DbSet<AuditLogRow> AuditLog => Set<AuditLogRow>();
@@ -154,6 +158,19 @@ internal sealed class FactoryDbContext(DbContextOptions<FactoryDbContext> option
             entity.HasKey(row => row.Id);
             entity.Property(row => row.Steps).HasColumnType("jsonb");
             entity.HasIndex(row => row.RequestedAt);
+        });
+
+        modelBuilder.Entity<YouTubeUsageRow>(entity =>
+        {
+            entity.ToTable("youtube_usage");
+            entity.HasKey(row => row.Day);
+        });
+
+        modelBuilder.Entity<YouTubeSearchRow>(entity =>
+        {
+            entity.ToTable("youtube_search");
+            entity.HasKey(row => row.QueryKey);
+            entity.Property(row => row.Results).HasColumnType("jsonb");
         });
 
         modelBuilder.Entity<PlaceVideoRow>(entity =>

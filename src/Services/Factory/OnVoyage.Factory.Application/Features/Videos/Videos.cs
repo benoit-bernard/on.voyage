@@ -32,6 +32,9 @@ public interface IVideoStore
     Task AddAsync(PlaceVideo video, CancellationToken cancellationToken);
 
     Task<PlaceVideo?> RemoveAsync(Guid placeId, string videoId, CancellationToken cancellationToken);
+
+    /// <summary>Every selected video with its place, newest first (the overview of the back office).</summary>
+    Task<IReadOnlyList<SelectedVideo>> ListAllAsync(int limit, CancellationToken cancellationToken);
 }
 
 public sealed record SearchVideosQuery(string Query);
@@ -57,7 +60,12 @@ public static partial class VideoRules
 
 public static class VideoHandler
 {
-    public static async Task<Result<IReadOnlyList<VideoCandidate>>> Handle(SearchVideosQuery query, IVideoSearch youtube, CancellationToken cancellationToken)
+    /// <summary>
+    /// A search costs 100 of the 10 000 daily units, so a query asked again within the cache window is answered from the cache (no unit spent),
+    /// and a search that would go over the day's quota is refused before it is sent.
+    /// </summary>
+    public static async Task<Result<IReadOnlyList<VideoCandidate>>> Handle(
+        SearchVideosQuery query, IVideoSearch youtube, IVideoQuotaStore quota, VideoQuotaOptions options, TimeProvider clock, CancellationToken cancellationToken)
     {
         var text = query.Query?.Trim() ?? string.Empty;
         if (text.Length is < 2 or > 100)
@@ -70,13 +78,34 @@ public static class VideoHandler
             return Result.Failure<IReadOnlyList<VideoCandidate>>("youtube_not_configured", "No YouTube key is configured on the server (YouTube:ApiKey).");
         }
 
+        var now = clock.GetUtcNow();
+        var key = VideoQuotaClock.Key(text);
+        if (await quota.FindSearchAsync(key, now.AddHours(-options.CacheHours), cancellationToken) is { } cached)
+        {
+            return Result.Success(cached);
+        }
+
+        var status = await VideoQuotaHandler.StatusAsync(quota, options, clock, cancellationToken);
+        if (status.Remaining < options.SearchCost)
+        {
+            return Result.Failure<IReadOnlyList<VideoCandidate>>("youtube_quota_exhausted", VideoQuotaHandler.ExhaustedMessage(status));
+        }
+
         try
         {
-            return Result.Success(await youtube.SearchAsync(text, 8, cancellationToken));
+            var found = await youtube.SearchAsync(text, 8, cancellationToken);
+            await quota.AddUnitsAsync(status.Day, options.SearchCost, cancellationToken);
+            await quota.SaveSearchAsync(key, found, now, cancellationToken);
+            return Result.Success(found);
+        }
+        catch (VideoQuotaExceededException)
+        {
+            await quota.FillDayAsync(status.Day, options.DailyUnits, cancellationToken);
+            return Result.Failure<IReadOnlyList<VideoCandidate>>("youtube_quota_exhausted", VideoQuotaHandler.ExhaustedMessage(status with { UnitsUsed = options.DailyUnits }));
         }
         catch (ExternalServiceException)
         {
-            return Result.Failure<IReadOnlyList<VideoCandidate>>("youtube_unavailable", "YouTube did not answer (quota reached or service down). Try again later.");
+            return Result.Failure<IReadOnlyList<VideoCandidate>>("youtube_unavailable", "YouTube did not answer (service down). Try again later.");
         }
     }
 
@@ -89,7 +118,7 @@ public static class VideoHandler
     /// </summary>
     public static async Task<Result<PlaceVideo>> Handle(
         SelectVideoCommand command, IPlaceStore places, IVideoStore videos, IVideoSearch youtube, IMediaStorage storage,
-        IDestinationCatalog destinations, TimeProvider clock, CancellationToken cancellationToken)
+        IDestinationCatalog destinations, IVideoQuotaStore quota, VideoQuotaOptions options, TimeProvider clock, CancellationToken cancellationToken)
     {
         if (!VideoRules.IsVideoId(command.VideoId))
         {
@@ -118,11 +147,18 @@ public static class VideoHandler
             return Result.Failure<PlaceVideo>("youtube_not_configured", "No YouTube key is configured on the server (YouTube:ApiKey).");
         }
 
+        var status = await VideoQuotaHandler.StatusAsync(quota, options, clock, cancellationToken);
+        if (status.Remaining < options.LookupCost)
+        {
+            return Result.Failure<PlaceVideo>("youtube_quota_exhausted", VideoQuotaHandler.ExhaustedMessage(status));
+        }
+
         VideoCandidate? candidate;
         byte[]? image;
         try
         {
             candidate = await youtube.GetAsync(command.VideoId, cancellationToken);
+            await quota.AddUnitsAsync(status.Day, options.LookupCost, cancellationToken);
             if (candidate is null)
             {
                 return Result.Failure<PlaceVideo>("video_not_found", "YouTube does not know this video.");
@@ -130,9 +166,14 @@ public static class VideoHandler
 
             image = await youtube.DownloadThumbnailAsync(candidate.ThumbnailUrl, cancellationToken);
         }
+        catch (VideoQuotaExceededException)
+        {
+            await quota.FillDayAsync(status.Day, options.DailyUnits, cancellationToken);
+            return Result.Failure<PlaceVideo>("youtube_quota_exhausted", VideoQuotaHandler.ExhaustedMessage(status with { UnitsUsed = options.DailyUnits }));
+        }
         catch (ExternalServiceException)
         {
-            return Result.Failure<PlaceVideo>("youtube_unavailable", "YouTube did not answer (quota reached or service down). Try again later.");
+            return Result.Failure<PlaceVideo>("youtube_unavailable", "YouTube did not answer (service down). Try again later.");
         }
 
         if (image is null)

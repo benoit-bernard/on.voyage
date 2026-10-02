@@ -581,6 +581,15 @@ Tâche d'un lot : étape, état, tentatives, dernière erreur, lieu, histoire pr
 
 Le plafond de coût d'un lot (`budgetUsd`) est dans `generation_batch.criteria` ; le coût dépensé n'est pas stocké : il est calculé à la lecture (somme de `factory.llm_call.cost_usd` entre la création du lot et la fin de sa dernière tâche).
 
+#### `factory.youtube_usage` et `factory.youtube_search`
+
+Quota de l'API YouTube Data et cache des recherches de l'éditeur ([ADR-0019](adr/0019-suivi-des-lots-signalements-videos-et-kpi-dans-l-admin.md)). Aucune donnée voyageur.
+
+| Table | Colonnes | Remarque |
+| --- | --- | --- |
+| `youtube_usage` | `day date` (clé primaire, jour de quota en heure du Pacifique), `units integer` | unités dépensées ce jour-là |
+| `youtube_search` | `query_key text` (clé primaire : requête en minuscules, espaces réduits), `results jsonb` (candidats : identifiant, titre, chaîne, vignette, date), `fetched_at timestamp with time zone` | réponse de la dernière recherche |
+
 #### `factory.bootstrap_run`
 
 Exécution d'amorçage d'une destination ([ADR-0019](adr/0019-suivi-des-lots-et-signalements-dans-l-admin.md)) : demandée par l'administration ou la ligne de commande, suivie pendant qu'elle tourne (compteurs, coût), puis son rapport final. Aucune donnée voyageur.

@@ -98,6 +98,8 @@ Les deux hôtes lisent la même section ; le worker exécute les tâches, l'API 
 | `Factory:Offline:Destination` | `marseille` | Destination dont le snapshot sert de « Wikipédia » au fournisseur `offline`. |
 | `Bootstrap:*` (ligne de commande du worker) | voir [runbooks/bootstrap-marseille.md](runbooks/bootstrap-marseille.md) | `MaxPlaces`, `MinImportance`, `Lang`, `BudgetUsd`, `AutoPublish`, `ForceImport`, `SkipImport`, `AllowUnpriced`, `PauseMilliseconds`, `RetryDelaysSeconds`. Lus seulement par `dotnet run --project …Factory.Worker -- bootstrap <destination>`. |
 | `YouTube:ApiKey` | aucun | Clé de l'API YouTube Data pour la recherche de vidéos par l'éditeur ; absente, la recherche répond `503` (`youtube_not_configured`). |
+| `YouTube:DailyQuotaUnits` | 10000 | Quota quotidien de la clé (une recherche coûte 100 unités, une consultation de vidéo 1). Les unités sont comptées par jour de quota (minuit, heure du Pacifique) ; au-delà, la recherche est refusée sans appeler YouTube (`429`). |
+| `YouTube:SearchCacheHours` | 24 | Durée pendant laquelle une même recherche (casse et espaces ignorés) est servie par `factory.youtube_search` sans coût de quota. |
 
 ## Gateway
 

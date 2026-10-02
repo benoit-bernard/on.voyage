@@ -161,11 +161,15 @@ Tout est en politique `admin`, sauf le signalement. Chaque écriture est consign
 | `GET /admin/dead-letters?limit=` | — | messages abandonnés par la file après leurs essais, liés à leur lot et à leur lieu quand c'est une tâche de lot |
 | `GET /admin/audit?limit=&actor=` | — | journal d'audit de Factory |
 | `GET/PUT/DELETE /admin/pronunciations/{destination}/{term}` | `{ replacement }` | dictionnaire de prononciation |
-| `GET /admin/videos/search?q=`, `GET/POST /admin/places/{id}/videos`, `DELETE /admin/places/{id}/videos/{videoId}` | `{ videoId }` | recherche YouTube côté serveur (seule route qui l'appelle), sélection |
+| `GET /admin/videos/search?q=`, `GET/POST /admin/places/{id}/videos`, `DELETE /admin/places/{id}/videos/{videoId}` | `{ videoId }` | recherche YouTube côté serveur (seule route qui l'appelle), sélection de 0 à 2 vidéos par lieu (409 `too_many_videos`) ; une recherche déjà faite dans les 24 h est servie par le cache sans coût de quota |
+| `GET /admin/videos/quota` | — | quota YouTube du jour : `unitsUsed`, `dailyUnits`, `remaining`, `searchesLeft`, `resetsAt` (minuit Pacifique) |
+| `GET /admin/videos?limit=` | — | toutes les vidéos choisies, avec leur lieu (page `/admin/videos`) |
+
+Recherche et sélection répondent `429` `youtube_quota_exhausted` quand le quota du jour est épuisé (compté ici, ou signalé par YouTube : 403 `quotaExceeded`), `503` `youtube_not_configured` sans clé, `502` `youtube_unavailable` si YouTube est en panne.
 
 ## Back-office web (`web-admin`)
 
-Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/bootstrap`, `/admin/dead-letters`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
+Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/videos`, `/admin/bootstrap`, `/admin/dead-letters`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
 
 ## Écarts avec le §12 du cahier des charges
 

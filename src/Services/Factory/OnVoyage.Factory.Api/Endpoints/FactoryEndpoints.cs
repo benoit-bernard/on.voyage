@@ -192,6 +192,11 @@ internal static class FactoryEndpoints
         // The only route that calls YouTube; the apps never do (F-19).
         admin.MapGet("/videos/search", (string q, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<VideoCandidate>>>(new SearchVideosQuery(q), ct), items => items));
+        // The day's YouTube quota (units spent, left, when it resets) and every selected video, for the overview page.
+        admin.MapGet("/videos/quota", (IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<VideoQuotaStatus>>(new GetVideoQuotaQuery(), ct), status => status));
+        admin.MapGet("/videos", (int? limit, IMessageBus bus, CancellationToken ct) =>
+            Translate(bus.InvokeAsync<Result<IReadOnlyList<SelectedVideo>>>(new ListSelectedVideosQuery(limit ?? 200), ct), items => items));
         admin.MapGet("/places/{id:guid}/videos", (Guid id, IMessageBus bus, CancellationToken ct) =>
             Translate(bus.InvokeAsync<Result<IReadOnlyList<PlaceVideo>>>(new ListPlaceVideosQuery(id), ct), items => items));
         admin.MapPost("/places/{id:guid}/videos", (Guid id, SelectVideoRequest request, IMessageBus bus, CancellationToken ct) =>
@@ -330,6 +335,7 @@ internal static class FactoryEndpoints
             : error.Code is "validation" ? StatusCodes.Status400BadRequest
             : error.Code is "youtube_not_configured" ? StatusCodes.Status503ServiceUnavailable
             : error.Code is "youtube_unavailable" ? StatusCodes.Status502BadGateway
+            : error.Code is "youtube_quota_exhausted" ? StatusCodes.Status429TooManyRequests
             : StatusCodes.Status409Conflict;
         return Results.Problem(title: error.Message, statusCode: status, type: $"https://on.voyage/problems/{error.Code}");
     }

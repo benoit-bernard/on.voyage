@@ -1,0 +1,80 @@
+@page "/admin/videos"
+@attribute [Authorize(Policy = AdminClaims.PolicyName)]
+@inherits AdminPageBase
+
+<h1>Vidéos</h1>
+<p class="muted">
+    Au plus deux vidéos YouTube par lieu, choisies ici ou dans la fiche du lieu. La recherche passe par le serveur (clé du serveur) ; l'app ne contacte jamais YouTube
+    et le lecteur ne voit qu'un lien sortant, sans lecteur intégré.
+</p>
+<Status Message="@Message" Error="@Error" />
+<VideoQuotaNote Quota="_quota" />
+
+@if (_items.Count == 0)
+{
+    <p class="muted">Aucune vidéo sélectionnée pour l'instant. Ouvrez la fiche d'un lieu pour en chercher.</p>
+}
+else
+{
+    <section class="card">
+        <div class="row">
+            <div>
+                <label for="destination">Destination</label>
+                <select id="destination" @bind="_destination">
+                    <option value="">Toutes</option>
+                    @foreach (var slug in _items.Select(item => item.Destination).Distinct().Order())
+                    {
+                        <option value="@slug">@slug</option>
+                    }
+                </select>
+            </div>
+            <p class="muted">@Visible.Count vidéo(s) sur @Visible.Select(item => item.Video.PlaceId).Distinct().Count() lieu(x)</p>
+        </div>
+        <table>
+            <thead><tr><th>Lieu</th><th>Vidéo</th><th>Choisie le</th><th></th></tr></thead>
+            <tbody>
+                @foreach (var item in Visible)
+                {
+                    <tr>
+                        <td><a href="/admin/places/@item.Video.PlaceId#videos">@item.PlaceName</a> <span class="muted">· @item.Destination</span></td>
+                        <td>
+                            <a href="@item.Video.Url" target="_blank" rel="noopener noreferrer">@item.Video.Title</a>
+                            <span class="muted">· @item.Video.Channel</span>
+                        </td>
+                        <td>@item.Video.SelectedAt.ToString("dd/MM/yyyy", System.Globalization.CultureInfo.InvariantCulture)</td>
+                        <td><button type="button" class="ghost" disabled="@Busy" @onclick="() => Remove(item)">Retirer</button></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </section>
+}
+
+@code {
+    private IReadOnlyList<SelectedVideoItem> _items = [];
+    private VideoQuotaItem? _quota;
+    private string _destination = string.Empty;
+
+    private IReadOnlyList<SelectedVideoItem> Visible => [.. _items.Where(item => _destination.Length == 0 || item.Destination == _destination)];
+
+    protected override Task OnInitializedAsync() => ReloadAsync();
+
+    private async Task ReloadAsync()
+    {
+        _items = await LoadAsync(() => Api.ListSelectedVideosAsync(500)) ?? [];
+        try
+        {
+            _quota = await Api.GetVideoQuotaAsync();
+        }
+        catch (Exception exception) when (exception is AdminApiException or HttpRequestException)
+        {
+            _quota = null;
+        }
+    }
+
+    private async Task Remove(SelectedVideoItem item)
+    {
+        await RunAsync(() => Api.RemoveVideoAsync(item.Video.PlaceId, item.Video.VideoId), "Vidéo retirée (le lieu publié est republié sans son lien).");
+        await ReloadAsync();
+    }
+}

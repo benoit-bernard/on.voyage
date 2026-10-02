@@ -76,6 +76,12 @@ public interface IAdminApi
 
     Task<IReadOnlyList<PlaceVideoItem>> ListVideosAsync(Guid placeId, CancellationToken cancellationToken = default);
 
+    /// <summary>YouTube Data API units spent today and left (a search costs 100 of the 10 000 a day).</summary>
+    Task<VideoQuotaItem> GetVideoQuotaAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Every selected video, newest first, with its place.</summary>
+    Task<IReadOnlyList<SelectedVideoItem>> ListSelectedVideosAsync(int limit, CancellationToken cancellationToken = default);
+
     Task SelectVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default);
 
     Task RemoveVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default);

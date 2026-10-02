@@ -49,7 +49,11 @@ public sealed record StoryDetailItem(StoryItem Story, IReadOnlyList<AudioPartIte
 
 public sealed record VideoCandidateItem(string VideoId, string Title, string Channel, string ThumbnailUrl, DateTimeOffset? PublishedAt);
 
-public sealed record PlaceVideoItem(string VideoId, string Title, string Channel, string ThumbnailPath, string Url, DateTimeOffset SelectedAt);
+public sealed record PlaceVideoItem(string VideoId, string Title, string Channel, string ThumbnailPath, string Url, DateTimeOffset SelectedAt, Guid PlaceId = default);
+
+public sealed record VideoQuotaItem(DateOnly Day, int UnitsUsed, int DailyUnits, int Remaining, int SearchesLeft, DateTimeOffset ResetsAt);
+
+public sealed record SelectedVideoItem(PlaceVideoItem Video, string PlaceName, string Destination);
 
 public sealed record BatchCriteriaItem(string Destination, int? MinImportance, IReadOnlyList<string> PlaceStatuses, string Lang, string Kind, int Limit, double? BudgetUsd = null);
 

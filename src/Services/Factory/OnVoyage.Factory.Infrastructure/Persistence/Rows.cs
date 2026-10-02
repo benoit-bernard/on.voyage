@@ -260,6 +260,21 @@ internal sealed class GenerationJobRow
     public DateTimeOffset UpdatedAt { get; set; }
 }
 
+/// <summary>YouTube quota units spent in a quota day (it resets at midnight Pacific time).</summary>
+internal sealed class YouTubeUsageRow
+{
+    public DateOnly Day { get; set; }
+    public int Units { get; set; }
+}
+
+/// <summary>The answer of a recent YouTube search, so asking again does not spend 100 more units.</summary>
+internal sealed class YouTubeSearchRow
+{
+    public string QueryKey { get; set; } = string.Empty;
+    public string Results { get; set; } = "[]";
+    public DateTimeOffset FetchedAt { get; set; }
+}
+
 internal sealed class PlaceVideoRow
 {
     public Guid PlaceId { get; set; }

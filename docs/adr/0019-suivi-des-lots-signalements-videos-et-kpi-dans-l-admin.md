@@ -27,3 +27,13 @@
 - **Audit** : toutes les écritures de l'admin Factory passent par `AuditFilter` (journal local + `AdminActionRecordedV1` vers Platform). Les décisions « traité » / « écarté » y figurent avec leur note ; un test d'intégration vérifie la ligne locale et un autre l'arrivée dans le journal de Platform, y compris pour une histoire inconnue (404).
 
 **Écarts au cahier** : la route voyageur reste `POST /stories/{id}/reports` (pas `POST /reports` avec `poi_id`), et l'extrait sélectionné facultatif n'existe pas (le texte libre de 500 caractères le remplace). Le correctif « corriger → nouvelle version » est celui de T-308 (`OpenCorrectionCommand`).
+
+## 3. Vidéos YouTube (T-407)
+
+**Ce qui existait** : `GET /admin/videos/search` (clé `YouTube:ApiKey` du serveur, jamais l'app), sélection de 0 à 2 vidéos par lieu, titre/chaîne/vignette relus chez YouTube (jamais pris de la requête), vignette copiée sur notre stockage, `external_link` dans le Catalog (le lieu publié est republié), sélecteur dans la fiche du lieu.
+
+**Ce qui est ajouté : la gestion du quota.** L'API coûte 100 unités par recherche et 1 par consultation sur 10 000 par jour et par clé. Avant, une recherche de trop échouait en `502`, sans explication.
+- **Comptage** (`youtube_usage`, un compteur par jour de quota, minuit heure du Pacifique) : une recherche ou une sélection qui dépasserait le quota est refusée **avant** l'appel (`429 youtube_quota_exhausted`, avec l'heure de remise à zéro). Si YouTube répond lui-même 403 `quotaExceeded`/`dailyLimitExceeded`, la journée est marquée pleine. Un autre 403 (clé refusée, API désactivée) reste une erreur de fournisseur : ce n'est pas un quota.
+- **Cache** (`youtube_search`, 24 h) : la même recherche (casse et espaces ignorés) ne coûte rien. Une recherche en échec n'est ni comptée ni mise en cache.
+- **Interface** : la ligne « Quota YouTube du jour » (unités, recherches possibles, remise à zéro) dans la fiche du lieu et sur la nouvelle page `/admin/videos`, qui liste toutes les vidéos choisies par lieu et destination, avec retrait. Liens sortants (`rel="noopener noreferrer"`), aucune intégration.
+- Le comptage est tenu par nous, pas relu chez YouTube (l'API n'expose pas le quota restant) : si la clé sert à autre chose, le compteur sous-estime ; le 403 de YouTube reste le dernier garde-fou.

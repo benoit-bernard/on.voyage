@@ -103,6 +103,11 @@ internal sealed class HttpAdminApi(IHttpClientFactory clients, AdminSession sess
     public Task<IReadOnlyList<PlaceVideoItem>> ListVideosAsync(Guid placeId, CancellationToken cancellationToken = default) =>
         GetAsync<IReadOnlyList<PlaceVideoItem>>($"{Factory}/places/{placeId}/videos", cancellationToken);
 
+    public Task<VideoQuotaItem> GetVideoQuotaAsync(CancellationToken cancellationToken = default) => GetAsync<VideoQuotaItem>($"{Factory}/videos/quota", cancellationToken);
+
+    public Task<IReadOnlyList<SelectedVideoItem>> ListSelectedVideosAsync(int limit, CancellationToken cancellationToken = default) =>
+        GetAsync<IReadOnlyList<SelectedVideoItem>>($"{Factory}/videos?limit={limit}", cancellationToken);
+
     public Task SelectVideoAsync(Guid placeId, string videoId, CancellationToken cancellationToken = default) =>
         WriteAsync(HttpMethod.Post, $"{Factory}/places/{placeId}/videos", new { videoId }, cancellationToken);
 

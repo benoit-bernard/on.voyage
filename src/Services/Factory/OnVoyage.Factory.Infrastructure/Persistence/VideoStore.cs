@@ -18,6 +18,16 @@ internal sealed class VideoStore(IDbContextOutbox<FactoryDbContext> outbox) : IV
         await Db.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<SelectedVideo>> ListAllAsync(int limit, CancellationToken cancellationToken)
+    {
+        var rows = await (from video in Db.PlaceVideos.AsNoTracking()
+                          join place in Db.Places.AsNoTracking() on video.PlaceId equals place.Id
+                          orderby video.SelectedAt descending
+                          select new { Video = video, place.Name, place.DestinationSlug }).Take(limit).ToListAsync(cancellationToken);
+        return [.. rows.Select(row => new SelectedVideo(
+            new PlaceVideo(row.Video.PlaceId, row.Video.VideoId, row.Video.Title, row.Video.Channel, row.Video.ThumbnailPath, row.Video.Url, row.Video.SelectedAt), row.Name, row.DestinationSlug))];
+    }
+
     public async Task<PlaceVideo?> RemoveAsync(Guid placeId, string videoId, CancellationToken cancellationToken)
     {
         var row = await Db.PlaceVideos.FirstOrDefaultAsync(item => item.PlaceId == placeId && item.VideoId == videoId, cancellationToken);
