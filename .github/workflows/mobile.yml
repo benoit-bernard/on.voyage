@@ -25,6 +25,13 @@ jobs:
           java-version: '21'
       - name: Install MAUI Android workload
         run: dotnet workload install maui-android
+      - name: Build debug APK
+        run: dotnet build src/Mobile/OnVoyage.App -f net10.0-android -c Debug -m:1 -p:AndroidPackageFormat=apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: android-debug-apk
+          path: src/Mobile/OnVoyage.App/bin/Debug/net10.0-android/*-Signed.apk
+          if-no-files-found: warn
       - name: Publish AAB (Release)
         run: >
           dotnet publish src/Mobile/OnVoyage.App -f net10.0-android -c Release

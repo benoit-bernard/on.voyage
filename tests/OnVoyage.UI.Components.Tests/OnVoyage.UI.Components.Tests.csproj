@@ -3,5 +3,7 @@
     <PackageReference Include="bunit" />
     <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <ProjectReference Include="../../src/Web/OnVoyage.UI.Components/OnVoyage.UI.Components.csproj" />
+    <ProjectReference Include="../../src/Mobile/OnVoyage.App.Infrastructure/OnVoyage.App.Infrastructure.csproj" />
+    <ProjectReference Include="../../src/Mobile/OnVoyage.App.LocalData/OnVoyage.App.LocalData.csproj" />
   </ItemGroup>
 </Project>

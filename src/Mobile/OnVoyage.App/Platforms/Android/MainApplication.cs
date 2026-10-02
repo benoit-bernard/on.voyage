@@ -4,7 +4,7 @@ using Android.Runtime;
 namespace OnVoyage.App;
 
 #if DEBUG
-[Application(UsesCleartextTraffic = true)]
+[Application(NetworkSecurityConfig = "@xml/network_security_config")]
 #else
 [Application]
 #endif
