@@ -47,7 +47,7 @@ flowchart TB
   FAPI --> EXT
 ```
 
-Hors de ce schéma, **non construits** : Insights, Billing, Ads, Creators (Insights, Creators et Web.Public sont en cours de développement), Supabase Auth et le stockage S3/CDN du §9.1 (remplacés pour le MVP-0 par l'identité maison de l'ADR-0005 et un volume local servi par Catalog).
+Hors de ce schéma, **non construits** : Insights, Billing, Ads, Creators (Insights, Creators et Web.Public sont en cours de développement ; Creators existe avec ses profils fondateurs, voir ADR-0016), Supabase Auth et le stockage S3/CDN du §9.1 (remplacés pour le MVP-0 par l'identité maison de l'ADR-0005 et un volume local servi par Catalog).
 
 Règles qui structurent tout le reste :
 

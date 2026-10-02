@@ -46,6 +46,15 @@ La durée de vie du jeton d'accès, les délais et plafonds des codes (`auth.otp
 | `Discovery:Migrate` | `true` | Migrations au démarrage. |
 | `Media:PublicBaseUrl` | `/media` | Préfixe des adresses audio des extraits d'onboarding. |
 
+## Creators (`creators-api`)
+
+| Clé | Défaut | Rôle |
+| --- | --- | --- |
+| `Creators:Migrate` | `true` | Migrations au démarrage. |
+| `Messaging:CreatorSubscribers` | `[]` | Files qui reçoivent `CreatorPublishedV1`, `CreatorUnpublishedV1`, `CreatorPlaceLinkChangedV1` et `FollowChangedV1` (Discovery, T-1205 ; Insights, T-1212). Vide tant qu'aucun service ne les traite. `CreatorTermsAcceptedV1`, le journal admin et les réponses aux droits des données vont toujours à `platform`. |
+| `Messaging:ProjectionSubscribers` (lue par **Catalog**) | `["creators", "discovery"]` | Files qui reçoivent `PoiProjectionChangedV1`. |
+| `Exports:Directory` | dossier temporaire | Dossier de la partie `creators.json` des exports (comme les autres services). |
+
 ## Factory (`factory-api` et `factory-worker`)
 
 Les deux hôtes lisent la même section ; le worker exécute les tâches, l'API enregistre les commandes.

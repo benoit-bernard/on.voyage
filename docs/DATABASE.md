@@ -5,9 +5,9 @@ Source : les `DbContext` et les instantanés de modèle EF Core des quatre servi
 ## Organisation
 
 - **Une base PostgreSQL** (`onvoyage`, image `postgis/postgis:16-3.4`), **un schéma par service**, une `DbContext` par service. Aucun service ne lit le schéma d'un autre : ils échangent des événements d'intégration (voir [ARCHITECTURE.md](ARCHITECTURE.md)).
-- Extensions utilisées : `postgis` (Catalog, Factory), `pg_trgm` (Catalog, Factory), `unaccent` (Catalog). Les migrations les créent (`CREATE EXTENSION IF NOT EXISTS`) : le rôle de connexion doit pouvoir le faire. **pgvector n'est pas utilisé** (le vecteur d'intérêts est un `real[]`, ADR-0011).
+- Extensions utilisées : `postgis` (Catalog, Factory), `pg_trgm` (Catalog, Factory, Creators), `unaccent` (Catalog), `citext` (Creators). Les migrations les créent (`CREATE EXTENSION IF NOT EXISTS`) : le rôle de connexion doit pouvoir le faire. **pgvector n'est pas utilisé** (le vecteur d'intérêts est un `real[]`, ADR-0011).
 - **Un seul rôle de connexion** est utilisé par tous les services (chaîne `ConnectionStrings:onvoyage`). Le rôle par service et par schéma exigé par SEC-07 n'est **pas encore en place** (en staging, l'utilisateur `POSTGRES_USER` est super-utilisateur).
-- Les migrations sont appliquées **au démarrage de chaque hôte** (`Platform:Migrate`, `Catalog:Migrate`, `Discovery:Migrate`, `Factory:Migrate`, vrais par défaut), avant qu'il accepte des requêtes. Elles doivent rester rétrocompatibles d'une version (§21).
+- Les migrations sont appliquées **au démarrage de chaque hôte** (`Platform:Migrate`, `Catalog:Migrate`, `Discovery:Migrate`, `Factory:Migrate`, `Creators:Migrate`, vrais par défaut), avant qu'il accepte des requêtes. Elles doivent rester rétrocompatibles d'une version (§21).
 - Identifiants : UUID v7 (`Guid.CreateVersion7()`), dates en `timestamptz` (UTC).
 - Noms : tables et colonnes en `snake_case` minuscule.
 
@@ -35,6 +35,7 @@ Les durées du §16.2 sont **configurées** dans la clé de configuration distan
 | `platform` | `account`, `otp_challenge`, `refresh_token`, `consent` | e-mail (facultatif), identifiant voyageur, empreintes de codes et de jetons, consentements |
 | `discovery` | `traveler`, `interest_vector`, `interaction`, `poi_rating`, `visit`, `impression` | profil de goûts et historique de lieux (donnée de localisation au sens du RGPD, §16.2), sans coordonnées |
 | `factory` | `story_report` | identifiant voyageur et motif du signalement |
+| `creators` | `follow`, `moderation_case` (référence du voyageur qui signale), `creator` (profil public d'un créateur, identifiant de compte, référence du consentement signé) | abonnements (jamais exposés), signalements, profil publié avec consentement |
 | `catalog` | aucune | contenu éditorial |
 
 Le registre officiel est [PRIVACY.md](PRIVACY.md). La suppression en cascade existe dans `discovery` (toutes les tables filles de `traveler` sont en `ON DELETE CASCADE`) ; l'orchestration de la suppression entre services (F-22, T-507) n'est pas encore écrite.
@@ -830,3 +831,18 @@ Pages vues sur 12 mois par entité et langue (popularité), avec licence.
 
 - Clé primaire : (`qid`, `language`)
 
+### Service Creators — schéma `creators`
+
+Une migration (`Initial`). Colonnes en `snake_case`. Pas de colonne de position (test d'intégration sur le schéma). Détail des décisions : [ADR-0016](adr/0016-creators.md).
+
+| Table | Clé | Colonnes principales | Index et contraintes |
+| --- | --- | --- | --- |
+| `creators.creator` | `id` | `account_id`, `handle citext` (30), `display_name`, `bio`, `avatar_path`, `languages text[]`, `specialties text[]`, `destination_ids uuid[]`, `links jsonb`, `status`, `terms_version`, `terms_document_ref`, `terms_accepted_at`, `founding`, `created_at`, `updated_at` | `ux_creator_handle` (unique, insensible à la casse), `ux_creator_account` (unique, `account_id` non nul), `status in (draft, published, suspended)` |
+| `creators.content_item` | `id` | `creator_id` (cascade), `platform`, `external_id`, `permalink`, `title`, `caption_excerpt` (≤ 500), `published_at`, `duration_s`, `kind`, `cover_path`, `chapters jsonb`, `is_commercial`, `status`, `created_at` | `ux_content_item_platform_external_id` (unique) ; plateforme, type et statut contraints |
+| `creators.place_link` | `id` | `content_id` (cascade, nul pour un conseil seul), `creator_id` (cascade), `poi_id`, `start_s`, `confidence real`, `signals jsonb`, `status`, `validated_at`, `created_at` | unique (`creator_id`, `poi_id`, `content_id`, `start_s`) avec valeurs nulles égales ; (`poi_id`, `status`) ; `status in (proposed, validated, rejected)` |
+| `creators.creator_tip` | (`creator_id`, `poi_id`) | `id` (unique, cible possible d'un signalement), `text` (≤ 280), `updated_at`, `status` | `status in (published, hidden)` |
+| `creators.follow` | (`traveler_id`, `creator_id`) | `followed_at` | index sur `creator_id` ; **jamais exposé** |
+| `creators.poi_directory` | `poi_id` | `destination_id`, `destination_slug`, `name`, `names jsonb` (fr, en, alias), `city`, `importance_score`, `is_published`, `version`, `search_text`, `updated_at` | GIN trigramme sur `search_text` ; **pas de coordonnées** |
+| `creators.moderation_case` | `id` | `target_type`, `target_id`, `reason`, `reporter_ref` (nulle après suppression du compte), `status`, `decision`, `statement_of_reasons`, `created_at`, `decided_at` | (`status`, `created_at`), `reporter_ref`, (`target_type`, `target_id`) |
+
+Hors de cette première livraison : `connected_account`, `creator_list`, `creator_list_item`, `creator_stats_daily` du §11.5.

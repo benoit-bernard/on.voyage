@@ -38,6 +38,8 @@ Configuration YARP de `appsettings.json` (section `ReverseProxy`). « Politique 
 | `platform-public` | `/api/platform/v1/{auth|config}/{**}` | toutes | anonyme | platform-api |
 | `platform` | `/api/platform/{**}` | toutes | `traveler` | platform-api |
 | `insights` | `/api/insights/v1/kpis` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway) |
+| `creators-admin` | `/api/creators/v1/admin/{**}` | toutes | `admin` | creators-api |
+| `creators` | `/api/creators/{**}` | toutes | `traveler` | creators-api |
 | `factory-story-reports` | `/api/factory/v1/stories/{id}/reports` | POST | `traveler` | factory-api |
 | `factory` | `/api/factory/{**}` | toutes | `admin` | factory-api |
 
@@ -90,6 +92,38 @@ Fichiers audio : `GET /media/{chemin}` sur le Gateway (anonyme, GET et HEAD), se
 | `GET /admin/onboarding-clips` | `admin` | requête : `lang` | `AdminClipsDto` (`active`, `candidates`) | |
 | `PUT /admin/onboarding-clips` | `admin` | `{ storyIds }` : exactement 5 extraits de 5 catégories de niveau 1 différentes | `true` | 400 sinon. |
 
+## Creators — `/api/creators/v1`
+
+Voyageur (politique `traveler`, sessions anonymes comprises ; aucune route n'accepte une position) :
+
+| Méthode et chemin | Réponse | Remarques |
+| --- | --- | --- |
+| `GET /creators/{handle}` | `CreatorPageDto` | Insensible à la casse. 404 si le créateur n'est pas publié. Abonnés : `null` sous 20 (`isNew`). Lieux, contenus et liens : validés, en ligne, lieu publié seulement. |
+| `GET /creators?destination&specialty&cursor&limit` | `CreatorListDto` | Tri par nombre de lieux validés ; `cursor` est un décalage ; 20 par page, 50 au plus. |
+| `GET /pois/{poiId}/contents?limit` | `PoiCreatorsDto` | Bloc « Vu par les créateurs » : un élément par créateur, conseil, contenu (lien horodaté si chapitre, drapeau `isCommercial`). Sans vecteur `c` (T-1205). |
+| `PUT` / `DELETE /me/follows/{creatorId}` | `FollowStateDto` | Idempotent ; `FollowChangedV1` publié au premier changement seulement. 404 si le créateur n'est pas publié. |
+| `GET /me/follows` | liste de `FollowedCreatorDto` | Les créateurs publiés que le voyageur suit. |
+| `POST /reports` | 202, `ReportReceiptDto` | `targetType` : `creator`, `content`, `place_link`, `tip` ; `reason` : `inaccurate`, `misleading`, `undeclared_ad`, `inappropriate`, `impersonation`, `other`. Un doublon ouvert renvoie le même dossier. |
+
+Administrateur (politique `admin`, préfixe `/admin`, chaque écriture est journalisée dans Platform) :
+
+| Méthode et chemin | Remarques |
+| --- | --- |
+| `GET /creators?status&search&limit`, `GET /creators/{id}` | Liste et fiche ; `publishBlock` dit pourquoi la publication est impossible (`terms_required`, `specialty_required`). |
+| `POST /creators` | Crée un créateur fondateur en brouillon. 409 `handle_taken` avec une suggestion (`suggestion`). |
+| `PUT /creators/{id}` | Profil. Un profil publié ne peut pas perdre sa dernière spécialité. |
+| `PUT /creators/{id}/consent` | Consentement fondateur : `documentRef` obligatoire (`terms_version = fondateur`). |
+| `PUT /creators/{id}/account` | Rattache le compte (un compte, un créateur). Avec le consentement, `CreatorTermsAcceptedV1` fait donner le rôle `creator` par Platform. |
+| `POST /creators/{id}/publish`, `/unpublish`, `/suspend` | 422 `terms_required` ou `specialty_required` ; motif obligatoire pour dépublier et suspendre. |
+| `POST /creators/{id}/handle-claim` | Le créateur réclame un handle ; son détenteur est dépublié et renommé. |
+| `POST` / `PUT` / `DELETE /creators/{id}/contents[/{contentId}]` | Contenus par URL (YouTube, Instagram, TikTok), chapitres, mention « Publicité ». |
+| `POST` / `PUT` / `DELETE /creators/{id}/place-links[/{linkId}]` | Associations ; validée d'emblée. |
+| `PUT` / `DELETE /creators/{id}/tips/{poiId}` | Conseil (280 caractères) ; crée l'association « conseil seul » si le créateur n'en a pas. |
+| `GET /places?query&destination&limit` | Recherche dans le répertoire (sans accents ni casse). |
+| `GET /moderation?status&limit`, `POST /moderation/{caseId}/decision` | File des signalements (jamais l'auteur) ; décision `dismissed` ou `upheld` (exposé des motifs obligatoire). |
+
+Erreurs : Problem Details avec `type` = `https://on.voyage/problems/<code>` et l'extension `code`.
+
 ## Factory — `/api/factory/v1` (back-office)
 
 Tout est en politique `admin`, sauf le signalement. Chaque écriture est consignée au journal d'audit de Factory (qui, quoi, cible, statut) et publiée à Platform (`AdminActionRecordedV1`). Les tâches longues sont postées sur la file `factory` du worker : la réponse est `202 Accepted`.
@@ -126,4 +160,4 @@ Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /logi
 
 ## Écarts avec le §12 du cahier des charges
 
-Non encore implémentés : `GET /api/platform/v1/me/export` et `DELETE /me` (F-22, T-507), la recherche et les packs du Catalog (`/pois/nearby`, `/pois/bbox`, `/search`, `/packs`), `GET /me/candidates` et les recommandations côté serveur (T-502 à T-505), tous les endpoints Billing, Insights (`/events`, `/kpis`), Ads et Creators. Les chemins du Catalog sont organisés par destination (`/destinations/{slug}/pois`) et non par `nearby`/`bbox`. La liste réelle fait foi.
+Non encore implémentés : `GET /api/platform/v1/me/export` et `DELETE /me` (F-22, T-507), la recherche et les packs du Catalog (`/pois/nearby`, `/pois/bbox`, `/search`, `/packs`), `GET /me/candidates` et les recommandations côté serveur (T-502 à T-505), tous les endpoints Billing et Ads, et, côté Creators, les routes `studio` et `lists` (T-1206, T-1210). Les chemins du Catalog sont organisés par destination (`/destinations/{slug}/pois`) et non par `nearby`/`bbox`. La liste réelle fait foi.
