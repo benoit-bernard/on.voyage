@@ -24,6 +24,7 @@
 Moteur : 18 tests (cosinus, voisins, formule, seuils, poids selon le support, démarrage à froid, somme des poids, explication). Discovery : 8 tests unitaires du job (population trop petite, cas d'une place notée par 2 voisins, démarrage à froid, plafond de 200, déterminisme, nettoyage) et 10 tests d'intégration sur PostgreSQL (voisin au profil identique qui influence le score, support faible = poids réduit, cohorte témoin, suppression en cascade et export, schéma, job périodique, accès admin).
 
 ## Non fait
+- Le drapeau `recommendations_cf` de Platform (§18) n'est pas lu : Discovery n'a pas de projection de la configuration (`config_snapshot`). L'interrupteur est `Discovery:Cf:Enabled` (arrête le job ; les scores déjà calculés restent servis jusqu'à leur remplacement).
 - L'app (T-620) ne lit pas encore `support` ; elle ignore le champ.
 - Pas de parallélisme du passage (séquentiel, sans état partagé : à ajouter si le passage dépasse l'intervalle).
 - Pas d'évaluation hors ligne de la qualité des recommandations collaboratives (pas de jeu de données réel).

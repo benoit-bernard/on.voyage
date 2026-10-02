@@ -37,7 +37,7 @@ Configuration YARP de `appsettings.json` (section `ReverseProxy`). « Politique 
 | `discovery` | `/api/discovery/{**}` | toutes | `traveler` | discovery-api |
 | `platform-public` | `/api/platform/v1/{auth|config}/{**}` | toutes | anonyme | platform-api |
 | `platform` | `/api/platform/{**}` | toutes | `traveler` | platform-api |
-| `insights` | `/api/insights/v1/kpis` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway) |
+| `insights` | `/api/insights/v1/kpis`, `/api/insights/v1/kpis/export` | GET | `admin` | insights-api (**pas encore déployé** : la route répond une erreur du Gateway ; le tableau de bord le dit au lieu d'échouer). `kpis?from&to&destination&cohort` : `cohort` vaut `control` ou `personalized` (toute autre valeur : 400), au plus 400 jours ; clés calculées : `central_ctr_ratio`, `satisfaction`, `activation`, `stories_per_session`, `completion`, `retention_d1/d7/d30`, `ctr_depth_0_9/10_49/50_plus`, `profile_depth_median_d7`, `crash_rate`, `creator_block_ctr`, `creator_follow_rate`, `creator_attributed_installs` |
 | `creators-admin` | `/api/creators/v1/admin/{**}` | toutes | `admin` | creators-api |
 | `creators` | `/api/creators/{**}` | toutes | `traveler` | creators-api |
 | `factory-story-reports` | `/api/factory/v1/stories/{id}/reports` | POST | `traveler` | factory-api |
@@ -170,7 +170,7 @@ Recherche et sélection répondent `429` `youtube_quota_exhausted` quand le quot
 
 ## Back-office web (`web-admin`)
 
-Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/videos`, `/admin/bootstrap`, `/admin/dead-letters`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
+Application Blazor serveur, jamais appelée par l'app. Formulaires : `POST /login/code` (e-mail), `POST /login/verify` (e-mail + code), `POST /logout`. Le cookie `ov_admin` ne contient qu'un identifiant de session opaque ; les jetons Platform restent côté serveur, **en mémoire** : un redémarrage ferme les sessions. Pages : `/admin`, `/admin/kpis` (indicateurs, comparaison « Pour vous » / témoin, export CSV), `/admin/places`, `/admin/workshop`, `/admin/batches`, `/admin/videos`, `/admin/bootstrap`, `/admin/dead-letters`, `/admin/reports`, `/admin/references`, `/admin/config`, `/admin/audit`, `/admin/kpis`. `/health` et `/alive` sans authentification.
 
 ## Écarts avec le §12 du cahier des charges
 

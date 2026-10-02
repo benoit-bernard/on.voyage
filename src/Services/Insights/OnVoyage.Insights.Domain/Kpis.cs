@@ -18,6 +18,11 @@ public static class KpiMetrics
     public const string Installs = "installs";
     public const string Activated = "activated";
     public const string DepthHistogramPrefix = "profile_depth_d7_h";
+    public const string CreatorCardViewed = "creator_card_viewed";
+    public const string CreatorContentOpened = "creator_content_opened";
+    public const string CreatorProfileViewed = "creator_profile_viewed";
+    public const string CreatorFollowed = "creator_followed";
+    public const string InstallAttributed = "install_attributed";
 
     public static string ViewedInBand(string band) => $"rec_viewed_depth_{band}";
 
@@ -86,6 +91,16 @@ public static class KpiCalculator
         Ratio("stories_per_session", KpiMetrics.StoriesStarted, KpiMetrics.Sessions, cohort);
         Ratio("completion", KpiMetrics.StoriesCompleted, KpiMetrics.StoriesStarted, cohort);
         Ratio("crash_rate", KpiMetrics.SessionsWithCrash, KpiMetrics.Sessions, cohort);
+
+        // Creators (§26): click rate of the "Vu par les créateurs" block, follow rate once a creator's profile is open, installs that came through a creator link.
+        Ratio("creator_block_ctr", KpiMetrics.CreatorContentOpened, KpiMetrics.CreatorCardViewed, cohort);
+        Ratio("creator_follow_rate", KpiMetrics.CreatorFollowed, KpiMetrics.CreatorProfileViewed, cohort);
+        var attributed = Sum(KpiMetrics.InstallAttributed, cohort);
+        var installs = Sum(KpiMetrics.Installs, cohort);
+        if (attributed > 0 && installs > 0)
+        {
+            result["creator_attributed_installs"] = new KpiValue(attributed, (long)installs);
+        }
         foreach (var days in KpiMetrics.RetentionDays)
         {
             Ratio($"retention_d{days}", KpiMetrics.RetentionReturned(days), KpiMetrics.RetentionBase(days), cohort);

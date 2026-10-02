@@ -82,6 +82,33 @@ public sealed class DomainTests
     }
 
     [Fact]
+    public void The_creator_indicators_are_a_click_rate_a_follow_rate_and_a_count_of_attributed_installs()
+    {
+        KpiTotal[] totals =
+        [
+            T("personalized", KpiMetrics.CreatorCardViewed, 200), T("personalized", KpiMetrics.CreatorContentOpened, 50), T("control", KpiMetrics.CreatorCardViewed, 100), T("control", KpiMetrics.CreatorContentOpened, 5),
+            T("personalized", KpiMetrics.CreatorProfileViewed, 40), T("personalized", KpiMetrics.CreatorFollowed, 10),
+            T("personalized", KpiMetrics.Installs, 60), T("control", KpiMetrics.Installs, 40), T("personalized", KpiMetrics.InstallAttributed, 12),
+        ];
+
+        var all = KpiCalculator.Compute(totals, null);
+        all["creator_block_ctr"].ShouldBe(new KpiValue(55d / 300, 300));
+        all["creator_follow_rate"].ShouldBe(new KpiValue(0.25, 40));
+        all["creator_attributed_installs"].ShouldBe(new KpiValue(12, 100));
+        KpiCalculator.Compute(totals, "control")["creator_block_ctr"].ShouldBe(new KpiValue(0.05, 100));
+        KpiCalculator.Compute(totals, "control").ShouldNotContainKey("creator_follow_rate");
+        KpiCalculator.Compute(totals, "control").ShouldNotContainKey("creator_attributed_installs");
+    }
+
+    [Fact]
+    public void Nothing_is_invented_for_creators_without_any_event()
+    {
+        var values = KpiCalculator.Compute([T("personalized", KpiMetrics.Installs, 10)], null);
+
+        values.Keys.ShouldNotContain(key => key.StartsWith("creator_", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void The_funnel_indicators_are_ratios_of_their_components()
     {
         var values = KpiCalculator.Compute(

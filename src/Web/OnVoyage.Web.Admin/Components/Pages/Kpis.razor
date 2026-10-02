@@ -16,6 +16,12 @@
             <label for="to">Au</label>
             <input id="to" type="date" @bind="_to" />
         </div>
+        <div class="presets" role="group" aria-label="Périodes usuelles">
+            @foreach (var days in Presets)
+            {
+                <button type="button" class="ghost" data-days="@days" disabled="@Busy" @onclick="() => ApplyPreset(days)">@days jours</button>
+            }
+        </div>
         <div>
             <label for="destination">Destination</label>
             <select id="destination" @bind="_destination">
@@ -29,18 +35,36 @@
         <div>
             <label for="cohort">Cohorte</label>
             <select id="cohort" @bind="_cohort">
-                <option value="">Toutes</option>
-                <option value="personalised">« Pour vous »</option>
+                <option value="">Toutes, avec comparaison</option>
+                <option value="personalized">« Pour vous »</option>
                 <option value="control">Témoin (20 %)</option>
             </select>
         </div>
         <button type="button" class="primary" disabled="@Busy" @onclick="LoadReport">Afficher</button>
+        @if (CsvLink is { } csv)
+        {
+            <a class="button" id="export" download="@csv.FileName" href="@csv.Href">Exporter en CSV</a>
+        }
     </div>
 </section>
 
-@if (_loaded && _report is null)
+@if (_loaded && _main is null)
 {
     <p class="alert warn" role="status">Le service Insights n'est pas encore branché : aucune valeur à afficher. Les indicateurs et leurs cibles (§26) sont listés ci-dessous.</p>
+}
+else if (_loaded && _main is { Values.Count: 0 })
+{
+    <p class="alert warn" role="status" id="empty">
+        Aucune donnée sur cette période.
+        @if (_destination.Length > 0)
+        {
+            <text>Les événements ne sont pas encore rattachés à une destination : retirez ce filtre pour voir les chiffres.</text>
+        }
+        else
+        {
+            <text>Aucun événement n'a été reçu, ou aucun voyageur n'a encore accepté les statistiques d'usage.</text>
+        }
+    </p>
 }
 
 @foreach (var family in KpiCatalog.All.GroupBy(definition => definition.Family))
@@ -52,20 +76,20 @@
             <tbody>
                 @foreach (var definition in family)
                 {
-                    var reading = _report?.Values.GetValueOrDefault(definition.Key);
+                    var reading = _main?.Values.GetValueOrDefault(definition.Key);
                     var status = KpiCatalog.Evaluate(definition, reading);
-                    <tr class="kpi @status.ToString().ToLowerInvariant()">
+                    <tr class="kpi @status.ToString().ToLowerInvariant()" data-key="@definition.Key">
                         <td>@definition.Label@if (definition.Hint is not null) { <br /><span class="muted">@definition.Hint</span> }</td>
-                        <td>@(reading?.Value is { } value ? KpiCatalog.Format(definition, value) : "—")@if (reading is { Sample: > 0 }) { <br /><span class="muted">sur @reading.Sample.ToString("N0", System.Globalization.CultureInfo.GetCultureInfo("fr-FR"))</span> }</td>
+                        <td>@(reading?.Value is { } value ? KpiCatalog.Format(definition, value) : "—")@if (reading is { Sample: > 0 }) { <br /><span class="muted">sur @reading.Sample.ToString("N0", French)</span> }</td>
                         <td>@KpiCatalog.FormatTarget(definition)</td>
-                        <td>@StatusLabel(status)</td>
+                        <td>@StatusLabel(status)@if (status == KpiStatus.NotProduced) { <br /><span class="muted">@definition.Source</span> }</td>
                     </tr>
                 }
             </tbody>
         </table>
-        @if (family.Key == "KPI stratégique" && _report is not null)
+        @if (family.Key == "KPI stratégique" && _main is not null)
         {
-            var rises = KpiCatalog.DepthRisesWithProfile(_report.Values);
+            var rises = KpiCatalog.DepthRisesWithProfile(_main.Values);
             <p class="@(rises == true ? "ok-text" : rises == false ? "bad" : "muted")" id="depth-trend">
                 @(rises switch { true => "Le taux de clic croît bien avec la profondeur du profil.", false => "Le taux de clic ne croît pas d'une tranche à l'autre : l'hypothèse n'est pas confirmée.", _ => "Pas encore assez de données pour comparer les tranches." })
             </p>
@@ -73,14 +97,78 @@
     </section>
 }
 
+@if (_cohort.Length == 0 && _loaded && (_personalized is not null || _control is not null))
+{
+    <section class="card" id="comparison">
+        <h2>« Pour vous » contre témoin</h2>
+        <p class="muted">Mêmes indicateurs, calculés séparément pour chaque cohorte sur la période. L'écart est « Pour vous » moins témoin.</p>
+        @if (ComparedRows.Count == 0)
+        {
+            <p class="muted" id="comparison-empty">Aucun indicateur n'a de valeur dans les deux cohortes pour l'instant.</p>
+        }
+        else
+        {
+            <table>
+                <thead><tr><th>Indicateur</th><th>« Pour vous »</th><th>Témoin</th><th>Écart</th></tr></thead>
+                <tbody>
+                    @foreach (var row in ComparedRows)
+                    {
+                        <tr data-key="@row.Definition.Key">
+                            <td>@row.Definition.Label</td>
+                            <td>@Cell(row.Definition, row.Personalized)</td>
+                            <td>@Cell(row.Definition, row.Control)</td>
+                            <td>@(KpiCatalog.FormatGap(row.Definition, row.Personalized, row.Control) ?? "—")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        @if (_control is { Values.Count: 0 })
+        {
+            <p class="muted" id="control-empty">La cohorte témoin n'a encore aucune donnée sur cette période.</p>
+        }
+    </section>
+}
+
 @code {
+    private static readonly System.Globalization.CultureInfo French = System.Globalization.CultureInfo.GetCultureInfo("fr-FR");
+    private static readonly int[] Presets = [7, 30, 90];
+
+    private sealed record Compared(KpiDefinition Definition, KpiReading? Personalized, KpiReading? Control);
+
+    private sealed record CsvFile(string FileName, string Href);
+
     private IReadOnlyList<DestinationItem> _destinations = [];
-    private KpiReport? _report;
+    private KpiReport? _main;
+    private KpiReport? _personalized;
+    private KpiReport? _control;
     private bool _loaded;
     private DateTime _from;
     private DateTime _to;
     private string _destination = string.Empty;
     private string _cohort = string.Empty;
+
+    /// <summary>The indicators that have a value in at least one cohort, in the order of the catalogue.</summary>
+    private IReadOnlyList<Compared> ComparedRows => [.. KpiCatalog.All
+        .Where(definition => definition.PerCohort)
+        .Select(definition => new Compared(definition, _personalized?.Values.GetValueOrDefault(definition.Key), _control?.Values.GetValueOrDefault(definition.Key)))
+        .Where(row => row.Personalized?.Value is not null || row.Control?.Value is not null)];
+
+    private CsvFile? CsvLink
+    {
+        get
+        {
+            if (!_loaded || (_main is null && _personalized is null && _control is null))
+            {
+                return null;
+            }
+
+            var csv = KpiCsv.Build([("toutes", _main), ("personalized", _personalized), ("control", _control)]);
+            var bytes = System.Text.Encoding.UTF8.GetPreamble().Concat(System.Text.Encoding.UTF8.GetBytes(csv)).ToArray();
+            var scope = _destination.Length > 0 ? $"-{_destination}" : string.Empty;
+            return new CsvFile($"indicateurs-{DateOnly.FromDateTime(_from):yyyyMMdd}-{DateOnly.FromDateTime(_to):yyyyMMdd}{scope}.csv", $"data:text/csv;charset=utf-8;base64,{Convert.ToBase64String(bytes)}");
+        }
+    }
 
     protected override async Task OnInitializedAsync()
     {
@@ -88,6 +176,13 @@
         _to = today;
         _from = today.AddDays(-30);
         _destinations = await LoadAsync(() => Api.GetDestinationsAsync()) ?? [];
+        await LoadReport();
+    }
+
+    private async Task ApplyPreset(int days)
+    {
+        _to = Clock.GetUtcNow().UtcDateTime.Date;
+        _from = _to.AddDays(-days);
         await LoadReport();
     }
 
@@ -99,10 +194,43 @@
             return;
         }
 
+        if ((_to - _from).TotalDays >= 400)
+        {
+            Error = "Une période compte au plus 400 jours.";
+            return;
+        }
+
         Error = null;
-        _report = await LoadAsync(() => Api.GetKpisAsync(DateOnly.FromDateTime(_from), DateOnly.FromDateTime(_to), _destination, _cohort));
+        var from = DateOnly.FromDateTime(_from);
+        var to = DateOnly.FromDateTime(_to);
+        var destination = _destination.Length > 0 ? _destination : null;
+        if (_cohort.Length > 0)
+        {
+            _main = await LoadAsync(() => Api.GetKpisAsync(from, to, destination, _cohort));
+            _personalized = null;
+            _control = null;
+        }
+        else
+        {
+            _main = await LoadAsync(() => Api.GetKpisAsync(from, to, destination, null));
+            if (_main is null)
+            {
+                _personalized = null;
+                _control = null;
+            }
+            else
+            {
+                _personalized = await LoadAsync(() => Api.GetKpisAsync(from, to, destination, "personalized"));
+                _control = await LoadAsync(() => Api.GetKpisAsync(from, to, destination, "control"));
+            }
+        }
+
         _loaded = true;
     }
+
+    private static string Cell(KpiDefinition definition, KpiReading? reading) => reading?.Value is { } value
+        ? $"{KpiCatalog.Format(definition, value)} (sur {reading.Sample.ToString("N0", French)})"
+        : "—";
 
     private static string StatusLabel(KpiStatus status) => status switch
     {
@@ -110,6 +238,7 @@
         KpiStatus.Missed => "Non atteinte",
         KpiStatus.SampleTooSmall => "Échantillon trop petit",
         KpiStatus.Tracked => "Suivi",
+        KpiStatus.NotProduced => "Pas encore branché",
         _ => "Pas de données",
     };
 }

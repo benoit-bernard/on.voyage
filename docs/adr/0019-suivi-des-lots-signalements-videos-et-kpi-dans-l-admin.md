@@ -37,3 +37,17 @@
 - **Cache** (`youtube_search`, 24 h) : la même recherche (casse et espaces ignorés) ne coûte rien. Une recherche en échec n'est ni comptée ni mise en cache.
 - **Interface** : la ligne « Quota YouTube du jour » (unités, recherches possibles, remise à zéro) dans la fiche du lieu et sur la nouvelle page `/admin/videos`, qui liste toutes les vidéos choisies par lieu et destination, avec retrait. Liens sortants (`rel="noopener noreferrer"`), aucune intégration.
 - Le comptage est tenu par nous, pas relu chez YouTube (l'API n'expose pas le quota restant) : si la clé sert à autre chose, le compteur sous-estime ; le 403 de YouTube reste le dernier garde-fou.
+
+## 4. Tableau de bord des indicateurs (T-406)
+
+**Ce qui existait** : `/admin/kpis` lisait `GET /api/insights/v1/kpis` (période, destination, cohorte) et affichait le catalogue du §26 avec cible, échantillon minimal et verdict (atteinte, non atteinte, échantillon trop petit, suivi, pas de données), la tendance du KPI stratégique par tranche de profondeur, et un message quand Insights n'est pas branché.
+
+**Ce qui est ajouté**
+- **Un défaut corrigé** : la liste des cohortes proposait `personalised`, qu'Insights refuse (400, il attend `personalized`) : choisir « Pour vous » ne pouvait jamais fonctionner. Un test compare les choix de la page à `Cohorts.All` d'Insights.
+- **Comparaison des cohortes** : sans cohorte choisie, la page interroge Insights trois fois (toutes, `personalized`, `control`) et affiche, indicateur par indicateur, les deux valeurs avec leur échantillon et l'écart (points pour un pourcentage). Le ratio central en est exclu (il compare déjà les deux cohortes). Un indicateur sans valeur dans aucune des deux n'apparaît pas ; une cohorte témoin vide est signalée.
+- **Filtres** : périodes usuelles (7, 30, 90 jours), destination, cohorte ; une période de plus de 400 jours est refusée avant l'appel (c'est la limite d'Insights).
+- **Export CSV** sans JavaScript ni route de plus : un lien `data:` (UTF-8 avec BOM, décimales à point) généré depuis ce qui est affiché, une ligne par indicateur et cohorte (`indicateur, famille, libellé, cohorte, valeur, échantillon, cible, état`). Il complète `GET /kpis/export` d'Insights, qui exporte les composantes journalières brutes.
+- **États vides** : Insights absent ; période sans événement (message distinct selon qu'une destination est filtrée : Insights ne rattache pas encore les événements à une destination, filtrer donne donc un tableau vide) ; indicateur sans donnée ; échantillon trop petit.
+- **Tous les indicateurs du §26** : le catalogue compte les 22 indicateurs, dont trois ajoutés pour les créateurs (taux de clic du bloc « Vu par les créateurs », taux de suivi, installations attribuées) que **Insights calcule désormais** à partir de `creator_card_viewed`, `creator_content_opened`, `creator_profile_viewed`, `creator_followed` et `install_attributed`. Six indicateurs ne viennent pas d'Insights et sont affichés « Pas encore branché » avec leur source : écoutes sur lieux pépites (Catalog), clics « Alternative » (la surface n'est pas distinguée), signalements pour 100 écoutes (Factory), latence P95 (observabilité), créateurs actifs et lieux avec contenu créateur (Creators, Catalog). Un test garantit que le catalogue contient exactement ce que `KpiCalculator` calcule, plus ces six-là.
+
+**Limites** : pas de graphique d'évolution dans le temps (le contrat d'Insights renvoie des totaux de période) ; la comparaison coûte trois appels ; les six indicateurs « pas encore branchés » restent à alimenter.

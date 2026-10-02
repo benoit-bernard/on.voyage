@@ -89,6 +89,33 @@ public sealed class InsightsKpiTests(PostgresFixture postgres) : IAsyncLifetime
                 }
             }
 
+            // Creators: every traveler sees 2 creator cards; 12 personalized and 4 control travelers open one (block click rate 0.30 / 0.10);
+            // 10 personalized travelers open a creator profile and 3 follow; 5 personalized installs came through a creator link.
+            for (var c = 0; c < 2; c++)
+            {
+                events.Add(Ev("creator_card_viewed", At(day0, 60 + c), session0, new() { ["creator_id"] = J("c1"), ["content_id"] = J($"x{c}"), ["poi_id"] = J("poi-1"), ["surface"] = J("place") }));
+            }
+
+            if (personalized ? n < 12 : n < 4)
+            {
+                events.Add(Ev("creator_content_opened", At(day0, 63), session0, new() { ["creator_id"] = J("c1"), ["content_id"] = J("x0"), ["poi_id"] = J("poi-1"), ["surface"] = J("place") }));
+            }
+
+            if (personalized && n < 10)
+            {
+                events.Add(Ev("creator_profile_viewed", At(day0, 64), session0, new() { ["creator_id"] = J("c1") }));
+            }
+
+            if (personalized && n < 3)
+            {
+                events.Add(Ev("creator_followed", At(day0, 65), session0, new() { ["creator_id"] = J("c1") }));
+            }
+
+            if (personalized && n < 5)
+            {
+                events.Add(Ev("install_attributed", At(day0, 66), session0, new() { ["creator_handle"] = J("marie") }));
+            }
+
             // Two crashes among the sessions that sent usage events.
             if (personalized && n < 2)
             {
@@ -156,6 +183,13 @@ public sealed class InsightsKpiTests(PostgresFixture postgres) : IAsyncLifetime
         V(values, "completion").ShouldBe(42d / 56, 1e-9);
         V(values, "crash_rate").ShouldBe(2d / 59, 1e-9);
 
+        // Creators: 16 opens on 80 cards; 3 follows on 10 profile views; 5 attributed installs among the 40.
+        V(values, "creator_block_ctr").ShouldBe(16d / 80, 1e-9);
+        S(values, "creator_block_ctr").ShouldBe(80);
+        V(values, "creator_follow_rate").ShouldBe(0.3, 1e-9);
+        V(values, "creator_attributed_installs").ShouldBe(5, 1e-9);
+        S(values, "creator_attributed_installs").ShouldBe(40);
+
         // The strategic KPI: the click rate rises with the profile depth (personalized cohort, 100 views per tranche).
         V(values, "ctr_depth_0_9").ShouldBe(0.2, 1e-9);
         V(values, "ctr_depth_10_49").ShouldBe(0.4, 1e-9);
@@ -167,6 +201,9 @@ public sealed class InsightsKpiTests(PostgresFixture postgres) : IAsyncLifetime
         var control = (await admin.GetFromJsonAsync<JsonElement>($"/api/insights/v1/kpis?{period}&cohort=control", Ct)).GetProperty("values");
         V(control, "activation").ShouldBe(0.5, 1e-9);
         V(control, "retention_d1").ShouldBe(0.25, 1e-9);
+        V(control, "creator_block_ctr").ShouldBe(0.1, 1e-9);
+        control.TryGetProperty("creator_follow_rate", out _).ShouldBeFalse(); // no control traveler opened a profile
+        control.TryGetProperty("creator_attributed_installs", out _).ShouldBeFalse();
         control.TryGetProperty("central_ctr_ratio", out _).ShouldBeFalse(); // a ratio of two cohorts says nothing about one
         control.TryGetProperty("satisfaction", out _).ShouldBeFalse();      // nobody in the control cohort rated anything
 
